@@ -11,6 +11,8 @@ Dependencies
 - ffmpeg-python
 - tqdm
 - numpy
+- soundfile
+- scipy
 - os-helper
 
 Authors:
@@ -31,6 +33,11 @@ import ffmpeg
 from tqdm import tqdm
 import concurrent.futures
 import numpy as np
+import soundfile as sf
+from scipy.signal import resample
+import scipy.io.wavfile
+from scipy.signal import correlate
+import warnings
 
 
 def _overwrite_audio_file(output_audio_filename: str, overwrite: bool = True) -> Union[str, None]:
@@ -186,9 +193,10 @@ def load_audio(
     to_mono: bool = True,
     to_numpy: bool = False,
     two_channels: bool = False,
-) -> tuple[torch.Tensor, int]:
+) -> tuple[Union[torch.Tensor,np.ndarray], int]:
     """
-    Load an audio file and optionally resample, convert to mono or stereo, and return as a NumPy array.
+    Load an audio file using soundfile, optionally resample, convert to mono or stereo,
+    and return as a torch.Tensor (or optionally as a NumPy array).
 
     Parameters
     ----------
@@ -199,7 +207,7 @@ def load_audio(
     to_mono : bool, optional
         Whether to convert the audio to mono (default is True).
     to_numpy : bool, optional
-        Whether to convert the audio to a NumPy array (default is False).
+        Whether to return the audio as a NumPy array (default is False). Otherwise, returns a torch.Tensor.
     two_channels : bool, optional
         Whether to force the audio into two channels (stereo).
 
@@ -210,53 +218,46 @@ def load_audio(
     int
         Sample rate of the loaded audio.
     """
-    torchaudio.set_audio_backend("sox_io")
-    os_helper.checkfile(file_path, msg=f"Audio file not found at {file_path}")
-    os_helper.check(
-        is_valid_audio_file(file_path),
-        msg=f"Invalid audio file (impossible to load): {file_path}",
-    )
 
-    _,_,ext = os_helper.folder_name_ext(file_path)
-    if not(ext.lower() == "wav"):
-        with os_helper.temporary_filename(suffix=".wav", mode="wb") as wav_audio_file:
-            ffmpeg.input(file_path).output(wav_audio_file).run(overwrite_output=True, quiet=True)
-            audio, sample_rate = torchaudio.load(wav_audio_file, format='wav')
-    else:
-        print(file_path)
-        audio, sample_rate = torchaudio.load(file_path, format='wav')
+    # Load the audio using soundfile thay gives (time, channels) shape
+    audio, sample_rate = sf.read(file_path, always_2d=True)
 
     if target_sample_rate is None:
         target_sample_rate = sample_rate
 
     if sample_rate != target_sample_rate:
-        resampler = torchaudio.transforms.Resample(
-            orig_freq=sample_rate, new_freq=target_sample_rate
-        )
-        audio = resampler(audio)
+        num_samples = int(len(audio) * target_sample_rate / sample_rate)
+        # scipy.signal.resample expects (time, channels) shape
+        audio = resample(audio, num_samples)
+        sample_rate = target_sample_rate
 
-    if to_mono and not two_channels:
-        audio = audio.mean(dim=0)
 
-    os_helper.info(
-        f"Loaded audio file {file_path} with shape {audio.shape} and sample rate {target_sample_rate}"
-    )
+    # If mono is requested, average the channels
+    if to_mono:
+        audio = np.mean(audio, axis=1)
+
 
     if two_channels:
-        if audio.shape[0] == 1:
-            audio = torch.cat([audio, audio], dim=0)
-        elif audio.shape[0] > 2:
+        if len(audio.shape) == 1:
+            audio = np.vstack([audio,audio])
+        elif len(audio.shape) > 2 and audio.shape[1] == 1:
+            t = audio.ravel()
+            audio = np.vstack([t,t])
+        else:
             # Split audio into two channels by averaging left and right parts
-            audio_left = audio[: audio.shape[0] // 2].mean(dim=0)
-            audio_right = audio[audio.shape[0] // 2 :].mean(dim=0)
-            audio = torch.cat([audio_left, audio_right], dim=0)
+            audio_left = np.mean(audio[:, : audio.shape[1] // 2], axis=1)
+            audio_right = np.mean(audio[:, audio.shape[1] // 2 : ], axis=1)
+            audio = np.vstack([audio_left,audio_right])
+
+        audio = audio.T
 
     if to_numpy:
-        audio = audio.numpy()
+        return audio, sample_rate
+    
+    # Convert the audio to a torch.Tensor with (channels, time) shape
+    audio = torch.from_numpy(audio.T)
 
-    return audio, target_sample_rate
-
-
+    return audio, sample_rate
 
 def sound_converter(
     input_audio: str,
@@ -362,6 +363,49 @@ def sound_converter(
     return output_audio
 
 
+def save_audio(signal: Union[torch.Tensor, np.ndarray], file_path: str, sample_rate: int=44100) -> None:
+    """
+    save_audio saves a torch.Tensor or a NumPy array as an audio file using torchaudio or scipy.
+
+    Parameters
+    ----------
+    signal : torch.Tensor or np.ndarray
+        The audio signal to save.
+    file_path : str
+        Path to the output audio file.
+    sample_rate : int
+        The sample rate of the audio signal.
+
+    Raises
+    ------
+    Error
+        If the audio signal is not a torch.Tensor or a NumPy array.
+
+    """    
+    if isinstance(signal, torch.Tensor): # (channels, time) convention
+
+        signal = signal.detach().cpu().numpy()
+        if len(signal.shape) == 1:
+            signal = signal.reshape(1,-1) # (1, time) convention
+
+        signal = signal.T # transpose to the (time, channels) convention
+        save_audio(signal, sample_rate, file_path)
+
+    elif isinstance(signal, np.ndarray): # (time, channels) convention
+        _,_,ext = os_helper.folder_name_ext(file_path)
+        if ext.lower() == "wav":
+            scipy.io.wavfile.write(file_path, sample_rate, signal)
+        else:
+            with os_helper.temporary_filename(suffix=".wav", mode="wb") as wav_audio_file:
+                scipy.io.wavfile.write(wav_audio_file, sample_rate, signal)
+                channels = 1 if len(signal.shape)==1 else signal.shape[1]
+                sound_converter(input_audio = wav_audio_file, output_audio=file_path, freq=sample_rate, channels=channels, encoding="pcm_s16le", overwrite=True)
+
+        os_helper.check(is_valid_audio_file(file_path), msg=f"Audio file not saved to {file_path}")
+        os_helper.info(f"Audio signal saved to {file_path}")
+
+
+
 def _separate_sources(
     model: torch.nn.Module,
     mix: torch.Tensor,
@@ -435,6 +479,8 @@ def _separate_sources(
 
     # Move the audio mixture and the model to the specified device
     mix.to(device)
+    mix = mix.float() # Convert mix to float32
+
     model.to(device)
 
     # Get the batch size, number of channels, and length of the audio mixture
@@ -563,7 +609,7 @@ def separate_sources(
     audio files in the specified or generated output folder.
     """
 
-    global separator_engine
+    global separator_engine, separator_engine_sample_rate
     os_helper.info(f"Separating sources for:\n\t{input_audio_file}")
 
     # Set up the output folder if not specified
@@ -623,23 +669,28 @@ def separate_sources(
     # Dictionary to store the output file paths for each source
     res = {}
     for stem in sources_list:
-        audio = sources.pop(0)
-        # Merge the audio channels
-        audio = audio.mean(0).unsqueeze(0)
-        # Save the output audio files as with format set by output_format
-        if output_format == "wav":
-            wav_audio_file = os_helper.os_path_constructor([output_folder, f"{stem}.wav"])
-            torchaudio.save(wav_audio_file, audio, sample_rate)
-            res[stem] = wav_audio_file
-        else:
-            with os_helper.temporary_filename(suffix=".wav", mode="wb") as wav_audio_file:
-                torchaudio.save(wav_audio_file, audio, sample_rate)
-                output_audio_file = os_helper.os_path_constructor(
-                    [output_folder, f"{stem}.{output_format}"]
-                )
-                sound_converter(wav_audio_file, output_audio_file, freq=sample_rate)
-                os_helper.info(f"Saved {stem} to {output_audio_file}")
-                res[stem] = output_audio_file
+        audio = sources.pop(0) # in (channels, time) shape
+        # convert it in scipy (time, channels) shape
+        audio = audio.detach().cpu().numpy().T
+        # reduce to mono which means channels = 1
+        audio = np.mean(audio, axis=1)
+        # check sample rate
+        if sample_rate != separator_engine_sample_rate:        
+            resampler = torchaudio.transforms.Resample(
+                orig_freq=separator_engine_sample_rate, new_freq=sample_rate
+            )
+            audio = resampler(audio)
+
+        os_helper.make_directory(output_folder)
+        output_audio_file = os_helper.os_path_constructor(
+                            [output_folder, f"{stem}.{output_format}"]
+                        )
+        save_audio(audio, output_audio_file, sample_rate)
+        res[stem] = output_audio_file
+
+        os_helper.info(f"Saved {stem} to\n\t{output_audio_file}")
+        
+
 
     return res
 
@@ -786,12 +837,15 @@ def generate_silent_audio(
     # Control ffmpeg's verbosity based on environment settings
     quiet = os_helper.verbosity() == 0
 
-    # Use ffmpeg to generate the silent audio file
-    (
-        ffmpeg.input(f"anullsrc=r={sample_rate}:cl=stereo", f="lavfi")
-        .output(output_audio_filename, t=duration)
-        .run(overwrite_output=True, quiet=quiet)
-    )
+    # Just make zeros
+    zeros = np.zeros(int(duration * sample_rate))
+    _,_,ext = os_helper.folder_name_ext(output_audio_filename)
+    if ext.lower() == "wav":
+        sf.write(output_audio_filename, zeros, sample_rate)
+    else:
+        with os_helper.temporary_filename(suffix=".wav", mode="wb") as temp_wav:
+            sf.write(temp_wav, zeros, sample_rate)
+            sound_converter(temp_wav, output_audio_filename, freq=sample_rate)
 
     # Verify that the file was successfully generated and is valid
     os_helper.checkfile(
@@ -803,8 +857,8 @@ def generate_silent_audio(
         msg=f"Generated silent audio file is invalid: {output_audio_filename}",
     )
 
-    t = load_audio(output_audio_filename, to_numpy=True, to_mono=True)
-    os_helper.check(np.sum(t) == 0, msg=f"Generated silent audio file is not silent:\n\t{output_audio_filename}")
+    signal, sample_rate = load_audio(output_audio_filename, to_numpy=True, to_mono=True)
+    os_helper.check(np.sum(np.abs(signal)) == 0, msg=f"Generated silent audio file is not silent:\n\t{output_audio_filename}")
 
     os_helper.info(f"Generated silent audio file: {output_audio_filename}")
 
@@ -926,6 +980,7 @@ def split_audio_regularly(sound_path: str, chunk_folder: str, split_time: float,
     # Ensure the output directory exists
     os_helper.make_directory(chunk_folder)
 
+
     # Calculate the total duration of the audio file
     total_duration = get_audio_duration(sound_path)
 
@@ -950,7 +1005,7 @@ def split_audio_regularly(sound_path: str, chunk_folder: str, split_time: float,
         )
         s = time_cursor
         e = min(time_cursor + split_time, total_duration)
-        extract_audio_chunk(sound_path, s, e, chunk_path)
+        extract_audio_chunk(sound_path, s, e, output_audio_filename = chunk_path, overwrite=True)
         added_duration = get_audio_duration(chunk_path)
         os_helper.info(
             f"Chunk {counter:04d} of duration {added_duration} saved to:\n\t{chunk_path}"
@@ -965,3 +1020,64 @@ def split_audio_regularly(sound_path: str, chunk_folder: str, split_time: float,
     )
 
     return output_audio_paths
+
+
+
+def sound_resemblance(audio_file_1: str, audio_file_2: str, window_seconds: float = None) -> float:
+    """
+    Measure the resemblance between two audio files using the correlation coefficient.
+
+    Score is between 0 and 1.
+    The closer to 1, the more similar the signals.
+    The closer to 0, the more different the signals.
+
+    Parameters
+    ----------
+    audio_file_1 : str
+        Path to the first audio file.
+    audio_file_2 : str
+        Path to the second audio file.
+    window_seconds : float, optional
+        The duration of the window in seconds to compute the correlation (default is None).
+
+    Returns
+    -------
+    float
+        Absolute value of the correlation coefficient between the two audio signals within a delay of a window (if defined).
+    """
+    sample_rate = 44100
+    # Load audio files, convert to mono and numpy arrays, resample to target sample rate
+    audio_1, _ = load_audio(audio_file_1, to_numpy=True, to_mono=True, target_sample_rate=sample_rate)
+    audio_2, _ = load_audio(audio_file_2, to_numpy=True, to_mono=True, target_sample_rate=sample_rate)
+
+    # Ensure both audio files are of the same length by truncating the longer one
+    min_len = min(len(audio_1), len(audio_2))
+    audio_1 = audio_1[:min_len]
+    audio_2 = audio_2[:min_len]
+
+    # Calculate the energy of both audio signals
+    energy_audio_1 = np.sum(audio_1**2)
+    energy_audio_2 = np.sum(audio_2**2)
+
+    # Compute the cross-correlation between the two signals
+    correlation = correlate(audio_1, audio_2)
+
+    # Normalize the correlation to account for energy levels
+    correlation /= np.sqrt(energy_audio_1 * energy_audio_2)
+
+    # Find the index of the maximum correlation (this corresponds to the delay in samples)
+    delay_samples = np.argmax(correlation) - (len(audio_1) - 1)
+
+    # Convert delay from samples to seconds
+    delay_seconds = delay_samples / sample_rate
+
+    # If window_seconds is provided, limit the correlation range
+    if window_seconds is not None:
+        max_lag = int(window_seconds * sample_rate)
+        mid_point = len(correlation) // 2
+        correlation_window = correlation[mid_point - max_lag : mid_point + max_lag + 1]
+        max_correlation = np.max(np.abs(correlation_window))
+    else:
+        max_correlation = np.max(np.abs(correlation))
+
+    return max_correlation
