@@ -1,5 +1,5 @@
 """
-Audio Processing Utility Module
+Audio Helper
 
 This module provides a set of functions to process audio files using PyTorch, torchaudio, ffmpeg, and various helper functions.
 The main functionalities include loading, converting, and separating audio sources, as well as splitting and concatenating audio files.
