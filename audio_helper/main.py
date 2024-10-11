@@ -210,13 +210,21 @@ def load_audio(
     int
         Sample rate of the loaded audio.
     """
+    torchaudio.set_audio_backend("sox_io")
     os_helper.checkfile(file_path, msg=f"Audio file not found at {file_path}")
     os_helper.check(
         is_valid_audio_file(file_path),
         msg=f"Invalid audio file (impossible to load): {file_path}",
     )
 
-    audio, sample_rate = torchaudio.load(file_path)
+    _,_,ext = os_helper.folder_name_ext(file_path)
+    if not(ext.lower() == "wav"):
+        with os_helper.temporary_filename(suffix=".wav", mode="wb") as wav_audio_file:
+            ffmpeg.input(file_path).output(wav_audio_file).run(overwrite_output=True, quiet=True)
+            audio, sample_rate = torchaudio.load(wav_audio_file, format='wav')
+    else:
+        print(file_path)
+        audio, sample_rate = torchaudio.load(file_path, format='wav')
 
     if target_sample_rate is None:
         target_sample_rate = sample_rate
@@ -325,7 +333,7 @@ def sound_converter(
                 overwrite_output=True, quiet=quiet
             )
         else:
-            os_helper.copy_files([input_audio], [first_wav])
+            os_helper.copyfile(input_audio, first_wav)
 
 
         # Convert the temporary WAV file to another WAV file with specified parameters
@@ -339,7 +347,7 @@ def sound_converter(
                 overwrite_output=True, quiet=quiet
             )
         else:
-            os_helper.copy_files([second_wav], [output_audio])
+            os_helper.copyfile(second_wav, output_audio)
 
     # Check if the output audio file was successfully created
     os_helper.checkfile(
