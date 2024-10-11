@@ -17,16 +17,18 @@ We recommend using Python environments. Check this link if you're unfamiliar wit
 [🥸 Tech tips](https://harchaoui.org/warith/4ml/#install)
 
 To install Audio Helper, you must install ffmpeg:
-
-For macos 🍎
+- For macos 🍎
 ```bash
 brew install ffmpeg
 ```
-
-For ubuntu 🆓
+- For ubuntu 🆓
 ```bash
 sudo apt install ffmpeg
 ```
+- For Windows 🤢
+  
+Go to [FFMPEG website](https://ffmpeg.org/download.html)
+
 
 and finally:
 
