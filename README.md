@@ -26,7 +26,7 @@ To install Audio Helper, you must install `ffmpeg`:
   brew install ffmpeg
   brew install sox
   ```
-- For ubuntu 🐧
+- For Ubuntu 🐧
   ```bash
   sudo apt install ffmpeg
   sudo apt install sox
