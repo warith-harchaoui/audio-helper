@@ -20,16 +20,17 @@ We recommend using Python environments. Check this link if you're unfamiliar wit
 To install Audio Helper, you must install `ffmpeg`:
 
 - For macos 🍎
-Get [brew](https://brew.sh)
-```bash
-brew install ffmpeg
-brew install sox
-```
+  
+  Get [brew](https://brew.sh)
+  ```bash
+  brew install ffmpeg
+  brew install sox
+  ```
 - For ubuntu 🐧
-```bash
-sudo apt install ffmpeg
-sudo apt install sox
-```
+  ```bash
+  sudo apt install ffmpeg
+  sudo apt install sox
+  ```
 - For Windows 🪟
   - **FFmpeg**: Go to the [FFmpeg website](https://ffmpeg.org/download.html) and follow the instructions for downloading FFmpeg. You'll need to manually add FFmpeg to your system PATH.
   
