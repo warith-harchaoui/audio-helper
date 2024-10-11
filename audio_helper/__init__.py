@@ -21,6 +21,8 @@ __all__ = [
     "generate_silent_audio",
     "audio_concatenation",
     "split_audio_regularly",
+    "save_audio",
+    "sound_resemblance",
 ]
 
 
@@ -34,4 +36,6 @@ from .main import (
     generate_silent_audio,
     audio_concatenation,
     split_audio_regularly,
+    save_audio,
+    sound_resemblance,
 )
