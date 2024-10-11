@@ -26,6 +26,8 @@ setup(
         "ffmpeg-python",
         "tqdm",
         "numpy",
+        "soundfile",
+        "scipy",
         "os-helper",  
     ],
 )
