@@ -27,7 +27,6 @@ Here’s an example of how to use Audio Helper to load, convert, and split an au
 
 ```python
 import audio_helper as ah
-import os_helper as osh
 
 # Load an audio file
 audio_file = "example.mp3"
