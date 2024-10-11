@@ -21,7 +21,7 @@ To install Audio Helper, you must install ffmpeg:
 ```bash
 brew install ffmpeg
 ```
-- For ubuntu 🆓
+- For ubuntu 🐧
 ```bash
 sudo apt install ffmpeg
 ```
