@@ -65,6 +65,29 @@ new_concatenated_audio = "concatenated.wav"
 concatenated_audio = ah.audio_concatenation(chunks, output_audio_filename = new_concatenated_audio)
 ```
 
+Another cool example is about source separation (DEMUCS from META) with AI separating one audio track into 4 tracks:
+- vocals
+- drums
+- bass
+- other
+
+It works with speech and songs
+
+```python
+import audio_helper as ah
+
+sources = ah.separate_sources(
+    "input_audio.m4a",
+    output_folder="output_folder",
+    device = "cpu", # or "cuda" if GPU or nothing to let it decide
+    nb_workers: int = 4, # if cpu
+    output_format: str = "mp3",
+)
+
+print(separated_sources)
+# {'vocals': 'output_folder/vocals.mp3', 'drums': 'output_folder/drums.mp3', 'bass': 'output_folder/bass.mp3', 'other': 'output_folder/other.mp3'}
+```
+
 # Features
 - Audio Loading: Load audio files with optional resampling and mono conversion.
 - Sound Conversion: Convert audio files to different formats using ffmpeg.
