@@ -76,12 +76,14 @@ It works with speech and songs
 ```python
 import audio_helper as ah
 
+audio_path = "input_audio.m4a"
+
 sources = ah.separate_sources(
-    "input_audio.m4a",
+    audio_path,
     output_folder="output_folder",
     device = "cpu", # or "cuda" if GPU or nothing to let it decide
-    nb_workers: int = 4, # if cpu
-    output_format: str = "mp3",
+    nb_workers = 4, # ignored if not cpu
+    output_format = "mp3",
 )
 
 print(separated_sources)
