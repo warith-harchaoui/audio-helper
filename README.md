@@ -32,7 +32,6 @@ To install Audio Helper, you must install `ffmpeg`:
 - For Windows 🪟
   Go to the [FFmpeg website](https://ffmpeg.org/download.html) and follow the instructions for downloading FFmpeg. You'll need to manually add FFmpeg to your system PATH.
   
-
 and finally:
 
 ```bash
@@ -55,7 +54,6 @@ ah.sound_converter(audio_file, output_audio)
 
 # Split the audio file into chunks of 30 seconds
 chunks = ah.split_audio_regularly(audio_file, "audio_tests/chunks_folder", split_time=30.0, overwrite = True)
-
 # Concatenate the chunks back together
 new_concatenated_audio = "audio_tests/concatenated.wav"
 concatenated_audio = ah.audio_concatenation(chunks, output_audio_filename = new_concatenated_audio)
