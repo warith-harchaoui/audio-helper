@@ -112,7 +112,7 @@ def _overwrite_audio_list(output_audio_list: List[str], overwrite: bool = True) 
         os_helper.info(
             f"Sources already separated for at:\n\t{s}"
         )
-        return d
+        return stem_files
     elif overwrite:
         for f in output_audio_list:
             if os_helper.file_exists(f):
@@ -993,7 +993,7 @@ def split_audio_regularly(sound_path: str, chunk_folder: str, split_time: float,
     # Check if the file already exists and handle based on the overwrite flag
     d = _overwrite_audio_list(output_audio_paths, overwrite)
     if d is not None:
-        return d
+        return [d[k] for k in sorted(d.keys())]
 
     # Process the chunks (actual splitting)
     time_cursor = 0
@@ -1003,6 +1003,7 @@ def split_audio_regularly(sound_path: str, chunk_folder: str, split_time: float,
         chunk_path = os_helper.os_path_constructor(
             [chunk_folder, f"chunk_{counter:04d}.wav"]
         )
+        print("Chunk path:", chunk_path)
         s = time_cursor
         e = min(time_cursor + split_time, total_duration)
         extract_audio_chunk(sound_path, s, e, output_audio_filename = chunk_path, overwrite=True)

@@ -54,14 +54,14 @@ audio_file = "example.mp3"
 audio, sample_rate = ah.load_audio(audio_file)
 
 # Convert the audio file to a different format
-output_audio = "example.wav"
+output_audio = "audio_tests/example.wav"
 ah.sound_converter(audio_file, output_audio)
 
 # Split the audio file into chunks of 30 seconds
-chunks = ah.split_audio_regularly(audio_file, "chunks_folder", split_time=30.0)
+chunks = ah.split_audio_regularly(audio_file, "audio_tests/chunks_folder", split_time=30.0, overwrite = True)
 
 # Concatenate the chunks back together
-new_concatenated_audio = "concatenated.wav"
+new_concatenated_audio = "audio_tests/concatenated.wav"
 concatenated_audio = ah.audio_concatenation(chunks, output_audio_filename = new_concatenated_audio)
 ```
 
@@ -80,14 +80,14 @@ audio_path = "input_audio.m4a"
 
 sources = ah.separate_sources(
     audio_path,
-    output_folder="output_folder",
+    audio_folder="audio_tests",
     device = "cpu", # or "cuda" if GPU or nothing to let it decide
     nb_workers = 4, # ignored if not cpu
     output_format = "mp3",
 )
 
 print(separated_sources)
-# {'vocals': 'output_folder/vocals.mp3', 'drums': 'output_folder/drums.mp3', 'bass': 'output_folder/bass.mp3', 'other': 'output_folder/other.mp3'}
+# {'vocals': 'audio_tests/vocals.mp3', 'drums': 'audio_tests/drums.mp3', 'bass': 'audio_tests/bass.mp3', 'other': 'audio_tests/other.mp3'}
 ```
 
 # Features
