@@ -28,6 +28,6 @@ setup(
         "numpy",
         "soundfile",
         "scipy",
-        "os-helper",  
+        'os-helper @ git+https://github.com/warith-harchaoui/os-helper.git@main'
     ],
 )
