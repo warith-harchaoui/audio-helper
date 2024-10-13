@@ -24,7 +24,7 @@ osh.verbosity(0)
 
 overwrite = True
 
-def get_audio_test_folder():
+def get_audio():
     folder = "audio_tests"
     audio_file = osh.os_path_constructor([folder, audio_filename])
     if not(osh.file_exists(audio_file)):
@@ -33,7 +33,7 @@ def get_audio_test_folder():
     return audio_file
 
 def test_audio():
-    audio_file = get_audio_test_folder()
+    audio_file = get_audio()
     folder, _, _ = osh.folder_name_ext(audio_file)
 
     assert is_valid_audio_file(audio_file), "Downloaded file should be a valid audio file"
@@ -47,7 +47,7 @@ def test_audio():
     assert sample_rate > 0, "Sample rate should be positive"
 
 def test_audio_resemblance():
-    audio_file = get_audio_test_folder()
+    audio_file = get_audio()
     folder, _, _ = osh.folder_name_ext(audio_file)
 
     audio, sample_rate = load_audio(audio_file, to_numpy=True, to_mono=True)
@@ -68,7 +68,7 @@ def test_audio_resemblance():
     assert resemblance > 0.94, f"Audio file should have a high resemblance with a noisy version of itself, got {round(100*resemblance)}%"
 
 def test_conversion():
-    audio_file = get_audio_test_folder()
+    audio_file = get_audio()
     folder, _, _ = osh.folder_name_ext(audio_file)
 
     wav = osh.os_path_constructor([folder, "converted_audio.wav"])
@@ -84,7 +84,7 @@ def test_conversion():
     assert sample_rate == 44100, f"Sample rate of converted audio (mp3 to ogg) should match 44100 vs {sample_rate}"
 
 def test_chunk():
-    audio_file = get_audio_test_folder()
+    audio_file = get_audio()
     folder, _, _ = osh.folder_name_ext(audio_file)
 
     chunk = osh.os_path_constructor([folder, "audio_chunk.wav"])
@@ -121,7 +121,7 @@ def test_chunk():
     assert resemblance > 0.94, f"Concatenated audio file should have a high resemblance with the original audio file, got {round(100*resemblance)}%"
 
 def test_silent_audio():
-    audio_file = get_audio_test_folder()
+    audio_file = get_audio()
     folder, _, _ = osh.folder_name_ext(audio_file)
 
     silent_audio = osh.os_path_constructor([folder, "silent_audio.wav"])
@@ -133,7 +133,7 @@ def test_silent_audio():
     assert len(audio) == duration * sample_rate, f"Generated silent audio should have the correct duration {duration} vs {len(audio) / sample_rate}"
 
 def test_separation():
-    audio_file = get_audio_test_folder()
+    audio_file = get_audio()
     folder, _, _ = osh.folder_name_ext(audio_file)
 
     # separating sources
