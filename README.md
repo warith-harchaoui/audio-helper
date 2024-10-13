@@ -16,7 +16,7 @@ We recommend using Python environments. Check this link if you're unfamiliar wit
 
 [🥸 Tech tips](https://harchaoui.org/warith/4ml/#install)
 
-## Install `ffmpeg` and `sox`
+## Install `ffmpeg` 
 To install Audio Helper, you must install `ffmpeg`:
 
 - For macos 🍎
@@ -24,18 +24,14 @@ To install Audio Helper, you must install `ffmpeg`:
   Get [brew](https://brew.sh)
   ```bash
   brew install ffmpeg
-  brew install sox
   ```
 - For Ubuntu 🐧
   ```bash
   sudo apt install ffmpeg
-  sudo apt install sox
   ```
 - For Windows 🪟
-  - **FFmpeg**: Go to the [FFmpeg website](https://ffmpeg.org/download.html) and follow the instructions for downloading FFmpeg. You'll need to manually add FFmpeg to your system PATH.
+  Go to the [FFmpeg website](https://ffmpeg.org/download.html) and follow the instructions for downloading FFmpeg. You'll need to manually add FFmpeg to your system PATH.
   
-  - **SoX**: Download SoX from the [SoX official website](http://sox.sourceforge.net/) or [Gyan.dev SoX Windows builds](https://www.gyan.dev/ffmpeg/builds/). Similarly, add SoX to your system PATH.
-
 
 and finally:
 
