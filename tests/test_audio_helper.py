@@ -17,8 +17,8 @@ from audio_helper import (
     save_audio,
 )
 
-audio_url = "https://harchaoui.org/warith/never-gonna-give-you-up.mp3"
-audio_filename = "never-gonna-give-you-up.mp3"
+audio_url = "https://harchaoui.org/warith/example.mp3"
+audio_filename = "example.mp3"
 
 osh.verbosity(0)
 
