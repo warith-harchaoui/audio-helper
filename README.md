@@ -41,6 +41,8 @@ pip install --force-reinstall --no-cache-dir git+https://github.com/warith-harch
 # Usage
 Here’s an example of how to use Audio Helper to load, convert, and split an audio file:
 
+(download [example.mp3](https://harchaoui.org/warith/example.mp3) )
+
 ```python
 import audio_helper as ah
 
