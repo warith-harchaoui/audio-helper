@@ -901,7 +901,7 @@ def audio_concatenation(audio_files, output_audio_filename: str = None, overwrit
     )
     os_helper.check(
         all([is_valid_audio_file(f) for f in audio_files]),
-        msg=f"Invalid audio files (audio type):\n\t{"\n\t".join(audio_files)}",
+        msg=f"Invalid audio files (audio type):\n\t{s}",
     )
 
     if os_helper.emptystring(output_audio_filename):
