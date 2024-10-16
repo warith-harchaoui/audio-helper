@@ -43,6 +43,38 @@ from scipy.signal import get_window
 from scipy.fftpack import fft
 from typing import Optional
 
+audio_extensions = [
+    "aif",
+    "aiff",
+    "alac",
+    "amr",
+    "ape",
+    "au",
+    "flac",
+    "gsm",
+    "iff",
+    "m4a",
+    "m4b",
+    "m4p",
+    "mp3",
+    "ogg",
+    "oga",
+    "opus",
+    "ra",
+    "ram",
+    "raw",
+    "sln",
+    "tta",
+    "voc",
+    "vox",
+    "wav",
+    "wma",
+    "wv",
+    "webm",
+    "rmi",
+]
+
+
 def _overwrite_audio_file(output_audio_filename: str, overwrite: bool = True) -> Union[str, None]:
     """
     Check if the output audio file already exists and handle based on the overwrite flag.
@@ -153,6 +185,10 @@ def is_valid_audio_file(file_path: str) -> bool:
         )
         valid = audio_stream is not None
     except Exception as e:
+        valid = False
+
+    _,_,ext = os_helper.folder_name_ext(file_path)
+    if not(ext.lower() in audio_extensions):
         valid = False
 
     os_helper.info(f"Audio file {file_path} is {'valid' if valid else 'invalid'}")
