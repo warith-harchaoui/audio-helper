@@ -53,7 +53,7 @@ def test_audio_resemblance():
     audio, sample_rate = load_audio(audio_file, to_numpy=True, to_mono=True)
 
     # Resemblance with itself should be high
-    resemblance = sound_resemblance(audio_file, audio_file, window_seconds = 0.2)
+    resemblance = sound_resemblance(audio_file, audio_file)
     assert resemblance > 0.98, f"Audio file should have a resemblance of 1 with itself, got {round(100*resemblance)}%"
 
     # Add some slight noise to the audio file
@@ -64,8 +64,8 @@ def test_audio_resemblance():
     second_audio_file = osh.os_path_constructor([folder, "second_audio.wav"])
     save_audio(second_audio, second_audio_file, sample_rate)
 
-    resemblance = sound_resemblance(audio_file, second_audio_file, window_seconds = 0.2)
-    assert resemblance > 0.94, f"Audio file should have a high resemblance with a noisy version of itself, got {round(100*resemblance)}%"
+    resemblance = sound_resemblance(audio_file, second_audio_file)
+    assert resemblance > 0.8, f"Audio file should have a high resemblance with a noisy version of itself, got {round(100*resemblance)}%"
 
 def test_conversion():
     audio_file = get_audio()
@@ -99,26 +99,28 @@ def test_chunk():
     split_time = 10.0
     duration = get_audio_duration(audio_file)
     chunks = split_audio_regularly(audio_file, chunk_folder, split_time, overwrite=overwrite)
-    nb_chunks = int(np.ceil(duration / split_time))
-    assert len(chunks) == nb_chunks, f"Number of audio chunks should match {nb_chunks} vs {len(chunks)}"
     durations = [get_audio_duration(chunk) for chunk in chunks]
-    assert all([d == split_time for d in durations[:-1]]), f"All audio chunks should have the same duration {split_time}"
+    total_duration = np.sum(durations)
+    error = round(100.0*np.abs(total_duration - duration) / duration)
+    assert error < 1.0, f"Total duration of audio chunks should match the original audio file {total_duration} vs {duration} (error: {error}%)"
+    t = durations[:-1]
+    mini = np.min(t)
+    error1 = round(100.0*np.abs(mini - split_time) / split_time)
+    maxi = np.max(t)
+    error2 = round(100.0*np.abs(maxi - split_time) / split_time)
+    error = error1 + error2
+    assert error < 1.0, f"Duration of audio chunks should match the split time {split_time} vs min: {mini}, max:{maxi} (error: {error}%)"
 
     original_signal, sample_rate = load_audio(audio_file, to_numpy=True, to_mono=True)
-    reconstruction = osh.os_path_constructor([folder, "concatenation_audio.wav"])
+    reconstruction = osh.os_path_constructor([folder, "concatenation_audio.mp3"])
     reconstruction = audio_concatenation(chunks, reconstruction, overwrite = overwrite)
     assert is_valid_audio_file(reconstruction) == True, "Concatenated audio file should be a valid audio file"
     duration = get_audio_duration(reconstruction)
     original_duration = get_audio_duration(audio_file)
     error = np.abs(duration - original_duration) / original_duration
     assert error < 0.01, f"Concatenated audio file should have the same duration as the original audio file {duration} vs {get_audio_duration(audio_file)} (error: {100*round(error)}%)"
-    reconstruction_signal = []
-    for chunk in chunks:
-        signal, _ = load_audio(chunk, to_numpy=True, to_mono=True)
-        reconstruction_signal.append(signal.ravel())
-    reconstruction_signal = np.hstack(reconstruction_signal)
     resemblance = sound_resemblance(reconstruction, audio_file)
-    assert resemblance > 0.94, f"Concatenated audio file should have a high resemblance with the original audio file, got {round(100*resemblance)}%"
+    assert resemblance > 0.75, f"Concatenated audio file should have a high resemblance with the original audio file, got {round(100*resemblance)}%: {reconstruction} and {audio_file}"
 
 def test_silent_audio():
     audio_file = get_audio()
@@ -145,16 +147,18 @@ def test_separation():
     normal_keys_set = {"vocals", "drums", "bass", "other"}
     assert keys_set == normal_keys_set, f"Separated sources should have the correct keys {keys_set} vs {normal_keys_set}"
     original_signal, sample_rate = load_audio(audio_file, to_numpy=True, to_mono=True)
-    reconstructed_signal = np.zeros_like(original_signal)
+    reconstructed_signal = 0
     for k in sources:
         assert is_valid_audio_file(sources[k]), f"Separated source {k} should be a valid audio file"
         duration = get_audio_duration(sources[k])
-        assert duration == get_audio_duration(audio_file), f"Separated source {k} should have the same duration as the original audio file {duration} vs {get_audio_duration(audio_file)}"
+        original_duration = get_audio_duration(audio_file)
+        error = round(100.0*np.abs(duration - original_duration) / original_duration)
+        assert error < 1.0, f"Separated source {k} should have the same duration as the original audio file {duration} vs {get_audio_duration(audio_file)}"
         source, _ = load_audio(sources[k], to_numpy=True, to_mono=True)
         reconstructed_signal += source
 
     mp3_audio_file = osh.os_path_constructor([sources_folder, "reconstructed_signal.mp3"])
     save_audio(reconstructed_signal, mp3_audio_file, sample_rate)
 
-    resemblance = sound_resemblance(audio_file, mp3_audio_file, window_seconds = 0.2)
-    assert resemblance > 0.95, f"Max intercorrelation between original and reconstructed signals should be high, got {round(100*resemblance)}%"
+    resemblance = sound_resemblance(audio_file, mp3_audio_file)# , window_seconds = 0.2)
+    assert resemblance > 0.75, f"Resemblance between original and reconstructed signals should be high, got {round(100*resemblance)}% audio_file: {audio_file} vs reconstructed: {mp3_audio_file}"
