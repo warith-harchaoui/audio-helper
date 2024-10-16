@@ -35,10 +35,13 @@ import concurrent.futures
 import numpy as np
 import soundfile as sf
 from scipy.signal import resample
-import scipy.io.wavfile
+import scipy.io.wavfile as wav
 from scipy.signal import correlate
 import warnings
-
+from scipy.fftpack import dct
+from scipy.signal import get_window
+from scipy.fftpack import fft
+from typing import Optional
 
 def _overwrite_audio_file(output_audio_filename: str, overwrite: bool = True) -> Union[str, None]:
     """
@@ -394,10 +397,10 @@ def save_audio(signal: Union[torch.Tensor, np.ndarray], file_path: str, sample_r
     elif isinstance(signal, np.ndarray): # (time, channels) convention
         _,_,ext = os_helper.folder_name_ext(file_path)
         if ext.lower() == "wav":
-            scipy.io.wavfile.write(file_path, sample_rate, signal)
+            wav.write(file_path, sample_rate, signal)
         else:
             with os_helper.temporary_filename(suffix=".wav", mode="wb") as wav_audio_file:
-                scipy.io.wavfile.write(wav_audio_file, sample_rate, signal)
+                wav.write(wav_audio_file, sample_rate, signal)
                 channels = 1 if len(signal.shape)==1 else signal.shape[1]
                 sound_converter(input_audio = wav_audio_file, output_audio=file_path, freq=sample_rate, channels=channels, encoding="pcm_s16le", overwrite=True)
 
@@ -765,11 +768,37 @@ def extract_audio_chunk(
         msg=f"Invalid end time: start={start_time}, end={end_time} for duration={duration}",
     )
 
+    _, _, ext_in = os_helper.folder_name_ext(audio_file)
+    _, _, ext_out = os_helper.folder_name_ext(output_audio_filename)
+
     # Use ffmpeg to extract the audio chunk from the input file
     quiet = os_helper.verbosity() == 0  # Control ffmpeg's verbosity
-    ffmpeg.input(audio_file, ss=start_time, t=end_time - start_time).output(
-        output_audio_filename
-    ).run(overwrite_output=True, quiet=quiet)
+
+    # Use wav format for intermediate files
+    with os_helper.temporary_filename(
+        suffix=".wav", mode="wb"
+    ) as temp_wav, os_helper.temporary_filename(
+        suffix=".wav", mode="wb"
+    ) as output_wav:
+        
+        if not(ext_in.lower() == "wav"):
+            # Convert the input audio file to a temporary WAV file
+            ffmpeg.input(audio_file).output(temp_wav).run(
+                overwrite_output=True, quiet=quiet
+            )
+        else:
+            os_helper.copyfile(audio_file, temp_wav)
+
+        # Extract the audio chunk from the input file to a temporary WAV file
+        ffmpeg.input(temp_wav, ss=start_time, t=end_time - start_time).output(
+            output_wav
+        ).run(overwrite_output=True, quiet=quiet)
+
+        if not(ext_out.lower() == "wav"):
+            # Convert the temporary WAV file to the specified output format
+            sound_converter(output_wav, output_audio_filename, freq=44100)
+        else:
+            os_helper.copyfile(output_wav, output_audio_filename)
 
     # Verify that the output file was created and is valid
     os_helper.checkfile(
@@ -952,7 +981,7 @@ def audio_concatenation(audio_files, output_audio_filename: str = None, overwrit
 
     return output_audio_filename
 
-def split_audio_regularly(sound_path: str, chunk_folder: str, split_time: float, overwrite: bool = False) -> List[str]:
+def split_audio_regularly(sound_path: str, chunk_folder: str, split_time: float, output_format = "mp3", overwrite: bool = False) -> List[str]:
     """
     Split an audio file into chunks of a specified duration.
 
@@ -964,6 +993,8 @@ def split_audio_regularly(sound_path: str, chunk_folder: str, split_time: float,
         Path to the folder where the audio chunks will be saved.
     split_time : float
         Duration of each audio chunk in seconds.
+    output_format : str, optional
+        The format of the output audio files (default is 'mp3').
     overwrite : bool, optional
         Whether to overwrite the output files if they already exist (default is False).
 
@@ -977,6 +1008,8 @@ def split_audio_regularly(sound_path: str, chunk_folder: str, split_time: float,
     """
 
     os_helper.checkfile(sound_path, msg=f"Audio file not found at {sound_path}")
+
+    output_format = output_format.lower().replace(".", "")
 
     # Ensure the output directory exists
     os_helper.make_directory(chunk_folder)
@@ -1000,9 +1033,9 @@ def split_audio_regularly(sound_path: str, chunk_folder: str, split_time: float,
     time_cursor = 0
     counter = 0
     output_audio_paths = []
-    while time_cursor < total_duration - 1.0:
+    while time_cursor < total_duration :
         chunk_path = os_helper.os_path_constructor(
-            [chunk_folder, f"chunk_{counter:04d}.wav"]
+            [chunk_folder, f"chunk_{counter:04d}.{output_format}"]
         )
         print("Chunk path:", chunk_path)
         s = time_cursor
@@ -1025,8 +1058,171 @@ def split_audio_regularly(sound_path: str, chunk_folder: str, split_time: float,
 
 
 
-def sound_resemblance(audio_file_1: str, audio_file_2: str, window_seconds: float = None) -> float:
+
+def hz_to_mel(hz: float) -> float:
     """
+    Convert a frequency in Hertz to the Mel scale.
+    
+    Parameters
+    ----------
+    hz : float
+        Frequency in Hertz.
+    
+    Returns
+    -------
+    float
+        Frequency in Mels.
+    """
+    return 2595 * np.log10(1 + hz / 700.0)
+
+def mel_to_hz(mel: float) -> float:
+    """
+    Convert a frequency in the Mel scale back to Hertz.
+    
+    Parameters
+    ----------
+    mel : float
+        Frequency in Mels.
+    
+    Returns
+    -------
+    float
+        Frequency in Hertz.
+    """
+    return 700 * (10 ** (mel / 2595.0) - 1)
+
+
+def mel_filter_banks(num_filters: int, 
+                     n_fft: int, 
+                     sample_rate: int, 
+                     low_freq: int, 
+                     high_freq: int) -> np.ndarray:
+    """
+    Compute a Mel-filter bank for given parameters.
+    
+    Parameters
+    ----------
+    num_filters : int
+        Number of Mel filters to generate.
+    n_fft : int
+        The size of the FFT (number of FFT points).
+    sample_rate : int
+        The sample rate of the audio signal (in Hz).
+    low_freq : int
+        The lowest frequency in the Mel filter bank (in Hz).
+    high_freq : int
+        The highest frequency in the Mel filter bank (in Hz).
+    
+    Returns
+    -------
+    np.ndarray
+        A 2D array where each row is a filter in the Mel-filter bank.
+    """
+    
+    # Convert frequencies to the Mel scale
+    low_mel = hz_to_mel(low_freq)
+    high_mel = hz_to_mel(high_freq)
+    mel_points = np.linspace(low_mel, high_mel, num_filters + 2)  # Equally spaced in Mel scale
+    
+    # Convert Mel frequencies back to Hz
+    hz_points = mel_to_hz(mel_points)
+    
+    # Convert Hz frequencies to FFT bin indices
+    bin_points = np.floor((n_fft + 1) * hz_points / sample_rate).astype(np.int32)
+    
+    # Create the Mel filter bank
+    fbank = np.zeros((num_filters, int(np.floor(n_fft / 2 + 1))))
+    for i in range(1, num_filters + 1):
+        f_m_minus = bin_points[i - 1]  # Left
+        f_m = bin_points[i]            # Center
+        f_m_plus = bin_points[i + 1]   # Right
+        
+        # Construct the filters
+        for j in range(f_m_minus, f_m):
+            fbank[i - 1, j] = (j - f_m_minus) / (f_m - f_m_minus)
+        for j in range(f_m, f_m_plus):
+            fbank[i - 1, j] = (f_m_plus - j) / (f_m_plus - f_m)
+
+    return fbank
+
+
+def mfcc(signal: np.ndarray, 
+         sample_rate: int, 
+         num_mfcc: int = 13, 
+         n_fft: int = 512, 
+         num_filters: int = 26, 
+         low_freq: int = 0, 
+         high_freq: Optional[int] = None) -> np.ndarray:
+    """
+    Compute Mel-frequency Cepstral Coefficients (MFCC) for an audio signal.
+    
+    Parameters
+    ----------
+    signal : np.ndarray
+        The input audio signal as a 1D NumPy array.
+    sample_rate : int
+        The sample rate of the audio signal (in Hz).
+    num_mfcc : int, optional
+        The number of MFCC features to return, by default 13.
+    n_fft : int, optional
+        The FFT size to use, by default 512.
+    num_filters : int, optional
+        The number of Mel filters to use, by default 26.
+    low_freq : int, optional
+        The lowest frequency to consider in the Mel filter bank, by default 0 Hz.
+    high_freq : int, optional
+        The highest frequency to consider in the Mel filter bank, by default None (set to half the sample rate).
+    
+    Returns
+    -------
+    np.ndarray
+        A 2D NumPy array containing the computed MFCC features for each frame.
+    """
+    
+    # 1. Pre-emphasis filter: Apply a high-pass filter to amplify high frequencies
+    pre_emphasis = 0.97
+    emphasized_signal = np.append(signal[0], signal[1:] - pre_emphasis * signal[:-1])
+    
+    # 2. Framing: Split the signal into overlapping frames of 25ms (default)
+    frame_size = 0.025  # 25 milliseconds per frame
+    frame_stride = 0.01  # 10 milliseconds between consecutive frames
+    frame_length = int(round(frame_size * sample_rate))  # Convert frame length to samples
+    frame_step = int(round(frame_stride * sample_rate))  # Convert frame step to samples
+    
+    # Compute the number of frames and pad the signal to fit exact frames
+    num_frames = int(np.ceil(float(len(emphasized_signal) - frame_length) / frame_step)) + 1
+    pad_signal_length = num_frames * frame_step + frame_length
+    pad_signal = np.append(emphasized_signal, np.zeros(pad_signal_length - len(emphasized_signal)))
+    
+    # Create an index array for all frames and extract frames
+    indices = np.tile(np.arange(0, frame_length), (num_frames, 1)) + \
+              np.tile(np.arange(0, num_frames * frame_step, frame_step), (frame_length, 1)).T
+    frames = pad_signal[indices.astype(np.int32, copy=False)]
+
+    # 3. Windowing: Apply a Hamming window to reduce spectral leakage
+    frames *= get_window('hamming', frame_length)
+    
+    # 4. FFT and Power Spectrum: Compute the FFT and power spectrum for each frame
+    mag_frames = np.absolute(np.fft.rfft(frames, n_fft))  # Magnitude of the FFT
+    pow_frames = (1.0 / n_fft) * (mag_frames ** 2)  # Power spectrum
+
+    # 5. Mel Filter Banks: Convert the power spectrum into the Mel scale
+    high_freq = high_freq or sample_rate / 2  # If not provided, use half the sample rate (Nyquist frequency)
+    mel_filters = mel_filter_banks(num_filters, n_fft, sample_rate, low_freq, high_freq)
+    filter_banks = np.dot(pow_frames, mel_filters.T)
+    filter_banks = np.where(filter_banks == 0, np.finfo(float).eps, filter_banks)  # Avoid log(0)
+    filter_banks = 20 * np.log10(filter_banks)  # Convert to decibels (logarithmic scale)
+
+    # 6. DCT: Compute the Discrete Cosine Transform (DCT) of the log Mel filter banks
+    mfccs = dct(filter_banks, type=2, axis=1, norm='ortho')[:, :num_mfcc]
+
+    return mfccs
+
+
+def sound_resemblance(audio_file_1: str, audio_file_2: str) -> float:
+    """
+    Compute the resemblance score between two audio files using Mel-frequency Cepstral Coefficients (MFCC).
+
     Measure the resemblance between two audio files using the correlation coefficient.
 
     Score is between 0 and 1.
@@ -1039,47 +1235,35 @@ def sound_resemblance(audio_file_1: str, audio_file_2: str, window_seconds: floa
         Path to the first audio file.
     audio_file_2 : str
         Path to the second audio file.
-    window_seconds : float, optional
-        The duration of the window in seconds to compute the correlation (default is None).
 
     Returns
     -------
     float
-        Absolute value of the correlation coefficient between the two audio signals within a delay of a window (if defined).
+        The resemblance score between the two audio files based on MFCC.
+
+    Notes
+    -----
+    The function computes the resemblance score between two audio files using the cosine similarity of their MFCC features.
+
     """
-    sample_rate = 44100
+    sample_rate = 24000
     # Load audio files, convert to mono and numpy arrays, resample to target sample rate
     audio_1, _ = load_audio(audio_file_1, to_numpy=True, to_mono=True, target_sample_rate=sample_rate)
     audio_2, _ = load_audio(audio_file_2, to_numpy=True, to_mono=True, target_sample_rate=sample_rate)
 
-    # Ensure both audio files are of the same length by truncating the longer one
-    min_len = min(len(audio_1), len(audio_2))
-    audio_1 = audio_1[:min_len]
-    audio_2 = audio_2[:min_len]
+    max_len = max(len(audio_1), len(audio_2))
+    audio_1 = np.pad(audio_1, (0, max_len - len(audio_1)))
+    audio_2 = np.pad(audio_2, (0, max_len - len(audio_2)))
 
-    # Calculate the energy of both audio signals
-    energy_audio_1 = np.sum(audio_1**2)
-    energy_audio_2 = np.sum(audio_2**2)
+    mfcc1 = mfcc(audio_1, sample_rate)
+    mfcc2 = mfcc(audio_2, sample_rate)
 
-    # Compute the cross-correlation between the two signals
-    correlation = correlate(audio_1, audio_2)
+    a = np.abs(np.dot(mfcc1.ravel(), mfcc2.ravel()))
+    b = np.sqrt(np.dot(mfcc1.ravel(), mfcc1.ravel()) * np.dot(mfcc2.ravel(), mfcc2.ravel()))
 
-    # Normalize the correlation to account for energy levels
-    correlation /= np.sqrt(energy_audio_1 * energy_audio_2)
-
-    # Find the index of the maximum correlation (this corresponds to the delay in samples)
-    delay_samples = np.argmax(correlation) - (len(audio_1) - 1)
-
-    # Convert delay from samples to seconds
-    delay_seconds = delay_samples / sample_rate
-
-    # If window_seconds is provided, limit the correlation range
-    if window_seconds is not None:
-        max_lag = int(window_seconds * sample_rate)
-        mid_point = len(correlation) // 2
-        correlation_window = correlation[mid_point - max_lag : mid_point + max_lag + 1]
-        max_correlation = np.max(np.abs(correlation_window))
-    else:
-        max_correlation = np.max(np.abs(correlation))
-
-    return max_correlation
+    if b == 0:
+        return 0.0 # by convention (one of the signals is made of zeros)
+    
+    score = a / b
+        
+    return score
