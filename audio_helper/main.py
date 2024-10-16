@@ -175,6 +175,7 @@ def is_valid_audio_file(file_path: str) -> bool:
     -----
     The function uses ffprobe to inspect the file and determine if an audio stream is present.
     """
+    global audio_extensions
     # By default, the file is considered invalid
     valid = False
     try:
