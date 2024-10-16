@@ -894,9 +894,10 @@ def audio_concatenation(audio_files, output_audio_filename: str = None, overwrit
         isinstance(audio_files, list) and len(audio_files) > 0,
         msg=f"Invalid audio files list: {audio_files}",
     )
+    s = "\n\t".join(audio_files)
     os_helper.check(
         all([os_helper.file_exists(f) for f in audio_files]),
-        msg=f"Invalid audio files (file existence):\n\t{"\n\t".join(audio_files)}",
+        msg=f"Invalid audio files (file existence):\n\t{s}",
     )
     os_helper.check(
         all([is_valid_audio_file(f) for f in audio_files]),
