@@ -22,8 +22,7 @@ install_requires = \
  'mpmath==1.3.0',
  'networkx==3.4.2',
  'numpy==2.1.2',
- 'os-helper @ '
- 'git+https://https://github.com/warith-harchaoui/os-helper.git@main',
+ 'os-helper @ git+https://github.com/warith-harchaoui/os-helper.git@main',
  'pandas==2.2.3',
  'pillow==11.0.0',
  'pycparser==2.22',
