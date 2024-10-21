@@ -39,15 +39,21 @@ build-backend = "poetry.core.masonry.api"
 def format_dependencies(requirements):
     dependencies = ""
     for requirement in requirements:
-        if '==' in requirement:
+        if '==' in requirement:  # Standard versioned dependencies
             package, version = requirement.split('==')
-            dependencies += f'    {package} = "{version}"\n'
+            dependencies += f'    {package.strip()} = "{version.strip()}"\n'
         elif '@ git+' in requirement:  # Handling Git URL dependencies
             package, git_url = requirement.split('@ git+')
-            dependencies += f'    {package} = {{ git = "https://{git_url.strip()}", branch = "main" }}\n'
-        else:
-            dependencies += f'    {requirement} = "*"\n'
+            # Clean up the URL to ensure no duplicated 'https://'
+            git_url_cleaned = git_url.strip().replace('https://https://', 'https://')
+            # Handle cases where '@main' is mistakenly included in the Git URL
+            if '@' in git_url_cleaned:
+                git_url_cleaned = git_url_cleaned.split('@')[0]
+            dependencies += f'    {package.strip()} = {{ git = "https://{git_url_cleaned}", branch = "main" }}\n'
+        else:  # Default to wildcard for unversioned or unspecified dependencies
+            dependencies += f'    {requirement.strip()} = "*"\n'
     return dependencies
+
 
 def write_pyproject_toml(content, file_path='pyproject.toml'):
     with open(file_path, 'w') as f:
