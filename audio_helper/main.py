@@ -147,7 +147,7 @@ def _overwrite_audio_list(output_audio_list: List[str], overwrite: bool = True) 
         os_helper.info(
             f"Sources already separated for at:\n\t{s}"
         )
-        return stem_files
+        return d
     elif overwrite:
         for f in output_audio_list:
             if os_helper.file_exists(f):
@@ -791,8 +791,8 @@ def extract_audio_chunk(
             [f, f"{b}_chunk-{s}-{e}.{ext}"]
         )
     
-    if not(_overwrite_audio_file(output_audio_filename, overwrite) is None):
-        return output_audio_filename
+    # if not(_overwrite_audio_file(output_audio_filename, overwrite) is None):
+    #     return output_audio_filename
     
     # Get the duration of the audio file to validate start and end times
     duration = get_audio_duration(audio_file)
@@ -1070,7 +1070,7 @@ def split_audio_regularly(sound_path: str, chunk_folder: str, split_time: float,
     time_cursor = 0
     counter = 0
     output_audio_paths = []
-    while time_cursor < total_duration :
+    while time_cursor < total_duration - 1:
         chunk_path = os_helper.os_path_constructor(
             [chunk_folder, f"chunk_{counter:04d}.{output_format}"]
         )
