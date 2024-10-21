@@ -711,7 +711,7 @@ validators = "^0.34.0"
 
 [package.source]
 type = "git"
-url = "https://https://github.com/warith-harchaoui/os-helper.git"
+url = "https://github.com/warith-harchaoui/os-helper.git"
 reference = "main"
 resolved_reference = "f66f8e75c36b27f6c59adcca6abdf2811a793ee1"
 
@@ -1449,4 +1449,4 @@ test = ["pytest (>=6.0.0)", "setuptools (>=65)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "591ff082dbea817283166b9acc5873ae7e7d31f2d56449cc05beecec0ac3d2c9"
+content-hash = "de97380a2d985c482b7391376b154624f768a36c67cccf6864c563565d47c3a5"
