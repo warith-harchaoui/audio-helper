@@ -76,7 +76,7 @@ audio_path = "input_audio.m4a"
 
 sources = ah.separate_sources(
     audio_path,
-    audio_folder="audio_tests",
+    output_folder="audio_tests",
     device = "cpu", # or "cuda" if GPU or nothing to let it decide
     nb_workers = 4, # ignored if not cpu
     output_format = "mp3",
