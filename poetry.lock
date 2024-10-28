@@ -714,7 +714,7 @@ validators = "^0.34.0"
 type = "git"
 url = "https://github.com/warith-harchaoui/os-helper.git"
 reference = "main"
-resolved_reference = "4e94d31eb935620210958281ce49df85e125f4f7"
+resolved_reference = "109d9d70ee9e519bc784672b210cd95e95d1c8b7"
 
 [[package]]
 name = "packaging"
