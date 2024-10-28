@@ -52,16 +52,22 @@ pip freeze > requirements.txt
 
 # replace git commit hash with @main
 sed -i '' 's/@[a-f0-9]\{7,40\}/@main/g' requirements.txt
+sed -i '' 's/setuptools==/setuptools>=/' requirements.txt
 
-rm -f pyproject.toml poetry.lock
+rm -f poetry.lock
 
-python requirements_to_toml.py \
-    --project_name "$PROJECT_NAME" \
-    --description "$DESCRIPTION" \
-    --authors "$AUTHORS" \
-    --python_version "^$PYTHON_VERSION" \
-    --requirements_file "requirements.txt" \
-    --output_file "pyproject.toml"
+# python requirements_to_toml.py \
+#     --project_name "$PROJECT_NAME" \
+#     --description "$DESCRIPTION" \
+#     --authors "$AUTHORS" \
+#     --python_version "^$PYTHON_VERSION" \
+#     --requirements_file "requirements.txt" \
+#     --output_file "pyproject.toml"
+
+
+
+# # Correct version syntax
+# sed -i '' 's/^\([a-zA-Z0-9_-]\+\)>=\([0-9.]\+\) = "\*"/\1 = ">=\2"/' pyproject.toml
 
 
 # Poetry setup
@@ -89,6 +95,6 @@ dependencies:
   - pip
   - pip:
       - -r file:requirements.txt
-EOL
+EOL;
 
 echo "Project setup completed successfully!"
