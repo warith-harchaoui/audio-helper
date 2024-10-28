@@ -12,7 +12,7 @@ set -e  # Exit the script immediately on any command failure
 PROJECT_NAME="audio-helper"
 
 # Check if pytorch is okay with your python version (Getting Started section of pytorch.org)
-PYTHON_VERSION="3.12"
+PYTHON_VERSION="3.10"
 ENV="env4ah"
 
 
