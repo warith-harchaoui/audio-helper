@@ -15,8 +15,18 @@ PROJECT_NAME="audio-helper"
 PYTHON_VERSION="3.10"
 ENV="env4ah"
 
+DEPENDENCIES=(
+    torch
+    torchaudio
+    ffmpeg-python
+    tqdm
+    numpy
+    soundfile
+    scipy
+    git+https://github.com/warith-harchaoui/os-helper.git@main
+)
 
-DEPENDENCIES="torch torchaudio ffmpeg-python tqdm numpy soundfile scipy git+https://github.com/warith-harchaoui/os-helper.git@main"
+
 DESCRIPTION="Audio Helper is a Python library that provides utility functions for processing audio files. It includes features like loading audio, converting formats, separating audio sources, and splitting and concatenating audio files."
 AUTHORS="Warith Harchaoui <warith.harchaoui@gmail.com>"
 
