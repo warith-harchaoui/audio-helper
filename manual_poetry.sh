@@ -20,7 +20,6 @@ DEPENDENCIES=(
     torchaudio
     ffmpeg-python
     tqdm
-    numpy
     soundfile
     scipy
     git+https://github.com/warith-harchaoui/os-helper.git@main
