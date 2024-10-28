@@ -30,18 +30,16 @@ install_requires = \
  'pytz==2024.2',
  'requests==2.32.3',
  'scipy==1.14.1',
- 'setuptools==75.1.0',
  'six==1.16.0',
  'soundfile==0.12.1',
  'sympy==1.13.1',
  'torch==2.5.0',
  'torchaudio==2.5.0',
- 'tqdm==4.66.5',
+ 'tqdm==4.66.6',
  'typing_extensions==4.12.2',
  'tzdata==2024.2',
  'urllib3==2.2.3',
- 'validators==0.34.0',
- 'wheel==0.44.0']
+ 'validators==0.34.0']
 
 setup_kwargs = {
     'name': 'audio-helper',
@@ -56,7 +54,7 @@ setup_kwargs = {
     'packages': packages,
     'package_data': package_data,
     'install_requires': install_requires,
-    'python_requires': '>=3.12,<4.0',
+    'python_requires': '>=3.10,<4.0',
 }
 
 
