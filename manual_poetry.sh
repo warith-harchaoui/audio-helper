@@ -16,7 +16,7 @@ PYTHON_VERSION="3.12"
 ENV="env4ah"
 
 
-DEPENDENCIES="torch torchvision torchaudio ffmpeg-python tqdm numpy soundfile scipy git+https://github.com/warith-harchaoui/os-helper.git@main"
+DEPENDENCIES="torch torchaudio ffmpeg-python tqdm numpy soundfile scipy git+https://github.com/warith-harchaoui/os-helper.git@main"
 DESCRIPTION="Audio Helper is a Python library that provides utility functions for processing audio files. It includes features like loading audio, converting formats, separating audio sources, and splitting and concatenating audio files."
 AUTHORS="Warith Harchaoui <warith.harchaoui@gmail.com>"
 
@@ -37,7 +37,7 @@ conda create -y -n $ENV python=$PYTHON_VERSION
 conda activate $ENV
 conda install -y pip
 
-pip install torch torchvision torchaudio
+# pip install torch torchaudio
 
 # Convert the dependencies string into an array (compatible with zsh/bash)
 # Loop through each dependency and add it with poetry
