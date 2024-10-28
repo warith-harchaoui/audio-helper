@@ -21,7 +21,7 @@ install_requires = \
  'idna==3.10',
  'mpmath==1.3.0',
  'networkx==3.4.2',
- 'numpy==2.1.2',
+ 'numpy==2.0.2',
  'os-helper @ git+https://github.com/warith-harchaoui/os-helper.git@main',
  'pandas==2.2.3',
  'pycparser==2.22',
