@@ -22,7 +22,7 @@ DEPENDENCIES=(
     tqdm
     soundfile
     scipy
-    git+https://github.com/warith-harchaoui/os-helper.git@main
+    git+https://github.com/warith-harchaoui/os-helper.git@v1.0.0
 )
 
 
@@ -59,8 +59,8 @@ done
 
 pip freeze > requirements.txt
 
-# replace git commit hash with @main
-sed -i '' 's/@[a-f0-9]\{7,40\}/@main/g' requirements.txt
+# replace git commit hash with @v1.0.0
+sed -i '' 's/@[a-f0-9]\{7,40\}/@v1.0.0/g' requirements.txt
 
 rm -f poetry.lock pyproject.toml
 
@@ -87,8 +87,8 @@ poetry install
 poetry2setup > setup.py
 poetry export -f requirements.txt --output requirements.txt --without-hashes
 
-# # replace git commit hash with @main
-sed -i '' 's/@[a-f0-9]\{7,40\}/@main/g' requirements.txt
+# # replace git commit hash with @v1.0.0
+sed -i '' 's/@[a-f0-9]\{7,40\}/@v1.0.0/g' requirements.txt
 
 # Create environment.yml for conda users
 cat <<EOL > environment.yml
