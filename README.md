@@ -46,6 +46,8 @@ Here’s an example of how to use Audio Helper to load, convert, and split an au
 
 (download [example.mp3](https://harchaoui.org/warith/example.mp3) )
 
+It is part of a JFK speech that is badly recorded
+
 ```python
 import audio_helper as ah
 
