@@ -30,6 +30,7 @@ To install Audio Helper, you must install `ffmpeg`:
   sudo apt install ffmpeg
   ```
 - For Windows 🪟
+  
   Go to the [FFmpeg website](https://ffmpeg.org/download.html) and follow the instructions for downloading FFmpeg. You'll need to manually add FFmpeg to your system PATH.
   
 and finally we still discuss between different python package managers and try to support as much as possible
