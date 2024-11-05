@@ -1,7 +1,7 @@
 
 [tool.poetry]
 name = "audio-helper"
-version = "0.1.0"
+version = "1.0.0"
 description = "Audio Helper is a Python library that provides utility functions for processing audio files. It includes features like loading audio, converting formats, separating audio sources, and splitting and concatenating audio files."
 authors = ['Warith Harchaoui <warith.harchaoui@gmail.com>']
 license = ""
