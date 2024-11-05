@@ -32,10 +32,12 @@ To install Audio Helper, you must install `ffmpeg`:
 - For Windows 🪟
   Go to the [FFmpeg website](https://ffmpeg.org/download.html) and follow the instructions for downloading FFmpeg. You'll need to manually add FFmpeg to your system PATH.
   
-and finally:
+and finally we still discuss between different python package managers and try to support as much as possible
+
+
 
 ```bash
-pip install --force-reinstall --no-cache-dir git+https://github.com/warith-harchaoui/audio-helper.git@main
+pip install --force-reinstall --no-cache-dir git+https://github.com/warith-harchaoui/audio-helper.git@v1.0.0
 ```
 
 # Usage
