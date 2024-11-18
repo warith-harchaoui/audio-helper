@@ -40,6 +40,7 @@ audio_tests/
 __pycache__/
 *.py[cod]
 *$py.class
+forget.zsh
 
 # C extensions
 *.so

@@ -4,7 +4,7 @@
 
 [🕸️ AI Helpers](https://harchaoui.org/warith/ai-helpers)
 
-[![logo](assets/logo.png)](https://harchaoui.org/warith/ai-helpers)
+[![logo](assets/repository-open-graph-template.png)](https://harchaoui.org/warith/ai-helpers)
 
 Audio Helper is a Python library that provides utility functions for processing audio files. It includes features like loading audio, converting formats, separating audio sources, and splitting and concatenating audio files.
 
