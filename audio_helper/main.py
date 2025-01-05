@@ -25,7 +25,7 @@ Authors:
 
 from typing import List, Union
 import torch
-import os_helper
+import os_helper as osh
 import torchaudio
 from torchaudio.pipelines import HDEMUCS_HIGH_MUSDB_PLUS
 from torchaudio.transforms import Fade
@@ -99,16 +99,16 @@ def _overwrite_audio_file(output_audio_filename: str, overwrite: bool = True) ->
     """
 
     # Check if the file already exists and handle based on the overwrite flag
-    if not(overwrite) and os_helper.file_exists(output_audio_filename):
-        os_helper.info(f"Output audio file already exists:\n\t{output_audio_filename}")
+    if not(overwrite) and osh.file_exists(output_audio_filename):
+        osh.info(f"Output audio file already exists:\n\t{output_audio_filename}")
         if is_valid_audio_file(output_audio_filename):
             return output_audio_filename
         else:
-            os_helper.remove_files([output_audio_filename])  # Remove invalid file
-            os_helper.info(f"Deleting invalid output audio file:\n\t{output_audio_filename}")
-    elif overwrite and os_helper.file_exists(output_audio_filename):
-        os_helper.remove_files([output_audio_filename])  # Overwrite existing file
-        os_helper.info(f"Deleting output audio file for overwrite:\n\t{output_audio_filename}")
+            osh.remove_files([output_audio_filename])  # Remove invalid file
+            osh.info(f"Deleting invalid output audio file:\n\t{output_audio_filename}")
+    elif overwrite and osh.file_exists(output_audio_filename):
+        osh.remove_files([output_audio_filename])  # Overwrite existing file
+        osh.info(f"Deleting output audio file for overwrite:\n\t{output_audio_filename}")
 
     return None
 
@@ -134,25 +134,25 @@ def _overwrite_audio_list(output_audio_list: List[str], overwrite: bool = True) 
     If each of the files exist and overwrite is False, the function checks if the files are valid audio files.
     If each of the files exist and overwrite is True, the function deletes the existing files to overwrite them.
     """
-    if not(overwrite) and all([(os_helper.file_exists(f) and is_valid_audio_file(f)) for f in output_audio_list]):
+    if not(overwrite) and all([(osh.file_exists(f) and is_valid_audio_file(f)) for f in output_audio_list]):
         stem_keys = []
         stem_files = []
         for f in output_audio_list:
-            _, b, _ = os_helper.folder_name_ext(f)
-            o = os_helper.relative2absolute_path(f)
+            _, b, _ = osh.folder_name_ext(f)
+            o = osh.relative2absolute_path(f)
             stem_keys.append(b)
             stem_files.append(o)
         d = {k: v for k, v in zip(stem_keys, stem_files)}
         s = "\n\t".join([f"{k}:\t{v}" for k, v in d.items()])
-        os_helper.info(
+        osh.info(
             f"Sources already separated for at:\n\t{s}"
         )
         return d
     elif overwrite:
         for f in output_audio_list:
-            if os_helper.file_exists(f):
-                os_helper.remove_files([f])
-                os_helper.info(f"Deleting output audio file for overwrite:\n\t{f}")
+            if osh.file_exists(f):
+                osh.remove_files([f])
+                osh.info(f"Deleting output audio file for overwrite:\n\t{f}")
     
     return None
 
@@ -188,11 +188,11 @@ def is_valid_audio_file(file_path: str) -> bool:
     except Exception as e:
         valid = False
 
-    _,_,ext = os_helper.folder_name_ext(file_path)
+    _,_,ext = osh.folder_name_ext(file_path)
     if not(ext.lower() in audio_extensions):
         valid = False
 
-    os_helper.info(f"Audio file {file_path} is {'valid' if valid else 'invalid'}")
+    osh.info(f"Audio file {file_path} is {'valid' if valid else 'invalid'}")
     return valid
 
 
@@ -215,12 +215,12 @@ def get_audio_duration(file_path: str) -> float:
     Error
         If no audio stream is found in the file.
     """
-    os_helper.checkfile(file_path, msg=f"Audio file not found at {file_path}")
+    osh.checkfile(file_path, msg=f"Audio file not found at {file_path}")
     probe = ffmpeg.probe(file_path)
     audio_stream = next(
         (stream for stream in probe["streams"] if stream["codec_type"] == "audio"), None
     )
-    os_helper.check(
+    osh.check(
         audio_stream is not None,
         msg=f"No audio stream found in the file: {file_path}",
     )
@@ -339,13 +339,13 @@ def sound_converter(
     Two intermediate WAV files are used before generating the final output audio file.
     """
 
-    os_helper.info(f"Converting audio file: {input_audio} into {output_audio}")
+    osh.info(f"Converting audio file: {input_audio} into {output_audio}")
 
     # Check if the input audio file exists
-    os_helper.checkfile(input_audio, msg=f"Input audio file not found: {input_audio}")
+    osh.checkfile(input_audio, msg=f"Input audio file not found: {input_audio}")
 
     # Check if the input audio file is valid
-    os_helper.check(
+    osh.check(
         is_valid_audio_file(input_audio),
         msg=f"Invalid audio file: {input_audio}",
     )
@@ -354,17 +354,17 @@ def sound_converter(
     if o is not None:
         return o
     
-    _, _, ext_in = os_helper.folder_name_ext(input_audio)
-    _, _, ext_out = os_helper.folder_name_ext(output_audio)
+    _, _, ext_in = osh.folder_name_ext(input_audio)
+    _, _, ext_out = osh.folder_name_ext(output_audio)
 
     # Get verbosity settings from the environment
-    verbose = os_helper.verbosity() > 0
+    verbose = osh.verbosity() > 0
     quiet = not verbose
 
     # Use temporary files for intermediate WAV processing (for robustness)
-    with os_helper.temporary_filename(
+    with osh.temporary_filename(
         suffix=".wav", mode="wb"
-    ) as first_wav, os_helper.temporary_filename(
+    ) as first_wav, osh.temporary_filename(
         suffix=".wav", mode="wb"
     ) as second_wav:
 
@@ -374,7 +374,7 @@ def sound_converter(
                 overwrite_output=True, quiet=quiet
             )
         else:
-            os_helper.copyfile(input_audio, first_wav)
+            osh.copyfile(input_audio, first_wav)
 
 
         # Convert the temporary WAV file to another WAV file with specified parameters
@@ -388,17 +388,17 @@ def sound_converter(
                 overwrite_output=True, quiet=quiet
             )
         else:
-            os_helper.copyfile(second_wav, output_audio)
+            osh.copyfile(second_wav, output_audio)
 
     # Check if the output audio file was successfully created
-    os_helper.checkfile(
+    osh.checkfile(
         output_audio, msg=f"Failed to convert audio file:\n\t{output_audio}"
     )
-    os_helper.check(
+    osh.check(
         is_valid_audio_file(output_audio), msg=f"Invalid audio file:\n\t{output_audio}"
     )
 
-    os_helper.info(f"Audio file converted successfully:\n\t{output_audio}")
+    osh.info(f"Audio file converted successfully:\n\t{output_audio}")
 
     return output_audio
 
@@ -432,17 +432,17 @@ def save_audio(signal: Union[torch.Tensor, np.ndarray], file_path: str, sample_r
         save_audio(signal, sample_rate, file_path)
 
     elif isinstance(signal, np.ndarray): # (time, channels) convention
-        _,_,ext = os_helper.folder_name_ext(file_path)
+        _,_,ext = osh.folder_name_ext(file_path)
         if ext.lower() == "wav":
             wav.write(file_path, sample_rate, signal)
         else:
-            with os_helper.temporary_filename(suffix=".wav", mode="wb") as wav_audio_file:
+            with osh.temporary_filename(suffix=".wav", mode="wb") as wav_audio_file:
                 wav.write(wav_audio_file, sample_rate, signal)
                 channels = 1 if len(signal.shape)==1 else signal.shape[1]
                 sound_converter(input_audio = wav_audio_file, output_audio=file_path, freq=sample_rate, channels=channels, encoding="pcm_s16le", overwrite=True)
 
-        os_helper.check(is_valid_audio_file(file_path), msg=f"Audio file not saved to {file_path}")
-        os_helper.info(f"Audio signal saved to {file_path}")
+        osh.check(is_valid_audio_file(file_path), msg=f"Audio file not saved to {file_path}")
+        osh.info(f"Audio signal saved to {file_path}")
 
 
 
@@ -491,16 +491,16 @@ def _separate_sources(
 
     # Do not use all cores and leave one for the system!
 
-    # Get the number of workers from os_helper if nb_workers is not provided
+    # Get the number of workers from osh if nb_workers is not provided
     if nb_workers is None:
-        nb_workers = os_helper.get_nb_workers()
+        nb_workers = osh.get_nb_workers()
 
     # Adjust workers count if nb_workers is negative (relative to the system like sklearn convention)
     if nb_workers < 0:
-        nb_workers = os_helper.get_nb_workers() - nb_workers  + 1
+        nb_workers = osh.get_nb_workers() - nb_workers  + 1
 
     # Limit the number of workers to the maximum available minus one for the system
-    MAX_NB_WORKERS = os_helper.get_nb_workers()
+    MAX_NB_WORKERS = osh.get_nb_workers()
     if nb_workers >= MAX_NB_WORKERS:
         nb_workers = MAX_NB_WORKERS - 1
 
@@ -650,17 +650,17 @@ def separate_sources(
     """
 
     global separator_engine, separator_engine_sample_rate
-    os_helper.info(f"Separating sources for:\n\t{input_audio_file}")
+    osh.info(f"Separating sources for:\n\t{input_audio_file}")
 
     # Set up the output folder if not specified
     if output_folder is None:
-        f, _, _ = os_helper.folder_name_ext(input_audio_file)
+        f, _, _ = osh.folder_name_ext(input_audio_file)
         output_folder = f
 
     # Check if files already exist and skip if not overwriting
     stem_keys = ["vocals", "drums", "bass", "other"]
     stem_files = [
-        os_helper.os_path_constructor([output_folder, f"{stem}.{output_format}"])
+        osh.os_path_constructor([output_folder, f"{stem}.{output_format}"])
         for stem in stem_keys
     ]
     d = _overwrite_audio_list(stem_files, overwrite)
@@ -721,14 +721,14 @@ def separate_sources(
             )
             audio = resampler(audio)
 
-        os_helper.make_directory(output_folder)
-        output_audio_file = os_helper.os_path_constructor(
+        osh.make_directory(output_folder)
+        output_audio_file = osh.os_path_constructor(
                             [output_folder, f"{stem}.{output_format}"]
                         )
         save_audio(audio, output_audio_file, sample_rate)
         res[stem] = output_audio_file
 
-        os_helper.info(f"Saved {stem} to\n\t{output_audio_file}")
+        osh.info(f"Saved {stem} to\n\t{output_audio_file}")
         
 
 
@@ -776,18 +776,18 @@ def extract_audio_chunk(
     """
 
     # Check if the input audio file exists and is valid
-    os_helper.checkfile(audio_file, msg=f"Audio file not found at:\n\t{audio_file}")
-    os_helper.check(
+    osh.checkfile(audio_file, msg=f"Audio file not found at:\n\t{audio_file}")
+    osh.check(
         is_valid_audio_file(audio_file),
         msg=f"Invalid audio file (impossible to extract chunk):\n\t{audio_file}",
     )
 
     # Generate the output file name if not provided
-    if os_helper.emptystring(output_audio_filename):
-        f, b, ext = os_helper.folder_name_ext(audio_file)
+    if osh.emptystring(output_audio_filename):
+        f, b, ext = osh.folder_name_ext(audio_file)
         s = round(start_time * 1000)  # Start time in milliseconds
         e = round(end_time * 1000)  # End time in milliseconds
-        output_audio_filename = os_helper.os_path_constructor(
+        output_audio_filename = osh.os_path_constructor(
             [f, f"{b}_chunk-{s}-{e}.{ext}"]
         )
     
@@ -796,25 +796,25 @@ def extract_audio_chunk(
     
     # Get the duration of the audio file to validate start and end times
     duration = get_audio_duration(audio_file)
-    os_helper.check(
+    osh.check(
         start_time >= 0 and start_time < duration,
         msg=f"Invalid start time: start={start_time}, end={end_time} for duration={duration}",
     )
-    os_helper.check(
+    osh.check(
         end_time > start_time and end_time <= duration,
         msg=f"Invalid end time: start={start_time}, end={end_time} for duration={duration}",
     )
 
-    _, _, ext_in = os_helper.folder_name_ext(audio_file)
-    _, _, ext_out = os_helper.folder_name_ext(output_audio_filename)
+    _, _, ext_in = osh.folder_name_ext(audio_file)
+    _, _, ext_out = osh.folder_name_ext(output_audio_filename)
 
     # Use ffmpeg to extract the audio chunk from the input file
-    quiet = os_helper.verbosity() == 0  # Control ffmpeg's verbosity
+    quiet = osh.verbosity() == 0  # Control ffmpeg's verbosity
 
     # Use wav format for intermediate files
-    with os_helper.temporary_filename(
+    with osh.temporary_filename(
         suffix=".wav", mode="wb"
-    ) as temp_wav, os_helper.temporary_filename(
+    ) as temp_wav, osh.temporary_filename(
         suffix=".wav", mode="wb"
     ) as output_wav:
         
@@ -824,7 +824,7 @@ def extract_audio_chunk(
                 overwrite_output=True, quiet=quiet
             )
         else:
-            os_helper.copyfile(audio_file, temp_wav)
+            osh.copyfile(audio_file, temp_wav)
 
         # Extract the audio chunk from the input file to a temporary WAV file
         ffmpeg.input(temp_wav, ss=start_time, t=end_time - start_time).output(
@@ -835,19 +835,19 @@ def extract_audio_chunk(
             # Convert the temporary WAV file to the specified output format
             sound_converter(output_wav, output_audio_filename, freq=44100)
         else:
-            os_helper.copyfile(output_wav, output_audio_filename)
+            osh.copyfile(output_wav, output_audio_filename)
 
     # Verify that the output file was created and is valid
-    os_helper.checkfile(
+    osh.checkfile(
         output_audio_filename,
         msg=f"Failed to extract audio chunk from:\n\t{audio_file} to:\n\t{output_audio_filename}",
     )
-    os_helper.check(
+    osh.check(
         is_valid_audio_file(output_audio_filename),
         msg=f"Failed to extract audio chunk from {start_time} to {end_time}:\n\t{output_audio_filename}",
     )
 
-    os_helper.info(
+    osh.info(
         f"Extracted audio chunk from\n\t{audio_file} to\n\t{output_audio_filename}"
     )
 
@@ -892,41 +892,41 @@ def generate_silent_audio(
     """
 
     # Generate default output file name if not provided
-    if os_helper.emptystring(output_audio_filename):
+    if osh.emptystring(output_audio_filename):
         t = round(duration * 1000)  # Convert duration to milliseconds for the filename
-        output_audio_filename = os_helper.os_path_constructor([f"silent_{t}.wav"])
+        output_audio_filename = osh.os_path_constructor([f"silent_{t}.wav"])
 
     # Check if the file already exists and handle based on the overwrite flag
     if not(_overwrite_audio_file(output_audio_filename, overwrite) is None):
         return output_audio_filename
 
     # Control ffmpeg's verbosity based on environment settings
-    quiet = os_helper.verbosity() == 0
+    quiet = osh.verbosity() == 0
 
     # Just make zeros
     zeros = np.zeros(int(duration * sample_rate))
-    _,_,ext = os_helper.folder_name_ext(output_audio_filename)
+    _,_,ext = osh.folder_name_ext(output_audio_filename)
     if ext.lower() == "wav":
         sf.write(output_audio_filename, zeros, sample_rate)
     else:
-        with os_helper.temporary_filename(suffix=".wav", mode="wb") as temp_wav:
+        with osh.temporary_filename(suffix=".wav", mode="wb") as temp_wav:
             sf.write(temp_wav, zeros, sample_rate)
             sound_converter(temp_wav, output_audio_filename, freq=sample_rate)
 
     # Verify that the file was successfully generated and is valid
-    os_helper.checkfile(
+    osh.checkfile(
         output_audio_filename,
         msg=f"Failed to generate silent audio file: {output_audio_filename}",
     )
-    os_helper.check(
+    osh.check(
         is_valid_audio_file(output_audio_filename),
         msg=f"Generated silent audio file is invalid: {output_audio_filename}",
     )
 
     signal, sample_rate = load_audio(output_audio_filename, to_numpy=True, to_mono=True)
-    os_helper.check(np.sum(np.abs(signal)) == 0, msg=f"Generated silent audio file is not silent:\n\t{output_audio_filename}")
+    osh.check(np.sum(np.abs(signal)) == 0, msg=f"Generated silent audio file is not silent:\n\t{output_audio_filename}")
 
-    os_helper.info(f"Generated silent audio file: {output_audio_filename}")
+    osh.info(f"Generated silent audio file: {output_audio_filename}")
 
     return output_audio_filename
 
@@ -956,28 +956,28 @@ def audio_concatenation(audio_files, output_audio_filename: str = None, overwrit
     The function uses ffmpeg to concatenate multiple audio files into a single audio file.
     """
 
-    os_helper.check(
+    osh.check(
         isinstance(audio_files, list) and len(audio_files) > 0,
         msg=f"Invalid audio files list: {audio_files}",
     )
     s = "\n\t".join(audio_files)
-    os_helper.check(
-        all([os_helper.file_exists(f) for f in audio_files]),
+    osh.check(
+        all([osh.file_exists(f) for f in audio_files]),
         msg=f"Invalid audio files (file existence):\n\t{s}",
     )
-    os_helper.check(
+    osh.check(
         all([is_valid_audio_file(f) for f in audio_files]),
         msg=f"Invalid audio files (audio type):\n\t{s}",
     )
 
-    if os_helper.emptystring(output_audio_filename):
-        folder, _, ext = os_helper.folder_name_ext(audio_files[0])
+    if osh.emptystring(output_audio_filename):
+        folder, _, ext = osh.folder_name_ext(audio_files[0])
         audio_files_basename = []
         for f in audio_files:
-            _, b, _ = os_helper.folder_name_ext(f)
+            _, b, _ = osh.folder_name_ext(f)
             audio_files_basename.append(b)
         b = "-".join(audio_files_basename)
-        output_audio_filename = os_helper.os_path_constructor(
+        output_audio_filename = osh.os_path_constructor(
             [folder, f"{b}-concatenated.{ext}"]
         )
 
@@ -987,9 +987,9 @@ def audio_concatenation(audio_files, output_audio_filename: str = None, overwrit
 
     input_streams = [ffmpeg.input(f) for f in audio_files]
 
-    quiet = os_helper.verbosity() == 0
+    quiet = osh.verbosity() == 0
 
-    _,_,ext = os_helper.folder_name_ext(output_audio_filename)
+    _,_,ext = osh.folder_name_ext(output_audio_filename)
 
     if ext.lower() == "wav":
         (
@@ -998,7 +998,7 @@ def audio_concatenation(audio_files, output_audio_filename: str = None, overwrit
             .run(overwrite_output=True, quiet=quiet)
         )
     else:
-        with os_helper.temporary_filename(suffix=".wav", mode="wb") as temp_wav:
+        with osh.temporary_filename(suffix=".wav", mode="wb") as temp_wav:
             (
                 ffmpeg.concat(*input_streams, v=0, a=1)
                 .output(temp_wav)
@@ -1006,19 +1006,20 @@ def audio_concatenation(audio_files, output_audio_filename: str = None, overwrit
             )
             sound_converter(temp_wav, output_audio_filename, freq=44100)
 
-    os_helper.checkfile(
+    osh.checkfile(
         output_audio_filename, msg=f"Failed to concatenate audio files: {audio_files}"
     )
-    os_helper.check(
+    osh.check(
         is_valid_audio_file(output_audio_filename),
         msg=f"Failed to concatenate audio files: {audio_files}",
     )
 
-    os_helper.info(f"Concatenated audio files into: {output_audio_filename}")
+    osh.info(f"Concatenated audio files into: {output_audio_filename}")
 
     return output_audio_filename
 
-def split_audio_regularly(sound_path: str, chunk_folder: str, split_time: float, output_format = "mp3", overwrite: bool = False) -> List[str]:
+
+def split_audio_regularly(sound_path: str, chunk_folder: str, split_time: float, output_format = "mp3", overwrite: bool = False, suffix:str="split") -> List[str]:
     """
     Split an audio file into chunks of a specified duration.
 
@@ -1034,6 +1035,8 @@ def split_audio_regularly(sound_path: str, chunk_folder: str, split_time: float,
         The format of the output audio files (default is 'mp3').
     overwrite : bool, optional
         Whether to overwrite the output files if they already exist (default is False).
+    suffix : str, optional
+        Suffix to add to the output audio files (default is 'split').
 
     Returns
     -------
@@ -1043,43 +1046,30 @@ def split_audio_regularly(sound_path: str, chunk_folder: str, split_time: float,
     -----
     The function uses ffmpeg to split the audio file into chunks of the specified duration.
     """
-
-    os_helper.checkfile(sound_path, msg=f"Audio file not found at {sound_path}")
+    
+    osh.check(is_valid_audio_file(sound_path), msg=f"Invalid audio file: {sound_path}")
 
     output_format = output_format.lower().replace(".", "")
 
     # Ensure the output directory exists
-    os_helper.make_directory(chunk_folder)
-
+    osh.make_directory(chunk_folder)
 
     # Calculate the total duration of the audio file
     total_duration = get_audio_duration(sound_path)
-
-    # Generate the output audio chunk paths based on the split time
-    output_audio_paths = [
-        os_helper.os_path_constructor([chunk_folder, f"chunk_{i:04d}.wav"])
-        for i in range(int(total_duration // split_time) + 1) if i * split_time < total_duration
-    ]
-
-    # Check if the file already exists and handle based on the overwrite flag
-    d = _overwrite_audio_list(output_audio_paths, overwrite)
-    if d is not None:
-        return [d[k] for k in sorted(d.keys())]
 
     # Process the chunks (actual splitting)
     time_cursor = 0
     counter = 0
     output_audio_paths = []
     while time_cursor < total_duration - 1:
-        chunk_path = os_helper.os_path_constructor(
-            [chunk_folder, f"chunk_{counter:04d}.{output_format}"]
+        chunk_path = osh.os_path_constructor(
+            [chunk_folder, f"chunk_{counter:04d}_{suffix}.{output_format}"]
         )
-        print("Chunk path:", chunk_path)
         s = time_cursor
         e = min(time_cursor + split_time, total_duration)
         extract_audio_chunk(sound_path, s, e, output_audio_filename = chunk_path, overwrite=True)
         added_duration = get_audio_duration(chunk_path)
-        os_helper.info(
+        osh.info(
             f"Chunk {counter:04d} of duration {added_duration} saved to:\n\t{chunk_path}"
         )
         output_audio_paths.append(chunk_path)
@@ -1087,7 +1077,7 @@ def split_audio_regularly(sound_path: str, chunk_folder: str, split_time: float,
         counter += 1
 
     s = "\n\t".join(output_audio_paths)
-    os_helper.info(
+    osh.info(
         f"Audio file {sound_path} split into chunks of {split_time} seconds in {chunk_folder}:\n\t{s}"
     )
 
