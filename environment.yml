@@ -1,9 +1,8 @@
-name: env4ah
+name: env4vh
 channels:
   - defaults
 dependencies:
-  - python>=3.10,<3.14
+  - python=3.10
   - pip
-  - pytest         
   - pip:
-    - -r requirements.txt
+      - -r file:requirements.txt
