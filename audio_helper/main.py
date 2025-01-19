@@ -77,6 +77,29 @@ audio_extensions = [
 ]
 
 
+video_extensions = [
+    "mp4",
+    "avi",
+    "mov",
+    "wmv",
+    "flv",
+    "mkv",
+    "webm",
+    "mpeg",
+    "mpg",
+    "m4v",
+    "3gp",
+    "ogv",
+    "mxf",
+    "ts",
+    "vob",
+    "m2ts",
+    "mts",
+    "rm",
+    "asf"
+]
+
+audio_extensions += video_extensions
 
 def _overwrite_audio_file(output_audio_filename: str, overwrite: bool = True) -> Union[str, None]:
     """
