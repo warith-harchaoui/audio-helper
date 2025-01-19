@@ -678,7 +678,7 @@ def separate_sources(
     # Check if files already exist and skip if not overwriting
     stem_keys = ["vocals", "drums", "bass", "other"]
     stem_files = [
-        osh.os_path_constructor([output_folder, f"{stem}.{output_format}"])
+        osh.join([output_folder, f"{stem}.{output_format}"])
         for stem in stem_keys
     ]
     d = _overwrite_audio_list(stem_files, overwrite)
@@ -740,7 +740,7 @@ def separate_sources(
             audio = resampler(audio)
 
         osh.make_directory(output_folder)
-        output_audio_file = osh.os_path_constructor(
+        output_audio_file = osh.join(
                             [output_folder, f"{stem}.{output_format}"]
                         )
         save_audio(audio, output_audio_file, sample_rate)
@@ -802,7 +802,7 @@ def extract_audio_chunk(
         f, b, ext = osh.folder_name_ext(audio_file)
         s = round(start_time * 1000)  # Start time in milliseconds
         e = round(end_time * 1000)  # End time in milliseconds
-        output_audio_filename = osh.os_path_constructor(
+        output_audio_filename = osh.join(
             [f, f"{b}_chunk-{s}-{e}.{ext}"]
         )
     
@@ -899,7 +899,7 @@ def generate_silent_audio(
     # Generate default output file name if not provided
     if osh.emptystring(output_audio_filename):
         t = round(duration * 1000)  # Convert duration to milliseconds for the filename
-        output_audio_filename = osh.os_path_constructor([f"silent_{t}.wav"])
+        output_audio_filename = osh.join([f"silent_{t}.wav"])
 
     # Check if the file already exists and handle based on the overwrite flag
     if not(_overwrite_audio_file(output_audio_filename, overwrite) is None):
@@ -970,7 +970,7 @@ def audio_concatenation(audio_files, output_audio_filename: str = None, overwrit
             _, b, _ = osh.folder_name_ext(f)
             audio_files_basename.append(b)
         b = "-".join(audio_files_basename)
-        output_audio_filename = osh.os_path_constructor(
+        output_audio_filename = osh.join(
             [folder, f"{b}-concatenated.{ext}"]
         )
 
@@ -1052,7 +1052,7 @@ def split_audio_regularly(sound_path: str, chunk_folder: str, split_time: float,
     counter = 0
     output_audio_paths = []
     while time_cursor < total_duration - 1:
-        chunk_path = osh.os_path_constructor(
+        chunk_path = osh.join(
             [chunk_folder, f"chunk_{counter:04d}_{suffix}.{output_format}"]
         )
         s = time_cursor
