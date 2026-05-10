@@ -13,7 +13,7 @@ ffmpeg-python = "^0.2.0"
 tqdm = "^4.67.1"
 soundfile = "^0.13.0"
 scipy = "^1.15.1"
-os-helper = {git = "https://github.com/warith-harchaoui/os-helper.git", rev = "v1.0.0"}
+os-helper = {git = "https://github.com/warith-harchaoui/os-helper.git", rev = "v1.1.0"}
 
 
 [build-system]
