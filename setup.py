@@ -9,7 +9,7 @@ package_data = \
 
 install_requires = \
 ['ffmpeg-python>=0.2.0,<0.3.0',
- 'os-helper @ git+https://github.com/warith-harchaoui/os-helper.git@v1.0.0',
+ 'os-helper @ git+https://github.com/warith-harchaoui/os-helper.git@v1.1.0',
  'scipy>=1.15.1,<2.0.0',
  'soundfile>=0.13.0,<0.14.0',
  'torch>=2.5.1,<3.0.0',
