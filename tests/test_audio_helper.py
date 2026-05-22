@@ -24,9 +24,11 @@ osh.verbosity(0)
 
 overwrite = True
 
+pytestmark = pytest.mark.integration
+
 def get_audio():
     folder = "audio_tests"
-    audio_file = osh.os_path_constructor([folder, audio_filename])
+    audio_file = osh.join([folder, audio_filename])
     if not(osh.file_exists(audio_file)):
         osh.make_directory(folder)
         urllib.request.urlretrieve(audio_url, audio_file)
@@ -61,7 +63,7 @@ def test_audio_resemblance():
     M = np.max(audio)
     sz = audio.shape
     second_audio += 0.05 * M * np.random.randn(*sz)
-    second_audio_file = osh.os_path_constructor([folder, "second_audio.wav"])
+    second_audio_file = osh.join([folder, "second_audio.wav"])
     save_audio(second_audio, second_audio_file, sample_rate)
 
     resemblance = sound_resemblance(audio_file, second_audio_file)
@@ -71,13 +73,13 @@ def test_conversion():
     audio_file = get_audio()
     folder, _, _ = osh.folder_name_ext(audio_file)
 
-    wav = osh.os_path_constructor([folder, "converted_audio.wav"])
+    wav = osh.join([folder, "converted_audio.wav"])
     sound_converter(audio_file, wav, freq=44100, channels=2, overwrite=overwrite)
     assert is_valid_audio_file(wav) == True, "Converted audio file (mp3 to wav) should be a valid audio file"
     audio, sample_rate = load_audio(wav, to_numpy=True, to_mono=False)
     assert sample_rate == 44100, f"Sample rate of converted audio (mp3 to wav) should match 44100 vs {sample_rate}"
 
-    ogg = osh.os_path_constructor([folder, "converted_audio.ogg"])
+    ogg = osh.join([folder, "converted_audio.ogg"])
     sound_converter(audio_file, ogg, freq=44100, channels=2, overwrite=overwrite)
     assert is_valid_audio_file(ogg) == True, "Converted audio file (mp3 to ogg) should be a valid audio file"
     audio, sample_rate = load_audio(ogg, to_numpy=True, to_mono=False)
@@ -87,7 +89,7 @@ def test_chunk():
     audio_file = get_audio()
     folder, _, _ = osh.folder_name_ext(audio_file)
 
-    chunk = osh.os_path_constructor([folder, "audio_chunk.wav"])
+    chunk = osh.join([folder, "audio_chunk.wav"])
     start = 5.0
     end = 10.0
     extract_audio_chunk(audio_file, start, end, chunk, overwrite=overwrite)
@@ -95,7 +97,7 @@ def test_chunk():
     duration = get_audio_duration(chunk)
     assert duration == end - start, f"Extracted audio chunk duration should match {end - start} vs {duration}"
 
-    chunk_folder = osh.os_path_constructor([folder, "splits"])
+    chunk_folder = osh.join([folder, "splits"])
     split_time = 10.0
     duration = get_audio_duration(audio_file)
     chunks = split_audio_regularly(audio_file, chunk_folder, split_time, overwrite=overwrite)
@@ -112,7 +114,7 @@ def test_chunk():
     assert error < 1.0, f"Duration of audio chunks should match the split time {split_time} vs min: {mini}, max:{maxi} (error: {error}%)"
 
     original_signal, sample_rate = load_audio(audio_file, to_numpy=True, to_mono=True)
-    reconstruction = osh.os_path_constructor([folder, "concatenation_audio.mp3"])
+    reconstruction = osh.join([folder, "concatenation_audio.mp3"])
     reconstruction = audio_concatenation(chunks, reconstruction, overwrite = overwrite)
     assert is_valid_audio_file(reconstruction) == True, "Concatenated audio file should be a valid audio file"
     duration = get_audio_duration(reconstruction)
@@ -126,7 +128,7 @@ def test_silent_audio():
     audio_file = get_audio()
     folder, _, _ = osh.folder_name_ext(audio_file)
 
-    silent_audio = osh.os_path_constructor([folder, "silent_audio.wav"])
+    silent_audio = osh.join([folder, "silent_audio.wav"])
     duration = 5.0
     generate_silent_audio(duration, silent_audio, sample_rate=44100, overwrite=overwrite)
     audio, sample_rate = load_audio(silent_audio, to_numpy=True, to_mono=True)
@@ -139,7 +141,7 @@ def test_separation():
     folder, _, _ = osh.folder_name_ext(audio_file)
 
     # separating sources
-    sources_folder = osh.os_path_constructor([folder, "sources"])
+    sources_folder = osh.join([folder, "sources"])
     osh.make_directory(sources_folder)
     sources = separate_sources(audio_file, sources_folder, overwrite=overwrite)
     assert len(sources) == 4, f"Number of separated sources should be 4 vs {len(sources)}"
@@ -157,7 +159,7 @@ def test_separation():
         source, _ = load_audio(sources[k], to_numpy=True, to_mono=True)
         reconstructed_signal += source
 
-    mp3_audio_file = osh.os_path_constructor([sources_folder, "reconstructed_signal.mp3"])
+    mp3_audio_file = osh.join([sources_folder, "reconstructed_signal.mp3"])
     save_audio(reconstructed_signal, mp3_audio_file, sample_rate)
 
     resemblance = sound_resemblance(audio_file, mp3_audio_file)# , window_seconds = 0.2)
