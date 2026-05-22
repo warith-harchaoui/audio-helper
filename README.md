@@ -35,11 +35,19 @@ To install Audio Helper, you must install `ffmpeg`:
   
 and finally we still discuss between different python package managers and try to support as much as possible
 
-
+Audio Helper ships in two flavors. Pick the one you need:
 
 ```bash
-pip install --force-reinstall --no-cache-dir git+https://github.com/warith-harchaoui/audio-helper.git@v1.0.0
+# Core audio utilities only (load, convert, split, concatenate, silent audio, chunks)
+pip install --force-reinstall --no-cache-dir \
+  "git+https://github.com/warith-harchaoui/audio-helper.git@v1.0.1"
+
+# Add Demucs source separation (pulls in torch + torchaudio, ~2 GB)
+pip install --force-reinstall --no-cache-dir \
+  "audio-helper[demucs] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.0.1"
 ```
+
+If you call `separate_sources` without the `[demucs]` extra, the function raises an `ImportError` pointing you back here.
 
 # Usage
 Here’s an example of how to use Audio Helper to load, convert, and split an audio file:
