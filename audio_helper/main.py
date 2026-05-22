@@ -211,7 +211,8 @@ def is_valid_audio_file(file_path: str) -> bool:
             None,
         )
         valid = audio_stream is not None
-    except Exception as e:
+    except (ffmpeg.Error, KeyError, OSError) as exc:
+        logging.debug(f"is_valid_audio_file: ffprobe failed for {file_path}: {exc}")
         valid = False
 
     _,_,ext = osh.folder_name_ext(file_path)
@@ -447,7 +448,7 @@ def save_audio(signal: Union[torch.Tensor, np.ndarray], file_path: str, sample_r
             signal = signal.reshape(1,-1) # (1, time) convention
 
         signal = signal.T # transpose to the (time, channels) convention
-        save_audio(signal, sample_rate, file_path)
+        save_audio(signal, file_path, sample_rate)
 
     elif isinstance(signal, np.ndarray): # (time, channels) convention
         _,_,ext = osh.folder_name_ext(file_path)
