@@ -23,12 +23,8 @@ Authors:
 
 """
 
-from typing import List, Union
-import torch
+from typing import TYPE_CHECKING, List, Optional, Union
 import os_helper as osh
-import torchaudio
-from torchaudio.pipelines import HDEMUCS_HIGH_MUSDB_PLUS
-from torchaudio.transforms import Fade
 import ffmpeg
 from tqdm import tqdm
 import concurrent.futures
@@ -36,14 +32,35 @@ import numpy as np
 import soundfile as sf
 from scipy.signal import resample
 import scipy.io.wavfile as wav
-from scipy.signal import correlate
-import warnings
 from scipy.fftpack import dct
 from scipy.signal import get_window
-from scipy.fftpack import fft
-from typing import Optional
 
 import logging
+
+if TYPE_CHECKING:
+    import torch
+
+
+_DEMUCS_EXTRA_HINT = (
+    "This feature requires the optional 'demucs' extra. "
+    "Install with: pip install 'audio-helper[demucs]'"
+)
+
+
+def _require_torch():
+    try:
+        import torch
+        return torch
+    except ImportError as exc:
+        raise ImportError(_DEMUCS_EXTRA_HINT) from exc
+
+
+def _require_torchaudio():
+    try:
+        import torchaudio
+        return torchaudio
+    except ImportError as exc:
+        raise ImportError(_DEMUCS_EXTRA_HINT) from exc
 
 audio_extensions = [
     "aif",
@@ -257,7 +274,7 @@ def load_audio(
     to_mono: bool = True,
     to_numpy: bool = False,
     two_channels: bool = False,
-) -> tuple[Union[torch.Tensor,np.ndarray], int]:
+) -> tuple[Union["torch.Tensor", np.ndarray], int]:
     """
     Load an audio file using soundfile, optionally resample, convert to mono or stereo,
     and return as a torch.Tensor (or optionally as a NumPy array).
@@ -304,7 +321,7 @@ def load_audio(
     if two_channels:
         if len(audio.shape) == 1:
             audio = np.vstack([audio,audio])
-        elif len(audio.shape) > 2 and audio.shape[1] == 1:
+        elif len(audio.shape) == 2 and audio.shape[1] == 1:
             t = audio.ravel()
             audio = np.vstack([t,t])
         else:
@@ -317,7 +334,8 @@ def load_audio(
 
     if to_numpy:
         return audio, sample_rate
-    
+
+    torch = _require_torch()
     # Convert the audio to a torch.Tensor with (channels, time) shape
     audio = torch.from_numpy(audio.T)
 
@@ -422,7 +440,7 @@ def sound_converter(
     return output_audio
 
 
-def save_audio(signal: Union[torch.Tensor, np.ndarray], file_path: str, sample_rate: int=44100) -> None:
+def save_audio(signal: Union["torch.Tensor", np.ndarray], file_path: str, sample_rate: int=44100) -> None:
     """
     save_audio saves a torch.Tensor or a NumPy array as an audio file using torchaudio or scipy.
 
@@ -440,9 +458,14 @@ def save_audio(signal: Union[torch.Tensor, np.ndarray], file_path: str, sample_r
     Error
         If the audio signal is not a torch.Tensor or a NumPy array.
 
-    """    
-    if isinstance(signal, torch.Tensor): # (channels, time) convention
+    """
+    try:
+        import torch as _torch
+        is_tensor = isinstance(signal, _torch.Tensor)
+    except ImportError:
+        is_tensor = False
 
+    if is_tensor: # (channels, time) convention
         signal = signal.detach().cpu().numpy()
         if len(signal.shape) == 1:
             signal = signal.reshape(1,-1) # (1, time) convention
@@ -466,14 +489,14 @@ def save_audio(signal: Union[torch.Tensor, np.ndarray], file_path: str, sample_r
 
 
 def _separate_sources(
-    model: torch.nn.Module,
-    mix: torch.Tensor,
+    model: "torch.nn.Module",
+    mix: "torch.Tensor",
     sample_rate: int,
     segment: float = 10.0,
     overlap: float = 0.1,
     device: str = None,
     nb_workers: int = 2,
-) -> torch.Tensor:
+) -> "torch.Tensor":
     """
     Apply a source separation model to a given audio mixture, processing the mixture in segments with overlap and fades,
     using multithreading to parallelize segment processing.
@@ -508,20 +531,23 @@ def _separate_sources(
     separated sources are then reassembled into the final output tensor.
     """
 
+    torch = _require_torch()
     # Do not use all cores and leave one for the system!
 
     # Get the number of workers from osh if nb_workers is not provided
     if nb_workers is None:
         nb_workers = osh.get_nb_workers()
 
-    # Adjust workers count if nb_workers is negative (relative to the system like sklearn convention)
+    # Adjust workers count if nb_workers is negative (sklearn convention: -1 = all cores, -2 = all but one, ...)
     if nb_workers < 0:
-        nb_workers = osh.get_nb_workers() - nb_workers  + 1
+        nb_workers = osh.get_nb_workers() + nb_workers + 1
 
     # Limit the number of workers to the maximum available minus one for the system
     MAX_NB_WORKERS = osh.get_nb_workers()
     if nb_workers >= MAX_NB_WORKERS:
         nb_workers = MAX_NB_WORKERS - 1
+    if nb_workers < 1:
+        nb_workers = 1
 
     # Check if cuda is available
     if device is None:
@@ -551,6 +577,7 @@ def _separate_sources(
     # Calculate the number of overlap frames
     overlap_frames = int(overlap * sample_rate)
 
+    from torchaudio.transforms import Fade
     # Create a Fade transformation to apply linear fades between segments
     fade = Fade(fade_in_len=0, fade_out_len=overlap_frames, fade_shape="linear")
 
@@ -686,8 +713,12 @@ def separate_sources(
     if d is not None:
         return d
 
+    _require_torch()
+    _require_torchaudio()
+
     # Initialize the separator engine if it hasn't been initialized yet
     if separator_engine is None:
+        from torchaudio.pipelines import HDEMUCS_HIGH_MUSDB_PLUS
         bundle = HDEMUCS_HIGH_MUSDB_PLUS
         separator_engine = bundle.get_model()
         separator_engine_sample_rate = bundle.sample_rate
@@ -734,11 +765,9 @@ def separate_sources(
         # reduce to mono which means channels = 1
         audio = np.mean(audio, axis=1)
         # check sample rate
-        if sample_rate != separator_engine_sample_rate:        
-            resampler = torchaudio.transforms.Resample(
-                orig_freq=separator_engine_sample_rate, new_freq=sample_rate
-            )
-            audio = resampler(audio)
+        if sample_rate != separator_engine_sample_rate:
+            num_samples = int(len(audio) * sample_rate / separator_engine_sample_rate)
+            audio = resample(audio, num_samples)
 
         osh.make_directory(output_folder)
         output_audio_file = osh.join(
