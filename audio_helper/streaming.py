@@ -73,6 +73,7 @@ async def iter_pcm(
     frame_ms: int = 20,
     reconnect: bool = True,
     silence_on_gap: bool = True,
+    headers: dict[str, str] | None = None,
 ) -> AsyncIterator[PcmFrame]:
     """Asynchronously yield PCM frames from ``uri``.
 
@@ -100,6 +101,11 @@ async def iter_pcm(
     silence_on_gap : bool
         Phase 9: pad silence for the wall-clock duration of any
         reconnect gap so ``t_abs_s`` remains monotonic.
+    headers : dict[str, str] | None
+        HTTP headers passed through to ffmpeg (``-headers`` flag).
+        Required for some live URLs (YouTube live tracks need the
+        specific ``User-Agent`` / ``Referer`` ``yt-helper`` returned).
+        Joined with ``\\r\\n`` per the ffmpeg ``-headers`` convention.
 
     Yields
     ------
@@ -114,43 +120,64 @@ async def iter_pcm(
     # Dispatch on kind so each path can have its own ffmpeg / network glue
     # without the parent caring.
     if kind == "file":
-        async for frame in _iter_pcm_file(
+        async for frame in _iter_pcm_via_ffmpeg(
             uri,
             target_sample_rate=target_sample_rate,
             to_mono=to_mono,
             realtime=realtime,
             frame_ms=frame_ms,
+            headers=headers,
         ):
             yield frame
         return
-    # Phase 6 — implemented later.
-    if kind in ("ffmpeg", "youtube", "podcast"):
+    if kind in ("ffmpeg", "podcast"):
+        # Both kinds delegate to ffmpeg with realtime=False (the source is
+        # already live or self-paced; ``-re`` would needlessly throttle).
+        async for frame in _iter_pcm_via_ffmpeg(
+            uri,
+            target_sample_rate=target_sample_rate,
+            to_mono=to_mono,
+            realtime=False,
+            frame_ms=frame_ms,
+            headers=headers,
+        ):
+            yield frame
+        return
+    if kind == "youtube":
+        # YouTube resolution belongs in yt_helper.streaming; this layer
+        # only does PCM decode. The caller should resolve first and pass
+        # ``kind="ffmpeg"`` with the resolved URL.
         raise NotImplementedError(
-            f"audio_helper.streaming kind={kind!r} lands in Phase 6 "
-            "(see PLAN.md). Use kind='file' for now."
+            "audio_helper.streaming kind='youtube' is intentionally "
+            "not implemented here — use yt_helper.streaming."
+            "resolve_direct_url(...) to get a direct media URL, then "
+            "pass it back here with kind='ffmpeg'."
         )
     raise ValueError(f"Unknown source kind: {kind!r}")
 
 
 # ---------------------------------------------------------------------------
-# kind="file" — ffmpeg subprocess in -re (real-time pacing) mode.
+# ffmpeg-decode helper. Used by every kind that needs PCM out of an
+# arbitrary URL or local file — only ``realtime`` and ``headers`` differ
+# between the kinds.
 # ---------------------------------------------------------------------------
 
 
-async def _iter_pcm_file(
-    path: str,
+async def _iter_pcm_via_ffmpeg(
+    input_uri: str,
     *,
     target_sample_rate: int,
     to_mono: bool,
     realtime: bool,
     frame_ms: int,
+    headers: dict[str, str] | None = None,
 ) -> AsyncIterator[PcmFrame]:
-    """ffmpeg-decode a local file into mono float32 frames.
+    """Decode any ffmpeg-readable input into mono float32 frames.
 
-    Uses ``ffmpeg -re`` (when ``realtime`` is True) so the file plays at
-    wall-clock speed — which means the downstream pipeline behaves the
-    same way it would on a live stream, and tests don't get an unfair
-    head start.
+    Uses ``ffmpeg -re`` (when ``realtime`` is True) so the input plays at
+    wall-clock speed — relevant when the source is a local file we want
+    to pretend is live. For real live sources (``ffmpeg`` / ``podcast``)
+    callers pass ``realtime=False`` since the source paces itself.
     """
     # Number of samples per yielded frame.
     samples_per_frame = max(1, (target_sample_rate * frame_ms) // 1000)
@@ -174,9 +201,15 @@ async def _iter_pcm_file(
         # i.e. wall-clock. Without it, files decode as fast as the disk
         # allows and the downstream pipeline sees burst input.
         cmd += ["-re"]
+    if headers:
+        # ffmpeg's -headers flag takes a single string with CRLF
+        # separators. Required for some YouTube live URLs that 403 on
+        # the default UA.
+        headers_str = "\r\n".join(f"{k}: {v}" for k, v in headers.items())
+        cmd += ["-headers", headers_str + "\r\n"]
     cmd += [
         "-i",
-        path,
+        input_uri,
         "-ac",
         str(channels),
         "-ar",
