@@ -22,7 +22,7 @@ extras_require = {
 
 setup_kwargs = {
     'name': 'audio-helper',
-    'version': '1.0.1',
+    'version': '1.1.0',
     'description': 'Audio Helper is a Python library that provides utility functions for processing audio files. It includes features like loading audio, converting formats, separating audio sources, and splitting and concatenating audio files.',
     'long_description': '# Audio Helper\n\n`Audio Helper` belongs to a collection of libraries called `AI Helpers` developed for building Artificial Intelligence.\n\n[🕸️ AI Helpers](https://harchaoui.org/warith/ai-helpers)\n\n[![logo](assets/repository-open-graph-template.png)](https://harchaoui.org/warith/ai-helpers)\n\nAudio Helper is a Python library that provides utility functions for processing audio files. It includes features like loading audio, converting formats, separating audio sources, and splitting and concatenating audio files.\n',
     'author': 'Warith Harchaoui',
