@@ -1039,6 +1039,119 @@ def audio_concatenation(audio_files, output_audio_filename: str = None, overwrit
     return output_audio_filename
 
 
+def mix_room_tone(
+    input_audio: str,
+    output_audio: str = None,
+    noise_db: float = -42.0,
+    color: str = "pink",
+    sample_rate: int = 44100,
+    overwrite: bool = False,
+) -> str:
+    """
+    Mix a constant low-level ambient noise (room tone) on top of an audio track.
+
+    Parameters
+    ----------
+    input_audio : str
+        Path to the input audio file (the "speech" track).
+    output_audio : str, optional
+        Path to the output file. If ``None``, ``<input>-roomtone.<ext>``
+        is written next to the input.
+    noise_db : float, optional
+        Noise level in decibels (default ``-42`` — inaudible but present;
+        sit between ``-45`` and ``-38`` for typical post-production use).
+        Amplitude is computed as ``10 ** (noise_db / 20)``.
+    color : str, optional
+        Noise color (default ``"pink"``). Accepted values follow ffmpeg's
+        ``anoisesrc`` filter: ``"white"``, ``"pink"``, ``"brown"``
+        (sometimes ``"red"``), ``"blue"``, ``"violet"``, ``"velvet"``.
+        Pink is the standard "natural" choice for masking gaps between
+        speech recordings.
+    sample_rate : int, optional
+        Sample rate for the noise source (default 44100). The output
+        sample rate matches whatever ffmpeg's ``amix`` produces.
+    overwrite : bool, optional
+        Whether to overwrite the output file if it already exists
+        (default ``False``).
+
+    Returns
+    -------
+    str
+        Path to the mixed output file.
+
+    Notes
+    -----
+    Standard post-production trick to homogenize a montage of disparate
+    speech takes: perfectly silent gaps between cuts contrast unpleasantly
+    with the speech and make every cut audible. A constant background
+    ambience that sits ~40 dB below the speech masks the boundary while
+    staying below the conscious hearing threshold.
+
+    The noise length is the input duration + 0.5 s (a small head-room so
+    ``amix=duration=first`` stops exactly at the speech end without
+    truncating the last few samples).
+
+    Examples
+    --------
+    >>> mix_room_tone("narration.wav", "narration-rt.wav", noise_db=-42)
+    >>> mix_room_tone("voice.mp3", color="brown", noise_db=-38)
+    """
+    osh.checkfile(input_audio, msg=f"Input audio file not found: {input_audio}")
+    assert is_valid_audio_file(input_audio), \
+        f"Invalid input audio file: {input_audio}"
+    assert color in {"white", "pink", "brown", "red", "blue", "violet", "velvet"}, \
+        f"Unsupported noise color: {color!r}"
+
+    if osh.emptystring(output_audio):
+        folder, base, ext = osh.folder_name_ext(input_audio)
+        output_audio = osh.join([folder, f"{base}-roomtone.{ext}"])
+
+    if not (_overwrite_audio_file(output_audio, overwrite) is None):
+        return output_audio
+
+    duration = get_audio_duration(input_audio)
+    amplitude = 10 ** (noise_db / 20.0)
+    # Small overshoot: anoisesrc duration = speech + 0.5s, then amix's
+    # `duration=first` clamps back to the speech length. Avoids truncating
+    # the tail of the speech by sub-sample rounding.
+    noise_duration = duration + 0.5
+    quiet = osh.verbosity() <= 0
+
+    # Codec is dictated by the output extension (.wav → pcm_s16le, others
+    # → ffmpeg's default for that container). Pcm preserves the mix
+    # losslessly; non-pcm containers compress.
+    _, _, ext = osh.folder_name_ext(output_audio)
+    out_kwargs = {}
+    if ext.lower() == "wav":
+        out_kwargs["acodec"] = "pcm_s16le"
+
+    speech = ffmpeg.input(input_audio)
+    noise = ffmpeg.input(
+        f"anoisesrc=color={color}:amplitude={amplitude:.6f}:"
+        f"duration={noise_duration:.3f}:sample_rate={sample_rate}",
+        f="lavfi",
+    )
+    mixed = ffmpeg.filter(
+        [speech.audio, noise.audio],
+        "amix", inputs=2, duration="first", dropout_transition=0,
+    )
+    ffmpeg.output(mixed, output_audio, **out_kwargs).run(
+        overwrite_output=True, quiet=quiet,
+    )
+
+    osh.checkfile(
+        output_audio,
+        msg=f"Failed to write room-tone output: {output_audio}",
+    )
+    assert is_valid_audio_file(output_audio), \
+        f"Generated room-tone file is invalid: {output_audio}"
+
+    logging.info(
+        f"Mixed room tone ({noise_db} dB {color}) into: {output_audio}",
+    )
+    return output_audio
+
+
 def split_audio_regularly(sound_path: str, chunk_folder: str, split_time: float, output_format = "mp3", overwrite: bool = False, suffix:str="split") -> List[str]:
     """
     Split an audio file into chunks of a specified duration.
