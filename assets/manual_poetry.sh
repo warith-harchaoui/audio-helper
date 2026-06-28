@@ -27,7 +27,7 @@ DEPENDENCIES=(
 
 
 DESCRIPTION="Audio Helper is a Python library that provides utility functions for processing audio files. It includes features like loading audio, converting formats, separating audio sources, and splitting and concatenating audio files."
-AUTHORS="Warith Harchaoui <warith.harchaoui@gmail.com>"
+AUTHORS="Warith HARCHAOUI <warithmetics@deraison.ai>"
 
 conda init
 source ~/.zshrc

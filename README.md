@@ -113,8 +113,9 @@ print(sources)
 - Similarity: MFCC-based `sound_resemblance` score for A/B comparison.
 - Feature Extraction: scipy-based Mel / MFCC primitives.
 
-# Authors
- - [Warith Harchaoui](https://harchaoui.org/warith)
- - [Mohamed Chelali](https://mchelali.github.io)
- - [Bachir Zerroug](https://www.linkedin.com/in/bachirzerroug)
+# Author
+ - [Warith HARCHAOUI](https://harchaoui.org/warith)
+
+# Acknowledgements
+Special thanks to [Mohamed Chelali](https://mchelali.github.io) and [Bachir Zerroug](https://www.linkedin.com/in/bachirzerroug) for fruitful discussions.
 
