@@ -20,11 +20,9 @@ Optional (``demucs`` extra)
   lazily via :func:`_require_torch` / :func:`_require_torchaudio`. Install with:
   ``pip install 'audio-helper[demucs]'``.
 
-Authors
--------
-- [Warith Harchaoui](https://harchaoui.org/warith)
-- [Mohamed Chelali](https://mchelali.github.io)
-- [Bachir Zerroug](https://www.linkedin.com/in/bachirzerroug)
+Author
+------
+- [Warith HARCHAOUI](https://harchaoui.org/warith)
 """
 
 from typing import TYPE_CHECKING, List, Optional, Union

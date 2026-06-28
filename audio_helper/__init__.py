@@ -4,10 +4,8 @@ Audio Helper
 This module provides various helper functions to manipulate audio files.
 It includes functionality for audio conversion, audio extraction, and audio source separation.
 
-Authors:
-- [Warith Harchaoui](https://harchaoui.org/warith)
-- [Mohamed Chelali](https://mchelali.github.io)
-- [Bachir Zerroug](https://www.linkedin.com/in/bachirzerroug)
+Author:
+- [Warith HARCHAOUI](https://harchaoui.org/warith)
 """
 
 # Specify the public API of this module using __all__
