@@ -24,8 +24,6 @@ __all__ = [
     "split_audio_regularly",
     "save_audio",
     "sound_resemblance",
-    "iter_pcm",
-    "PcmFrame",
 ]
 
 
@@ -43,4 +41,3 @@ from .main import (
     save_audio,
     sound_resemblance,
 )
-from .streaming import PcmFrame, iter_pcm
