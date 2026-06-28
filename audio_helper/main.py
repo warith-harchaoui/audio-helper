@@ -1,26 +1,30 @@
 """
 Audio Helper
 
-This module provides a set of functions to process audio files using PyTorch, torchaudio, ffmpeg, and various helper functions.
-The main functionalities include loading, converting, and separating audio sources, as well as splitting and concatenating audio files.
+Utilities for working with audio files: format conversion, duration probing,
+load/save in numpy form, regular-interval splitting, concatenation, room-tone
+mixing, silent-segment generation, and optional Demucs-based source separation.
 
 Dependencies
 ------------
-- torch
-- torchaudio
-- ffmpeg-python
-- tqdm
+- ffmpeg-python (wraps the system ``ffmpeg`` binary)
 - numpy
 - soundfile
 - scipy
+- tqdm
 - os-helper
 
-Authors:
-------------
+Optional (``demucs`` extra)
+---------------------------
+- torch, torchaudio — only required by :func:`separate_sources` and loaded
+  lazily via :func:`_require_torch` / :func:`_require_torchaudio`. Install with:
+  ``pip install 'audio-helper[demucs]'``.
+
+Authors
+-------
 - [Warith Harchaoui](https://harchaoui.org/warith)
 - [Mohamed Chelali](https://mchelali.github.io)
 - [Bachir Zerroug](https://www.linkedin.com/in/bachirzerroug)
-
 """
 
 from typing import TYPE_CHECKING, List, Optional, Union
@@ -120,62 +124,56 @@ audio_extensions += video_extensions
 
 def _overwrite_audio_file(output_audio_filename: str, overwrite: bool = True) -> Union[str, None]:
     """
-    Check if the output audio file already exists and handle based on the overwrite flag.
+    Decide what to do with an existing output audio file before (re)writing it.
 
     Parameters
     ----------
     output_audio_filename : str
         Path to the output audio file.
     overwrite : bool, optional
-        Whether to overwrite the output file if it already exists (default is False).
+        If True (the default), an existing file is deleted so it can be
+        rewritten. If False, an existing **valid** audio file is returned
+        as-is (signalling "skip"); an existing invalid file is deleted.
 
     Returns
     -------
     str or None
-        The output audio file path if it needs to be overwritten, None otherwise.
-
-    Notes
-    -----
-    The function checks if the output audio file already exists and handles it based on the overwrite flag.
-    If the file exists and overwrite is False, the function checks if the file is a valid audio file.
-    If the file exists and overwrite is True, the function deletes the existing file to overwrite it.
+        - The path itself when ``overwrite=False`` and the existing file is
+          a valid audio file (caller should skip).
+        - None in every other case (caller should proceed with writing).
     """
-
-    # Check if the file already exists and handle based on the overwrite flag
     if not(overwrite) and osh.file_exists(output_audio_filename):
         logging.info(f"Output audio file already exists:\n\t{output_audio_filename}")
         if is_valid_audio_file(output_audio_filename):
             return output_audio_filename
         else:
-            osh.remove_files([output_audio_filename])  # Remove invalid file
+            osh.remove_files([output_audio_filename])
             logging.info(f"Deleting invalid output audio file:\n\t{output_audio_filename}")
     elif overwrite and osh.file_exists(output_audio_filename):
-        osh.remove_files([output_audio_filename])  # Overwrite existing file
+        osh.remove_files([output_audio_filename])
         logging.info(f"Deleting output audio file for overwrite:\n\t{output_audio_filename}")
 
     return None
 
-def _overwrite_audio_list(output_audio_list: List[str], overwrite: bool = True) -> Union[str, None]:
+def _overwrite_audio_list(output_audio_list: List[str], overwrite: bool = True) -> Union[dict, None]:
     """
-    Check if the output audio files already exist and handle based on the overwrite flag.
+    Decide what to do with a list of existing output audio files before (re)writing them.
 
     Parameters
     ----------
     output_audio_list : List[str]
         List of paths to the output audio files.
     overwrite : bool, optional
-        Whether to overwrite the output files if they already exist (default is False).
+        If True (the default), any existing files are deleted so they can
+        be rewritten. If False, when **every** file exists and is a valid
+        audio file, a ``{stem_name: absolute_path}`` dict is returned
+        (signalling "skip"); otherwise None is returned (caller proceeds).
 
     Returns
     -------
     dict or None
-        Dictionary mapping source names to the paths of the separated audio files if they need to be overwritten, None otherwise.
-
-    Notes
-    ----- 
-    The function checks if the output audio files already exist and handles them based on the overwrite flag.
-    If each of the files exist and overwrite is False, the function checks if the files are valid audio files.
-    If each of the files exist and overwrite is True, the function deletes the existing files to overwrite them.
+        ``{stem_name: absolute_path}`` when the caller should skip
+        (overwrite=False and all files already valid), otherwise None.
     """
     if not(overwrite) and all([(osh.file_exists(f) and is_valid_audio_file(f)) for f in output_audio_list]):
         stem_keys = []
@@ -256,8 +254,10 @@ def get_audio_duration(file_path: str) -> float:
 
     Raises
     ------
-    Error
-        If no audio stream is found in the file.
+    AssertionError
+        If the file is missing, or if it contains no audio stream.
+    ffmpeg.Error
+        If ``ffmpeg.probe`` itself fails on the file.
     """
     osh.checkfile(file_path, msg=f"Audio file not found at {file_path}")
     probe = ffmpeg.probe(file_path)
@@ -372,8 +372,10 @@ def sound_converter(
 
     Raises
     ------
-    Error
-        If the input audio file does not exist or are not valid.
+    AssertionError
+        If the input audio file does not exist or is not a valid audio file.
+    ffmpeg.Error
+        If the underlying ffmpeg invocation fails.
 
     Notes
     -----
@@ -442,7 +444,7 @@ def sound_converter(
 
 def save_audio(signal: Union["torch.Tensor", np.ndarray], file_path: str, sample_rate: int=44100) -> None:
     """
-    save_audio saves a torch.Tensor or a NumPy array as an audio file using torchaudio or scipy.
+    Save an audio signal as a file using torchaudio (tensor) or scipy.io.wavfile (numpy).
 
     Parameters
     ----------
@@ -451,13 +453,15 @@ def save_audio(signal: Union["torch.Tensor", np.ndarray], file_path: str, sample
     file_path : str
         Path to the output audio file.
     sample_rate : int
-        The sample rate of the audio signal.
+        The sample rate of the audio signal, in Hz.
 
     Raises
     ------
-    Error
-        If the audio signal is not a torch.Tensor or a NumPy array.
-
+    AssertionError
+        If ``signal`` is neither a torch.Tensor nor a numpy.ndarray.
+    ImportError
+        If ``signal`` is a torch.Tensor but the optional ``demucs`` extra
+        (torch / torchaudio) is not installed.
     """
     try:
         import torch as _torch
@@ -805,7 +809,9 @@ def extract_audio_chunk(
         Path to save the extracted audio chunk. If None, the output file will be saved in the same directory
         as the input file with a filename based on the chunk's time range.
     overwrite : bool, optional
-        Whether to overwrite the output file if it already exists.
+        Currently advisory: the parameter is accepted for API compatibility
+        but ffmpeg is always invoked to (re)write the output file. A future
+        release may honor it by short-circuiting on an existing valid file.
 
     Returns
     -------
@@ -814,32 +820,31 @@ def extract_audio_chunk(
 
     Raises
     ------
-    Error
-        If the input audio file is not found or not valid or intervals are absurd.
+    AssertionError
+        If the input file is missing or invalid, or if ``start_time`` /
+        ``end_time`` fall outside the audio's duration.
+    ffmpeg.Error
+        If the underlying ffmpeg invocation fails.
 
     Notes
     -----
-    This function uses ffmpeg to extract a specific portion of the audio file between `start_time` and `end_time`.
-    It verifies that the input file is a valid audio file and checks that the specified time range is within the audio's duration.
+    Uses ffmpeg to extract a specific portion of the audio file between
+    ``start_time`` and ``end_time``. The input file is validated and the
+    requested time range is checked against the actual duration.
     """
 
-    # Check if the input audio file exists and is valid
     osh.checkfile(audio_file, msg=f"Audio file not found at:\n\t{audio_file}")
     assert is_valid_audio_file(audio_file), f"Invalid audio file (impossible to extract chunk):\n\t{audio_file}"
 
-    # Generate the output file name if not provided
     if osh.emptystring(output_audio_filename):
         f, b, ext = osh.folder_name_ext(audio_file)
-        s = round(start_time * 1000)  # Start time in milliseconds
-        e = round(end_time * 1000)  # End time in milliseconds
+        s = round(start_time * 1000)  # ms
+        e = round(end_time * 1000)
         output_audio_filename = osh.join(
             [f, f"{b}_chunk-{s}-{e}.{ext}"]
         )
-    
-    # if not(_overwrite_audio_file(output_audio_filename, overwrite) is None):
-    #     return output_audio_filename
-    
-    # Get the duration of the audio file to validate start and end times
+
+    # Validate start and end times against the actual audio duration.
     duration = get_audio_duration(audio_file)
     assert start_time >= 0 and start_time < duration, f"Invalid start time: start={start_time}, end={end_time} for duration={duration}"
     assert end_time > start_time and end_time <= duration, f"Invalid end time: start={start_time}, end={end_time} for duration={duration}"
@@ -917,13 +922,16 @@ def generate_silent_audio(
 
     Raises
     ------
-    Error
-        If the silent audio generation fails.
+    AssertionError
+        If the resulting file is missing or empty after generation.
+    ffmpeg.Error
+        If the underlying ffmpeg invocation fails.
 
     Notes
     -----
-    This function uses ffmpeg to generate a silent audio file of the specified duration and sample rate.
-    If the output filename is not provided, it generates a default name based on the duration.
+    Uses ffmpeg's ``anullsrc`` filter to write a silent audio file of the
+    specified duration and sample rate. When ``output_audio_filename`` is
+    None, a default name is derived from ``duration``.
     """
 
     # Generate default output file name if not provided

@@ -40,11 +40,11 @@ Audio Helper ships in two flavors. Pick the one you need:
 ```bash
 # Core audio utilities only (load, convert, split, concatenate, silent audio, chunks)
 pip install --force-reinstall --no-cache-dir \
-  "git+https://github.com/warith-harchaoui/audio-helper.git@v1.0.1"
+  "git+https://github.com/warith-harchaoui/audio-helper.git@v1.3.0"
 
 # Add Demucs source separation (pulls in torch + torchaudio, ~2 GB)
 pip install --force-reinstall --no-cache-dir \
-  "audio-helper[demucs] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.0.1"
+  "audio-helper[demucs] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.3.0"
 ```
 
 If you call `separate_sources` without the `[demucs]` extra, the function raises an `ImportError` pointing you back here.
@@ -95,7 +95,7 @@ sources = ah.separate_sources(
     output_format = "mp3",
 )
 
-print(separated_sources)
+print(sources)
 # {'vocals': 'audio_tests/vocals.mp3', 'drums': 'audio_tests/drums.mp3', 'bass': 'audio_tests/bass.mp3', 'other': 'audio_tests/other.mp3'}
 ```
 
