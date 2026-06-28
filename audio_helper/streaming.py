@@ -82,8 +82,8 @@ async def iter_pcm(
     uri : str
         File path (kind=``"file"``) or URL (other kinds).
     kind : SourceKind
-        Which decode path to use. ``"file"`` is implemented in Phase 1;
-        the other kinds land in Phase 6 (see ``.private/PLAN.md``).
+        Which decode path to use. Only ``"file"`` is implemented today;
+        the other source kinds are reserved for a future release.
     target_sample_rate : int
         Resample target. The whole pipeline runs at 16 kHz mono by
         default.
@@ -96,11 +96,12 @@ async def iter_pcm(
         Frame length in milliseconds. ``20`` is the default Silero VAD
         frame size, which avoids a re-buffer at the VAD stage.
     reconnect : bool
-        Phase 9: enable exponential-backoff reconnect when the source
-        dies. Currently logged but not yet implemented.
+        Reserved for a future release: enable exponential-backoff reconnect
+        when the source dies. Currently a no-op (logged only).
     silence_on_gap : bool
-        Phase 9: pad silence for the wall-clock duration of any
-        reconnect gap so ``t_abs_s`` remains monotonic.
+        Reserved for a future release: pad silence for the wall-clock
+        duration of any reconnect gap so ``t_abs_s`` remains monotonic.
+        Currently a no-op.
     headers : dict[str, str] | None
         HTTP headers passed through to ffmpeg (``-headers`` flag).
         Required for some live URLs (YouTube live tracks need the

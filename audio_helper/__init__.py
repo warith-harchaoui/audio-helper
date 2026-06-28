@@ -24,7 +24,6 @@ __all__ = [
     "split_audio_regularly",
     "save_audio",
     "sound_resemblance",
-    # Streaming I/O added by Warith Harchaoui — to be PR'd upstream.
     "iter_pcm",
     "PcmFrame",
 ]
