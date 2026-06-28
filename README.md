@@ -40,16 +40,19 @@ Audio Helper ships in two flavors. Pick the one you need:
 ```bash
 # Core audio utilities only (load, convert, split, concatenate, silent audio, chunks)
 pip install --force-reinstall --no-cache-dir \
-  "git+https://github.com/warith-harchaoui/audio-helper.git@v1.4.0"
+  "git+https://github.com/warith-harchaoui/audio-helper.git@v1.4.1"
 
 # Add Demucs source separation (pulls in torch + torchaudio, ~2 GB)
 pip install --force-reinstall --no-cache-dir \
-  "audio-helper[demucs] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.4.0"
+  "audio-helper[demucs] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.4.1"
 ```
 
 If you call `separate_sources` without the `[demucs]` extra, the function raises an `ImportError` pointing you back here.
 
 # Usage
+
+For the full catalog of recipes, see [📋 EXAMPLES.md](EXAMPLES.md).
+
 Here’s an example of how to use Audio Helper to load, convert, and split an audio file:
 
 (download [example.mp3](https://harchaoui.org/warith/example.mp3) )
@@ -100,13 +103,15 @@ print(sources)
 ```
 
 # Features
-- Audio Loading: Load audio files with optional resampling and mono conversion.
-- Sound Conversion: Convert audio files to different formats using ffmpeg.
-- Source Separation: Separate an audio file into vocals, drums, bass, and other stems using a pre-trained PyTorch model (Demucs).
-- Audio Splitting: Split audio files into chunks based on duration.
-- Concatenation: Concatenate multiple audio files into one.
-- Silent Audio Generation: Create silent audio files of a specified duration.
-- Chunk Extraction: Extract specific segments from an audio file.
+- Audio Loading: load files with optional resampling and mono downmix.
+- Sound Conversion: ffmpeg-backed format/sample-rate/channels conversion.
+- Source Separation: vocals / drums / bass / other via Demucs (optional `[demucs]` extra).
+- Audio Splitting: fixed-duration chunks and arbitrary `[start, end]` slices.
+- Concatenation: head-to-tail join into any ffmpeg-supported container.
+- Silent Audio Generation: write silence of a specified duration.
+- Room-Tone Mixing: pink/white/brown ambient noise to mask edits between cuts.
+- Similarity: MFCC-based `sound_resemblance` score for A/B comparison.
+- Feature Extraction: scipy-based Mel / MFCC primitives.
 
 # Authors
  - [Warith Harchaoui](https://harchaoui.org/warith)
