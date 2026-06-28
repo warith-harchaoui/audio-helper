@@ -1,5 +1,7 @@
 # Audio Helper
 
+> 🌐 Version française : [LISEZMOI.md](LISEZMOI.md)
+
 `Audio Helper` belongs to a collection of libraries called `AI Helpers` developed for building Artificial Intelligence.
 
 [🕸️ AI Helpers](https://harchaoui.org/warith/ai-helpers)
@@ -118,4 +120,3 @@ print(sources)
 
 # Acknowledgements
 Special thanks to [Mohamed Chelali](https://mchelali.github.io) and [Bachir Zerroug](https://www.linkedin.com/in/bachirzerroug) for fruitful discussions.
-
