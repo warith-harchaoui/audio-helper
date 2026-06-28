@@ -37,7 +37,9 @@ dependencies = [
 
 [project.optional-dependencies]
 demucs = ["torch>=2.5.1,<3", "torchaudio>=2.5.1,<3"]
-dev = ["pytest>=8", "torch>=2.5.1,<3", "torchaudio>=2.5.1,<3"]
+# `dev` keeps the bar low for CI — pytest only. To run the integration
+# suite (which exercises Demucs), install with `pip install -e .[dev,demucs]`.
+dev = ["pytest>=8"]
 
 [project.urls]
 Homepage = "https://github.com/warith-harchaoui/audio-helper"
