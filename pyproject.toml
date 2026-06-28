@@ -47,7 +47,7 @@ Issues = "https://github.com/warith-harchaoui/audio-helper/issues"
 
 [tool.setuptools.packages.find]
 include = ["audio_helper*"]
-exclude = ["tests*"]
+exclude = ["tests*", "assets*"]
 
 [tool.pytest.ini_options]
 markers = [
