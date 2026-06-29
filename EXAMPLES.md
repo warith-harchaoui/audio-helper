@@ -58,6 +58,7 @@ duration from the first audio stream.
 if ah.is_valid_audio_file("interview.mp3"):
     seconds = ah.get_audio_duration("interview.mp3")
     print(f"Interview is {seconds:.2f}s long.")
+    # Interview is 1834.27s long.
 ```
 
 A `.wav` extension on a text file fails the probe and returns False; a
@@ -133,6 +134,7 @@ chunks = ah.split_audio_regularly(
     overwrite=True,
 )
 print(f"{len(chunks)} chunks written.")
+# 42 chunks written.
 ```
 
 ### Concatenate
@@ -210,6 +212,7 @@ similarity. A file vs itself is ≈1.0; unrelated tones drop sharply.
 ```python
 score = ah.sound_resemblance("original.wav", "reconstructed.mp3")
 print(f"resemblance = {score:.3f}")
+# resemblance = 0.974
 ```
 
 ## Feature Extraction (Mel / MFCC)
@@ -222,6 +225,7 @@ from audio_helper.main import hz_to_mel, mel_to_hz, mel_filter_banks, mfcc
 
 # Hz <-> Mel
 print(hz_to_mel(440.0), mel_to_hz(549.6))
+# 549.6386500664797 440.00057651...
 
 # Mel filter bank
 sample_rate = 16000
