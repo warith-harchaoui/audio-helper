@@ -116,7 +116,7 @@ print(sources)
 - Feature Extraction: scipy-based Mel / MFCC primitives.
 
 # Author
- - [Warith HARCHAOUI](https://harchaoui.org/warith)
+ - [Warith HARCHAOUI](https://linkedin.com/in/warith-harchaoui)
 
 # Acknowledgements
 Special thanks to [Mohamed Chelali](https://mchelali.github.io) and [Bachir Zerroug](https://www.linkedin.com/in/bachirzerroug) for fruitful discussions.
