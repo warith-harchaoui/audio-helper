@@ -1,0 +1,109 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "audio-helper"
+version = "1.5.5"
+description = "Audio Helper — utility functions for processing audio files exposed as library, argparse CLI, click CLI, FastAPI HTTP surface and MCP tools. Load audio, convert formats, separate audio sources (Demucs), split and concatenate audio. Shannon-correct resampling via ffmpeg/libswresample."
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+license = {text = "BSD-3-Clause"}
+authors = [
+    {name = "Warith HARCHAOUI", email = "warithmetics@deraison.ai"},
+]
+keywords = ["audio", "ffmpeg", "scipy", "demucs", "resampling", "pcm"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Multimedia :: Sound/Audio :: Conversion",
+]
+dependencies = [
+    "os-helper>=1.4.2",
+    "ffmpeg-python>=0.2.0,<0.3",
+    "tqdm>=4.67.1,<5",
+    "scipy>=1.15.1,<2",
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+demucs = ["torch>=2.5.1,<3", "torchaudio>=2.5.1,<3"]
+# CLI-only-with-click extra. argparse variant needs no runtime dep and
+# is always available.
+cli = ["click>=8.1,<9"]
+# FastAPI HTTP surface (audio_helper.api). uvicorn + python-multipart
+# so multipart file uploads work out of the box.
+api = [
+    "fastapi>=0.111,<1",
+    "uvicorn>=0.30,<1",
+    "python-multipart>=0.0.9,<1",
+]
+# MCP surface (audio_helper.mcp). Depends on the `api` extra
+# — fastapi-mcp wraps the FastAPI app.
+mcp = [
+    "fastapi-mcp>=0.3,<1",
+    "fastapi>=0.111,<1",
+    "uvicorn>=0.30,<1",
+    "python-multipart>=0.0.9,<1",
+]
+# `dev` keeps the bar low for CI — pytest + httpx (for FastAPI TestClient)
+# + click (so the click CLI import always resolves in tests). To run the
+# integration suite (which exercises Demucs), install with
+# `pip install -e .[dev,demucs]`.
+dev = [
+    "pytest>=8",
+    "httpx>=0.27",
+    "click>=8.1,<9",
+    "fastapi>=0.111,<1",
+    "python-multipart>=0.0.9,<1",
+    "fastapi-mcp>=0.3,<1",
+]
+
+[project.scripts]
+# argparse-based CLI — no runtime dep beyond stdlib + core package.
+audio-helper = "audio_helper.cli_argparse:main"
+# click-based twin — install with [cli] extra.
+audio-helper-click = "audio_helper.cli_click:cli"
+# MCP server (over FastAPI) — install with [api,mcp] extras.
+audio-helper-mcp = "audio_helper.mcp:main"
+
+[project.urls]
+Homepage = "https://github.com/warith-harchaoui/audio-helper"
+Issues = "https://github.com/warith-harchaoui/audio-helper/issues"
+
+[tool.setuptools.packages.find]
+include = ["audio_helper*"]
+exclude = ["tests*", "assets*"]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: tests that hit the network, ffmpeg, or load Demucs (skipped by default)",
+]
+addopts = "-m 'not integration'"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["assets", "tests"]
+
+[tool.ruff.lint]
+# Conservative starter set: pyflakes (F), pycodestyle errors (E), warnings (W),
+# isort (I), bugbear (B), comprehensions (C4), pyupgrade (UP), simplify (SIM).
+# Easy to tighten later; this is the baseline.
+select = ["E", "F", "W", "I", "B", "C4", "UP", "SIM"]
+ignore = [
+    "E501",  # line-too-long — handled by formatter / context-dependent
+    "B008",  # function call in argument default — too noisy for our style
+    "SIM108",  # ternary preferred over if/else — sometimes hurts readability
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011"]  # assert False in pytest is fine
