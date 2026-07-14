@@ -12,6 +12,12 @@
 
 Audio Helper is a Python library that provides utility functions for processing audio files. It includes features like loading audio, converting formats, separating audio sources, and splitting and concatenating audio files.
 
+# Documentation
+
+[💻 Documentation](https://harchaoui.org/warith/ai-helpers/docs/audio-helper-doc/)
+
+[📋 Examples](https://github.com/warith-harchaoui/audio-helper/blob/main/EXAMPLES.md)
+
 # Installation
 
 **Prerequisites** — **Python 3.10–3.13** and **git**, **ffmpeg**, cross-platform:
