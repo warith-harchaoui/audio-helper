@@ -41,7 +41,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from typing import Sequence
+from collections.abc import Sequence
 
 # Import the pure functions once here — every subcommand is a thin dispatch
 # on top of these, no logic duplication.
@@ -56,7 +56,6 @@ from . import (
     sound_resemblance,
     split_audio_regularly,
 )
-
 
 # ---------------------------------------------------------------------------
 # Subcommand handlers
@@ -204,12 +203,28 @@ def _add_convert(sub: argparse._SubParsersAction) -> None:
     # Convert / re-encode via ffmpeg.
     p = sub.add_parser("convert", help="Re-encode an audio file (freq / channels / codec).")
     p.add_argument("--input", required=True, help="Input audio path.")
-    p.add_argument("--output", required=True, help="Output audio path (extension picks the container).")
-    p.add_argument("--freq", type=int, default=44100, help="Target sample rate in Hz (default 44100).")
-    p.add_argument("--channels", type=int, default=1, help="Target channel count (default 1 = mono).")
+    p.add_argument(
+        "--output", required=True, help="Output audio path (extension picks the container)."
+    )
+    p.add_argument(
+        "--freq", type=int, default=44100, help="Target sample rate in Hz (default 44100)."
+    )
+    p.add_argument(
+        "--channels", type=int, default=1, help="Target channel count (default 1 = mono)."
+    )
     p.add_argument("--encoding", default="pcm_s16le", help="ffmpeg codec name (default pcm_s16le).")
-    p.add_argument("--overwrite", action="store_true", default=True, help="Overwrite output if it exists (default true).")
-    p.add_argument("--no-overwrite", dest="overwrite", action="store_false", help="Skip if output already valid.")
+    p.add_argument(
+        "--overwrite",
+        action="store_true",
+        default=True,
+        help="Overwrite output if it exists (default true).",
+    )
+    p.add_argument(
+        "--no-overwrite",
+        dest="overwrite",
+        action="store_false",
+        help="Skip if output already valid.",
+    )
     p.set_defaults(func=_handle_convert)
 
 
@@ -237,7 +252,13 @@ def _add_silence(sub: argparse._SubParsersAction) -> None:
     p = sub.add_parser("silence", help="Generate a silent audio file of a given duration.")
     p.add_argument("--duration", type=float, required=True, help="Duration in seconds.")
     p.add_argument("--output", default=None, help="Output path (auto if omitted).")
-    p.add_argument("--sample-rate", type=int, default=44100, dest="sample_rate", help="Sample rate (default 44100).")
+    p.add_argument(
+        "--sample-rate",
+        type=int,
+        default=44100,
+        dest="sample_rate",
+        help="Sample rate (default 44100).",
+    )
     p.add_argument("--overwrite", action="store_true", default=False)
     p.set_defaults(func=_handle_silence)
 
@@ -272,10 +293,19 @@ def _add_split(sub: argparse._SubParsersAction) -> None:
     # Fixed-duration chunks.
     p = sub.add_parser("split", help="Split an audio file into fixed-duration chunks.")
     p.add_argument("--input", required=True, help="Source audio path.")
-    p.add_argument("--output-dir", required=True, dest="output_dir", help="Folder that receives the chunks.")
+    p.add_argument(
+        "--output-dir", required=True, dest="output_dir", help="Folder that receives the chunks."
+    )
     p.add_argument("--seconds", type=float, required=True, help="Chunk duration in seconds.")
-    p.add_argument("--output-format", default="mp3", dest="output_format", help="Chunk extension (default mp3).")
-    p.add_argument("--suffix", default="split", help="Filename suffix for each chunk (default 'split').")
+    p.add_argument(
+        "--output-format",
+        default="mp3",
+        dest="output_format",
+        help="Chunk extension (default mp3).",
+    )
+    p.add_argument(
+        "--suffix", default="split", help="Filename suffix for each chunk (default 'split')."
+    )
     p.add_argument("--overwrite", action="store_true", default=False)
     p.set_defaults(func=_handle_split)
 
@@ -284,10 +314,19 @@ def _add_separate(sub: argparse._SubParsersAction) -> None:
     # Demucs. Optional extra.
     p = sub.add_parser("separate", help="Run Demucs source separation (needs the [demucs] extra).")
     p.add_argument("--input", required=True, help="Mixed audio path.")
-    p.add_argument("--output-dir", default=None, dest="output_dir", help="Folder that receives the 4 stems.")
+    p.add_argument(
+        "--output-dir", default=None, dest="output_dir", help="Folder that receives the 4 stems."
+    )
     p.add_argument("--device", default=None, help="'cuda' / 'cpu' / None (auto).")
-    p.add_argument("--workers", type=int, default=-2, help="Number of worker threads (sklearn convention; default -2).")
-    p.add_argument("--output-format", default="mp3", dest="output_format", help="Stem extension (default mp3).")
+    p.add_argument(
+        "--workers",
+        type=int,
+        default=-2,
+        help="Number of worker threads (sklearn convention; default -2).",
+    )
+    p.add_argument(
+        "--output-format", default="mp3", dest="output_format", help="Stem extension (default mp3)."
+    )
     p.add_argument("--overwrite", action="store_true", default=False)
     p.set_defaults(func=_handle_separate)
 

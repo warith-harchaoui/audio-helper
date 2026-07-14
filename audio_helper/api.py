@@ -40,12 +40,10 @@ Warith Harchaoui, Ph.D. — https://linkedin.com/in/warith-harchaoui/
 from __future__ import annotations
 
 import io
-import os
 import shutil
 import tempfile
 import zipfile
 from pathlib import Path
-from typing import Optional
 
 try:
     from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, UploadFile
@@ -68,7 +66,6 @@ from . import (
     split_audio_regularly,
 )
 
-
 # ---------------------------------------------------------------------------
 # App factory + shared plumbing
 # ---------------------------------------------------------------------------
@@ -86,7 +83,7 @@ app = FastAPI(
 )
 
 
-def _spool(upload: UploadFile, dest_dir: Path, suffix_hint: Optional[str] = None) -> Path:
+def _spool(upload: UploadFile, dest_dir: Path, suffix_hint: str | None = None) -> Path:
     """
     Persist an ``UploadFile`` to a temp path on disk.
 
@@ -110,10 +107,14 @@ def _spool(upload: UploadFile, dest_dir: Path, suffix_hint: Optional[str] = None
     Path
         Path to the spooled file on disk.
     """
+    # Preserve the caller's extension so ffmpeg selects the right demuxer;
+    # ``.bin`` is a last-resort fallback when nothing else is known.
     ext = suffix_hint or (Path(upload.filename or "").suffix or ".bin")
     if not ext.startswith("."):
         ext = "." + ext
     out = dest_dir / (f"upload{ext}")
+    # Stream the upload straight to disk (never load it fully into memory) so
+    # a large clip cannot OOM the worker process.
     with out.open("wb") as fp:
         shutil.copyfileobj(upload.file, fp)
     return out
@@ -163,8 +164,14 @@ def convert(
     encoding: str = Form("pcm_s16le"),
 ):
     """Re-encode an uploaded file at the requested sample rate / channels / codec."""
+    # Every action endpoint follows the same shape: spool the upload to a
+    # request-scoped temp dir, run the pure library function on real paths
+    # (the library speaks files, not streams), then hand the result back and
+    # schedule the temp dir for deletion once the response has been sent.
     tmp = _new_tmpdir()
     src = _spool(file, tmp)
+    # The output extension drives the container ffmpeg writes, so derive it
+    # from the requested format rather than hard-coding one.
     dst = tmp / f"converted.{output_format.lstrip('.')}"
     sound_converter(
         input_audio=str(src),
@@ -201,6 +208,8 @@ def chunk(
     output_format: str = Form("mp3"),
 ):
     """Extract a ``[start, end]`` slice from the uploaded audio."""
+    # Same spool-run-cleanup shape as /convert; the slice bounds come
+    # straight from the multipart form fields.
     tmp = _new_tmpdir()
     src = _spool(file, tmp)
     dst = tmp / f"chunk.{output_format.lstrip('.')}"
@@ -223,6 +232,8 @@ def silence(
     output_format: str = Form("wav"),
 ):
     """Generate a silent audio file of a given duration."""
+    # No upload to spool here — silence is synthesized — but we still need a
+    # temp dir to hold the generated file until the response is streamed.
     tmp = _new_tmpdir()
     dst = tmp / f"silence.{output_format.lstrip('.')}"
     generate_silent_audio(
@@ -242,6 +253,8 @@ def concat(
     output_format: str = Form("mp3"),
 ):
     """Concatenate multiple uploaded audio files head-to-tail."""
+    # Concatenating a single file is a no-op the caller almost never means;
+    # reject it early with a 400 rather than returning the input unchanged.
     if len(files) < 2:
         raise HTTPException(status_code=400, detail="concat needs at least 2 files")
     tmp = _new_tmpdir()
@@ -263,6 +276,8 @@ def roomtone(
     output_format: str = Form("wav"),
 ):
     """Mix low-level colored ambient noise on top of an uploaded speech track."""
+    # Room tone defaults to WAV output because the mix is meant to feed back
+    # into an edit; a lossy container would defeat the point of a clean bed.
     tmp = _new_tmpdir()
     src = _spool(file, tmp)
     dst = tmp / f"roomtone.{output_format.lstrip('.')}"
@@ -280,11 +295,16 @@ def roomtone(
 
 def _zip_folder(folder: Path) -> io.BytesIO:
     """Bundle ``folder``'s contents into an in-memory ZIP for streaming."""
+    # Build the ZIP entirely in memory: the multi-file outputs are small
+    # (a handful of stems/chunks) so this avoids a second round-trip to disk.
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        # Store paths relative to ``folder`` so the archive has clean names
+        # (``vocals.mp3``) instead of leaking the temp-dir prefix.
         for p in folder.rglob("*"):
             if p.is_file():
                 zf.write(p, arcname=p.relative_to(folder))
+    # Rewind so the StreamingResponse reads from the start of the buffer.
     buf.seek(0)
     return buf
 
@@ -298,6 +318,8 @@ def split(
     suffix: str = Form("split"),
 ):
     """Split the uploaded audio into fixed-duration chunks; response is a ZIP."""
+    # Chunks land in their own subdir so ``_zip_folder`` bundles only the
+    # generated pieces, not the spooled source that sits alongside them.
     tmp = _new_tmpdir()
     src = _spool(file, tmp)
     chunks_dir = tmp / "chunks"
@@ -323,15 +345,19 @@ def split(
 def separate(
     background: BackgroundTasks,
     file: UploadFile = File(...),
-    device: Optional[str] = Form(None, description="'cuda' / 'cpu' / None (auto)."),
+    device: str | None = Form(None, description="'cuda' / 'cpu' / None (auto)."),
     workers: int = Form(-2),
     output_format: str = Form("mp3"),
 ):
     """Run Demucs source separation; response is a ZIP with the 4 stems."""
+    # Isolate the stems in their own subdir (same reasoning as /split).
     tmp = _new_tmpdir()
     src = _spool(file, tmp)
     stems_dir = tmp / "stems"
     stems_dir.mkdir()
+    # Demucs lives behind the optional [demucs] extra. If torch is missing
+    # the library raises ImportError; translate it into a clean 503 (service
+    # unavailable) instead of a 500 so clients can tell it is a config gap.
     try:
         separate_sources(
             input_audio_file=str(src),

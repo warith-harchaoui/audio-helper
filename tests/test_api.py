@@ -48,8 +48,16 @@ def test_openapi_lists_expected_endpoints(client):
     assert r.status_code == 200
     paths = r.json()["paths"]
     expected = {
-        "/health", "/convert", "/duration", "/chunk", "/silence",
-        "/concat", "/roomtone", "/split", "/separate", "/resemblance",
+        "/health",
+        "/convert",
+        "/duration",
+        "/chunk",
+        "/silence",
+        "/concat",
+        "/roomtone",
+        "/split",
+        "/separate",
+        "/resemblance",
     }
     assert expected.issubset(set(paths.keys()))
 

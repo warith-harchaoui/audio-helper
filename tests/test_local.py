@@ -37,7 +37,6 @@ from audio_helper import (
     split_audio_regularly,
 )
 
-
 pytestmark = pytest.mark.integration
 
 
@@ -148,7 +147,9 @@ def test_extract_audio_chunk_end_before_start_raises(tmp_path):
 def test_split_audio_regularly_three_chunks(tmp_path):
     src = _write_tone(tmp_path / "tone.wav", duration=3.0)
     out_dir = tmp_path / "splits"
-    chunks = split_audio_regularly(str(src), str(out_dir), split_time=1.0, output_format="wav", overwrite=True)
+    chunks = split_audio_regularly(
+        str(src), str(out_dir), split_time=1.0, output_format="wav", overwrite=True
+    )
     # Three full chunks; allow ±1 for boundary rounding.
     assert 2 <= len(chunks) <= 4
     for chunk in chunks:

@@ -32,45 +32,96 @@ Author
 Warith Harchaoui, Ph.D. — https://linkedin.com/in/warith-harchaoui/
 """
 
-from typing import TYPE_CHECKING, List, Optional, Union
-import os_helper as osh
-import ffmpeg
-from tqdm import tqdm
+from __future__ import annotations
+
+# Standard library first (PEP 8 import grouping): concurrency.
 import concurrent.futures
+from typing import TYPE_CHECKING
+
+# Third-party: ffmpeg wrapper, numpy, scipy signal/IO helpers, progress bar.
+import ffmpeg
 import numpy as np
-from scipy.signal import resample
+import os_helper as osh
 import scipy.io.wavfile as wav
 from scipy.fftpack import dct
-from scipy.signal import get_window
+from scipy.signal import get_window, resample
+from tqdm import tqdm
 
-import logging
-
+# ``torch`` / ``torchaudio`` are optional (demucs extra) dependencies. Import
+# them only for the type checker so annotations can name ``torch.Tensor``
+# without forcing every user of this module to install torch just to convert
+# an audio file. Under ``from __future__ import annotations`` these names live
+# purely in the (never-evaluated) annotation strings.
 if TYPE_CHECKING:
     import torch
+    import torchaudio
 
 
-_DEMUCS_EXTRA_HINT = (
+# Shared, actionable hint raised whenever a torch-only feature is reached
+# without the optional extra installed. Kept as a module constant so the
+# wording stays identical across the two lazy-import helpers below.
+_DEMUCS_EXTRA_HINT: str = (
     "This feature requires the optional 'demucs' extra. "
     "Install with: pip install 'audio-helper[demucs]'"
 )
 
 
-def _require_torch():
+def _require_torch() -> torch:
+    """Import and return the optional :mod:`torch` module lazily.
+
+    Torch is only needed by the Demucs-backed source-separation path, so we
+    avoid importing it at module load time and surface a clear, actionable
+    error when it is missing instead of a raw ``ImportError``.
+
+    Returns
+    -------
+    module
+        The imported :mod:`torch` module.
+
+    Raises
+    ------
+    ImportError
+        If :mod:`torch` is not installed, re-raised with the install hint.
+    """
+    # Defer the import so the base package works without the demucs extra.
     try:
         import torch
+
         return torch
     except ImportError as exc:
+        # Replace the terse stdlib message with an install instruction.
         raise ImportError(_DEMUCS_EXTRA_HINT) from exc
 
 
-def _require_torchaudio():
+def _require_torchaudio() -> torchaudio:
+    """Import and return the optional :mod:`torchaudio` module lazily.
+
+    Mirror of :func:`_require_torch` for the :mod:`torchaudio` dependency,
+    which supplies the Demucs pipeline and the ``Fade`` transform.
+
+    Returns
+    -------
+    module
+        The imported :mod:`torchaudio` module.
+
+    Raises
+    ------
+    ImportError
+        If :mod:`torchaudio` is not installed, re-raised with the hint.
+    """
+    # Same lazy pattern as _require_torch: keep the optional dep optional.
     try:
         import torchaudio
+
         return torchaudio
     except ImportError as exc:
         raise ImportError(_DEMUCS_EXTRA_HINT) from exc
 
-audio_extensions = [
+
+# Container/codec extensions we treat as "audio-bearing" when validating a
+# file. Video containers are appended below because their audio track is a
+# perfectly valid input for every operation in this module.
+audio_extensions: list[str] = [
     "aif",
     "aiff",
     "alac",
@@ -102,7 +153,10 @@ audio_extensions = [
 ]
 
 
-video_extensions = [
+# Video containers whose embedded audio stream we can decode via ffmpeg.
+# These get folded into ``audio_extensions`` so callers can pass a ``.mp4``
+# or ``.mkv`` straight through without pre-extracting the audio.
+video_extensions: list[str] = [
     "mp4",
     "avi",
     "mov",
@@ -121,12 +175,13 @@ video_extensions = [
     "m2ts",
     "mts",
     "rm",
-    "asf"
+    "asf",
 ]
 
 audio_extensions += video_extensions
 
-def _overwrite_audio_file(output_audio_filename: str, overwrite: bool = True) -> Union[str, None]:
+
+def _overwrite_audio_file(output_audio_filename: str, overwrite: bool = True) -> str | None:
     """
     Decide what to do with an existing output audio file before (re)writing it.
 
@@ -146,20 +201,21 @@ def _overwrite_audio_file(output_audio_filename: str, overwrite: bool = True) ->
           a valid audio file (caller should skip).
         - None in every other case (caller should proceed with writing).
     """
-    if not(overwrite) and osh.file_exists(output_audio_filename):
-        logging.info(f"Output audio file already exists:\n\t{output_audio_filename}")
+    if not (overwrite) and osh.file_exists(output_audio_filename):
+        osh.info(f"Output audio file already exists:\n\t{output_audio_filename}")
         if is_valid_audio_file(output_audio_filename):
             return output_audio_filename
         else:
             osh.remove_files([output_audio_filename])
-            logging.info(f"Deleting invalid output audio file:\n\t{output_audio_filename}")
+            osh.info(f"Deleting invalid output audio file:\n\t{output_audio_filename}")
     elif overwrite and osh.file_exists(output_audio_filename):
         osh.remove_files([output_audio_filename])
-        logging.info(f"Deleting output audio file for overwrite:\n\t{output_audio_filename}")
+        osh.info(f"Deleting output audio file for overwrite:\n\t{output_audio_filename}")
 
     return None
 
-def _overwrite_audio_list(output_audio_list: List[str], overwrite: bool = True) -> Union[dict, None]:
+
+def _overwrite_audio_list(output_audio_list: list[str], overwrite: bool = True) -> dict | None:
     """
     Decide what to do with a list of existing output audio files before (re)writing them.
 
@@ -179,7 +235,11 @@ def _overwrite_audio_list(output_audio_list: List[str], overwrite: bool = True) 
         ``{stem_name: absolute_path}`` when the caller should skip
         (overwrite=False and all files already valid), otherwise None.
     """
-    if not(overwrite) and all([(osh.file_exists(f) and is_valid_audio_file(f)) for f in output_audio_list]):
+    # Skip-path: only reuse existing outputs when EVERY target already exists
+    # and is a valid audio file (a generator keeps this short-circuiting).
+    if not (overwrite) and all(
+        osh.file_exists(f) and is_valid_audio_file(f) for f in output_audio_list
+    ):
         stem_keys = []
         stem_files = []
         for f in output_audio_list:
@@ -187,18 +247,19 @@ def _overwrite_audio_list(output_audio_list: List[str], overwrite: bool = True) 
             o = osh.relative2absolute_path(f)
             stem_keys.append(b)
             stem_files.append(o)
-        d = {k: v for k, v in zip(stem_keys, stem_files)}
+        # Pair stem names with their absolute paths. ``strict=False`` keeps
+        # the historical zip-truncation behaviour (lists are always equal
+        # length here since they are built in lock-step above).
+        d = dict(zip(stem_keys, stem_files, strict=False))
         s = "\n\t".join([f"{k}:\t{v}" for k, v in d.items()])
-        logging.info(
-            f"Sources already separated for at:\n\t{s}"
-        )
+        osh.info(f"Sources already separated for at:\n\t{s}")
         return d
     elif overwrite:
         for f in output_audio_list:
             if osh.file_exists(f):
                 osh.remove_files([f])
-                logging.info(f"Deleting output audio file for overwrite:\n\t{f}")
-    
+                osh.info(f"Deleting output audio file for overwrite:\n\t{f}")
+
     return None
 
 
@@ -231,14 +292,14 @@ def is_valid_audio_file(file_path: str) -> bool:
         )
         valid = audio_stream is not None
     except (ffmpeg.Error, KeyError, OSError) as exc:
-        logging.debug(f"is_valid_audio_file: ffprobe failed for {file_path}: {exc}")
+        osh.debug(f"is_valid_audio_file: ffprobe failed for {file_path}: {exc}")
         valid = False
 
-    _,_,ext = osh.folder_name_ext(file_path)
-    if not(ext.lower() in audio_extensions):
+    _, _, ext = osh.folder_name_ext(file_path)
+    if ext.lower() not in audio_extensions:
         valid = False
 
-    logging.info(f"Audio file {file_path} is {'valid' if valid else 'invalid'}")
+    osh.info(f"Audio file {file_path} is {'valid' if valid else 'invalid'}")
     return valid
 
 
@@ -278,7 +339,7 @@ def load_audio(
     to_mono: bool = True,
     to_numpy: bool = False,
     two_channels: bool = False,
-) -> tuple[Union["torch.Tensor", np.ndarray], int]:
+) -> tuple[torch.Tensor | np.ndarray, int]:
     """
     Load ANY audio (or video-with-audio) file, optionally resample, convert to
     mono or stereo, and return as a torch.Tensor (or optionally a NumPy array).
@@ -341,8 +402,11 @@ def load_audio(
     # decode + resample + down/up-mix), then read it with scipy — no soundfile.
     with osh.temporary_filename(suffix=".wav", mode="wb") as tmp_wav:
         sound_converter(
-            file_path, tmp_wav,
-            freq=out_rate, channels=out_channels, encoding="pcm_f32le",
+            file_path,
+            tmp_wav,
+            freq=out_rate,
+            channels=out_channels,
+            encoding="pcm_f32le",
         )
         sr, audio = wav.read(tmp_wav)
 
@@ -363,6 +427,7 @@ def load_audio(
     # torch.Tensor with (channels, time) shape, matching prior behaviour.
     audio_t = audio.T if audio.ndim == 2 else audio
     return torch.from_numpy(np.ascontiguousarray(audio_t)), sample_rate
+
 
 def sound_converter(
     input_audio: str,
@@ -406,7 +471,7 @@ def sound_converter(
     Two intermediate WAV files are used before generating the final output audio file.
     """
 
-    logging.info(f"Converting audio file: {input_audio} into {output_audio}")
+    osh.info(f"Converting audio file: {input_audio} into {output_audio}")
 
     # Check if the input audio file exists
     osh.checkfile(input_audio, msg=f"Input audio file not found: {input_audio}")
@@ -417,7 +482,7 @@ def sound_converter(
     o = _overwrite_audio_file(output_audio, overwrite)
     if o is not None:
         return o
-    
+
     _, _, ext_in = osh.folder_name_ext(input_audio)
     _, _, ext_out = osh.folder_name_ext(output_audio)
 
@@ -426,13 +491,13 @@ def sound_converter(
     quiet = not verbose
 
     # Use temporary files for intermediate WAV processing (for robustness)
-    with osh.temporary_filename(
-        suffix=".wav", mode="wb"
-    ) as first_wav, osh.temporary_filename(
-        suffix=".wav", mode="wb"
-    ) as second_wav:
-
-        if not(ext_in.lower() == "wav"):
+    with (
+        osh.temporary_filename(suffix=".wav", mode="wb") as first_wav,
+        osh.temporary_filename(suffix=".wav", mode="wb") as second_wav,
+    ):
+        # Non-WAV inputs are transcoded to WAV first; a WAV input is just
+        # copied so we never re-encode losslessly-decoded audio needlessly.
+        if ext_in.lower() != "wav":
             # Convert the input audio file to a temporary WAV file
             ffmpeg.input(input_audio).output(first_wav, format="wav").run(
                 overwrite_output=True, quiet=quiet
@@ -440,32 +505,29 @@ def sound_converter(
         else:
             osh.copyfile(input_audio, first_wav)
 
-
         # Convert the temporary WAV file to another WAV file with specified parameters
-        ffmpeg.input(first_wav).output(
-            second_wav, ar=freq, ac=channels, acodec=encoding
-        ).run(overwrite_output=True, quiet=quiet)
+        ffmpeg.input(first_wav).output(second_wav, ar=freq, ac=channels, acodec=encoding).run(
+            overwrite_output=True, quiet=quiet
+        )
 
-        if not(ext_out.lower() == "wav"):
+        # Same branch on the output side: encode to the requested container
+        # unless the target is already WAV, in which case a copy suffices.
+        if ext_out.lower() != "wav":
             # Final conversion to the specified output format
-            ffmpeg.input(second_wav).output(output_audio).run(
-                overwrite_output=True, quiet=quiet
-            )
+            ffmpeg.input(second_wav).output(output_audio).run(overwrite_output=True, quiet=quiet)
         else:
             osh.copyfile(second_wav, output_audio)
 
     # Check if the output audio file was successfully created
-    osh.checkfile(
-        output_audio, msg=f"Failed to convert audio file:\n\t{output_audio}"
-    )
+    osh.checkfile(output_audio, msg=f"Failed to convert audio file:\n\t{output_audio}")
     assert is_valid_audio_file(output_audio), f"Invalid audio file:\n\t{output_audio}"
 
-    logging.info(f"Audio file converted successfully:\n\t{output_audio}")
+    osh.info(f"Audio file converted successfully:\n\t{output_audio}")
 
     return output_audio
 
 
-def save_audio(signal: Union["torch.Tensor", np.ndarray], file_path: str, sample_rate: int=44100) -> None:
+def save_audio(signal: torch.Tensor | np.ndarray, file_path: str, sample_rate: int = 44100) -> None:
     """
     Save an audio signal as a file using torchaudio (tensor) or scipy.io.wavfile (numpy).
 
@@ -488,42 +550,49 @@ def save_audio(signal: Union["torch.Tensor", np.ndarray], file_path: str, sample
     """
     try:
         import torch as _torch
+
         is_tensor = isinstance(signal, _torch.Tensor)
     except ImportError:
         is_tensor = False
 
-    if is_tensor: # (channels, time) convention
+    if is_tensor:  # (channels, time) convention
         signal = signal.detach().cpu().numpy()
         if len(signal.shape) == 1:
-            signal = signal.reshape(1,-1) # (1, time) convention
+            signal = signal.reshape(1, -1)  # (1, time) convention
 
-        signal = signal.T # transpose to the (time, channels) convention
+        signal = signal.T  # transpose to the (time, channels) convention
         save_audio(signal, file_path, sample_rate)
 
-    elif isinstance(signal, np.ndarray): # (time, channels) convention
-        _,_,ext = osh.folder_name_ext(file_path)
+    elif isinstance(signal, np.ndarray):  # (time, channels) convention
+        _, _, ext = osh.folder_name_ext(file_path)
         if ext.lower() == "wav":
             wav.write(file_path, sample_rate, signal)
         else:
             with osh.temporary_filename(suffix=".wav", mode="wb") as wav_audio_file:
                 wav.write(wav_audio_file, sample_rate, signal)
-                channels = 1 if len(signal.shape)==1 else signal.shape[1]
-                sound_converter(input_audio = wav_audio_file, output_audio=file_path, freq=sample_rate, channels=channels, encoding="pcm_s16le", overwrite=True)
+                channels = 1 if len(signal.shape) == 1 else signal.shape[1]
+                sound_converter(
+                    input_audio=wav_audio_file,
+                    output_audio=file_path,
+                    freq=sample_rate,
+                    channels=channels,
+                    encoding="pcm_s16le",
+                    overwrite=True,
+                )
 
         assert is_valid_audio_file(file_path), f"Audio file not saved to {file_path}"
-        logging.info(f"Audio signal saved to {file_path}")
-
+        osh.info(f"Audio signal saved to {file_path}")
 
 
 def _separate_sources(
-    model: "torch.nn.Module",
-    mix: "torch.Tensor",
+    model: torch.nn.Module,
+    mix: torch.Tensor,
     sample_rate: int,
     segment: float = 10.0,
     overlap: float = 0.1,
     device: str = None,
     nb_workers: int = 2,
-) -> "torch.Tensor":
+) -> torch.Tensor:
     """
     Apply a source separation model to a given audio mixture, processing the mixture in segments with overlap and fades,
     using multithreading to parallelize segment processing.
@@ -591,7 +660,7 @@ def _separate_sources(
 
     # Move the audio mixture and the model to the specified device
     mix.to(device)
-    mix = mix.float() # Convert mix to float32
+    mix = mix.float()  # Convert mix to float32
 
     model.to(device)
 
@@ -605,6 +674,7 @@ def _separate_sources(
     overlap_frames = int(overlap * sample_rate)
 
     from torchaudio.transforms import Fade
+
     # Create a Fade transformation to apply linear fades between segments
     fade = Fade(fade_in_len=0, fade_out_len=overlap_frames, fade_shape="linear")
 
@@ -615,7 +685,7 @@ def _separate_sources(
     total_chunks = (length - overlap_frames) // (chunk_len - overlap_frames) + 1
 
     # Define the function to process each chunk in parallel
-    def process_chunk(start: int, end: int):
+    def process_chunk(start: int, end: int) -> tuple[int, int, torch.Tensor]:
         """
         Function to process a single chunk of the audio mixture.
 
@@ -628,8 +698,9 @@ def _separate_sources(
 
         Returns
         -------
-        tuple
-            (start, end, torch.Tensor) - The start and end indices and the processed output.
+        tuple of (int, int, torch.Tensor)
+            The clamped start and end indices and the separated output for
+            this chunk (already faded so overlapping regions blend cleanly).
         """
         if end > length:
             end = length
@@ -664,7 +735,9 @@ def _separate_sources(
                 start, end, out = future.result()
                 final[:, :, :, start:end] += out
     else:
-        for i in tqdm(range(total_chunks), desc="Processing chunks for source separation", total=total_chunks):
+        for i in tqdm(
+            range(total_chunks), desc="Processing chunks for source separation", total=total_chunks
+        ):
             start = i * (chunk_len - overlap_frames)
             end = start + chunk_len
             start, end, out = process_chunk(start, end)
@@ -673,8 +746,11 @@ def _separate_sources(
     return final
 
 
-separator_engine = None
-separator_engine_sample_rate = None
+# Process-wide cache for the Demucs model and its native sample rate. Loading
+# the bundle is expensive (network + weights), so we build it once on the
+# first ``separate_sources`` call and reuse it for every subsequent call.
+separator_engine: torch.nn.Module | None = None
+separator_engine_sample_rate: int | None = None
 
 
 def separate_sources(
@@ -702,7 +778,7 @@ def separate_sources(
         The number of workers (threads) to use for parallel processing of segments (default is -2 which corresponds to all cores except one).
     output_format : str, optional
         The format of the output audio files (default is 'mp3').
-    
+
     Returns
     -------
     dict
@@ -723,7 +799,7 @@ def separate_sources(
     """
 
     global separator_engine, separator_engine_sample_rate
-    logging.info(f"Separating sources for:\n\t{input_audio_file}")
+    osh.info(f"Separating sources for:\n\t{input_audio_file}")
 
     # Set up the output folder if not specified
     if output_folder is None:
@@ -732,10 +808,7 @@ def separate_sources(
 
     # Check if files already exist and skip if not overwriting
     stem_keys = ["vocals", "drums", "bass", "other"]
-    stem_files = [
-        osh.join([output_folder, f"{stem}.{output_format}"])
-        for stem in stem_keys
-    ]
+    stem_files = [osh.join([output_folder, f"{stem}.{output_format}"]) for stem in stem_keys]
     d = _overwrite_audio_list(stem_files, overwrite)
     if d is not None:
         return d
@@ -746,6 +819,7 @@ def separate_sources(
     # Initialize the separator engine if it hasn't been initialized yet
     if separator_engine is None:
         from torchaudio.pipelines import HDEMUCS_HIGH_MUSDB_PLUS
+
         bundle = HDEMUCS_HIGH_MUSDB_PLUS
         separator_engine = bundle.get_model()
         separator_engine_sample_rate = bundle.sample_rate
@@ -786,7 +860,7 @@ def separate_sources(
     # Dictionary to store the output file paths for each source
     res = {}
     for stem in sources_list:
-        audio = sources.pop(0) # in (channels, time) shape
+        audio = sources.pop(0)  # in (channels, time) shape
         # convert it in scipy (time, channels) shape
         audio = audio.detach().cpu().numpy().T
         # reduce to mono which means channels = 1
@@ -797,15 +871,11 @@ def separate_sources(
             audio = resample(audio, num_samples)
 
         osh.make_directory(output_folder)
-        output_audio_file = osh.join(
-                            [output_folder, f"{stem}.{output_format}"]
-                        )
+        output_audio_file = osh.join([output_folder, f"{stem}.{output_format}"])
         save_audio(audio, output_audio_file, sample_rate)
         res[stem] = output_audio_file
 
-        logging.info(f"Saved {stem} to\n\t{output_audio_file}")
-        
-
+        osh.info(f"Saved {stem} to\n\t{output_audio_file}")
 
     return res
 
@@ -857,20 +927,24 @@ def extract_audio_chunk(
     """
 
     osh.checkfile(audio_file, msg=f"Audio file not found at:\n\t{audio_file}")
-    assert is_valid_audio_file(audio_file), f"Invalid audio file (impossible to extract chunk):\n\t{audio_file}"
+    assert is_valid_audio_file(audio_file), (
+        f"Invalid audio file (impossible to extract chunk):\n\t{audio_file}"
+    )
 
     if osh.emptystring(output_audio_filename):
         f, b, ext = osh.folder_name_ext(audio_file)
         s = round(start_time * 1000)  # ms
         e = round(end_time * 1000)
-        output_audio_filename = osh.join(
-            [f, f"{b}_chunk-{s}-{e}.{ext}"]
-        )
+        output_audio_filename = osh.join([f, f"{b}_chunk-{s}-{e}.{ext}"])
 
     # Validate start and end times against the actual audio duration.
     duration = get_audio_duration(audio_file)
-    assert start_time >= 0 and start_time < duration, f"Invalid start time: start={start_time}, end={end_time} for duration={duration}"
-    assert end_time > start_time and end_time <= duration, f"Invalid end time: start={start_time}, end={end_time} for duration={duration}"
+    assert start_time >= 0 and start_time < duration, (
+        f"Invalid start time: start={start_time}, end={end_time} for duration={duration}"
+    )
+    assert end_time > start_time and end_time <= duration, (
+        f"Invalid end time: start={start_time}, end={end_time} for duration={duration}"
+    )
 
     _, _, ext_in = osh.folder_name_ext(audio_file)
     _, _, ext_out = osh.folder_name_ext(output_audio_filename)
@@ -878,26 +952,26 @@ def extract_audio_chunk(
     # Use ffmpeg to extract the audio chunk from the input file
     quiet = True
     # Use wav format for intermediate files
-    with osh.temporary_filename(
-        suffix=".wav", mode="wb"
-    ) as temp_wav, osh.temporary_filename(
-        suffix=".wav", mode="wb"
-    ) as output_wav:
-        
-        if not(ext_in.lower() == "wav"):
+    with (
+        osh.temporary_filename(suffix=".wav", mode="wb") as temp_wav,
+        osh.temporary_filename(suffix=".wav", mode="wb") as output_wav,
+    ):
+        # Decode any non-WAV source to WAV first so ffmpeg's stream copy of
+        # the slice below is exact; a WAV source is copied verbatim.
+        if ext_in.lower() != "wav":
             # Convert the input audio file to a temporary WAV file
-            ffmpeg.input(audio_file).output(temp_wav).run(
-                overwrite_output=True, quiet=quiet
-            )
+            ffmpeg.input(audio_file).output(temp_wav).run(overwrite_output=True, quiet=quiet)
         else:
             osh.copyfile(audio_file, temp_wav)
 
         # Extract the audio chunk from the input file to a temporary WAV file
-        ffmpeg.input(temp_wav, ss=start_time, t=end_time - start_time).output(
-            output_wav
-        ).run(overwrite_output=True, quiet=quiet)
+        ffmpeg.input(temp_wav, ss=start_time, t=end_time - start_time).output(output_wav).run(
+            overwrite_output=True, quiet=quiet
+        )
 
-        if not(ext_out.lower() == "wav"):
+        # Re-encode the extracted WAV slice to the requested container, or
+        # copy straight through when the caller already wants WAV.
+        if ext_out.lower() != "wav":
             # Convert the temporary WAV file to the specified output format
             sound_converter(output_wav, output_audio_filename, freq=44100)
         else:
@@ -908,21 +982,20 @@ def extract_audio_chunk(
         output_audio_filename,
         msg=f"Failed to extract audio chunk from:\n\t{audio_file} to:\n\t{output_audio_filename}",
     )
-    assert is_valid_audio_file(output_audio_filename), f"Failed to extract audio chunk from {start_time} to {end_time}:\n\t{output_audio_filename}"
-
-    logging.info(
-        f"Extracted audio chunk from\n\t{audio_file} to\n\t{output_audio_filename}"
+    assert is_valid_audio_file(output_audio_filename), (
+        f"Failed to extract audio chunk from {start_time} to {end_time}:\n\t{output_audio_filename}"
     )
 
-    return output_audio_filename
+    osh.info(f"Extracted audio chunk from\n\t{audio_file} to\n\t{output_audio_filename}")
 
+    return output_audio_filename
 
 
 def generate_silent_audio(
     duration: float,
     output_audio_filename: str = None,
     sample_rate: int = 44100,
-    overwrite: bool = False
+    overwrite: bool = False,
 ) -> str:
     """
     Generate a silent audio file of a specified duration.
@@ -963,15 +1036,12 @@ def generate_silent_audio(
         output_audio_filename = osh.join([f"silent_{t}.wav"])
 
     # Check if the file already exists and handle based on the overwrite flag
-    if not(_overwrite_audio_file(output_audio_filename, overwrite) is None):
+    if _overwrite_audio_file(output_audio_filename, overwrite) is not None:
         return output_audio_filename
-
-    # Control ffmpeg's verbosity based on environment settings
-    quiet = True
 
     # Just make zeros (float32 PCM written via scipy, never soundfile)
     zeros = np.zeros(int(duration * sample_rate), dtype=np.float32)
-    _,_,ext = osh.folder_name_ext(output_audio_filename)
+    _, _, ext = osh.folder_name_ext(output_audio_filename)
     if ext.lower() == "wav":
         wav.write(output_audio_filename, sample_rate, zeros)
     else:
@@ -984,18 +1054,25 @@ def generate_silent_audio(
         output_audio_filename,
         msg=f"Failed to generate silent audio file: {output_audio_filename}",
     )
-    assert is_valid_audio_file(output_audio_filename), f"Generated silent audio file is invalid: {output_audio_filename}"
+    assert is_valid_audio_file(output_audio_filename), (
+        f"Generated silent audio file is invalid: {output_audio_filename}"
+    )
 
     signal, sample_rate = load_audio(output_audio_filename, to_numpy=True, to_mono=True)
-    assert np.sum(np.abs(signal)) == 0, f"Generated silent audio file is not silent:\n\t{output_audio_filename}"
+    assert np.sum(np.abs(signal)) == 0, (
+        f"Generated silent audio file is not silent:\n\t{output_audio_filename}"
+    )
 
-    logging.info(f"Generated silent audio file: {output_audio_filename}")
+    osh.info(f"Generated silent audio file: {output_audio_filename}")
 
     return output_audio_filename
 
 
-
-def audio_concatenation(audio_files, output_audio_filename: str = None, overwrite:bool = False) -> str:
+def audio_concatenation(
+    audio_files: list[str],
+    output_audio_filename: str = None,
+    overwrite: bool = False,
+) -> str:
     """
     Concatenate multiple audio files into a single audio file.
 
@@ -1019,10 +1096,19 @@ def audio_concatenation(audio_files, output_audio_filename: str = None, overwrit
     The function uses ffmpeg to concatenate multiple audio files into a single audio file.
     """
 
-    assert isinstance(audio_files, list) and len(audio_files) > 0, f"Invalid audio files list: {audio_files}"
+    assert isinstance(audio_files, list) and len(audio_files) > 0, (
+        f"Invalid audio files list: {audio_files}"
+    )
     s = "\n\t".join(audio_files)
-    assert all([osh.file_exists(f) for f in audio_files]), f"Invalid audio files (file existence):\n\t{s}"
-    assert all([is_valid_audio_file(f) for f in audio_files]), f"Invalid audio files (audio type):\n\t{s}"
+    # Two separate guards give the caller a precise reason: a missing path
+    # versus a present-but-non-audio file. Generators short-circuit on the
+    # first failure, so we do not probe every file once one is already bad.
+    assert all(osh.file_exists(f) for f in audio_files), (
+        f"Invalid audio files (file existence):\n\t{s}"
+    )
+    assert all(is_valid_audio_file(f) for f in audio_files), (
+        f"Invalid audio files (audio type):\n\t{s}"
+    )
 
     if osh.emptystring(output_audio_filename):
         folder, _, ext = osh.folder_name_ext(audio_files[0])
@@ -1031,19 +1117,17 @@ def audio_concatenation(audio_files, output_audio_filename: str = None, overwrit
             _, b, _ = osh.folder_name_ext(f)
             audio_files_basename.append(b)
         b = "-".join(audio_files_basename)
-        output_audio_filename = osh.join(
-            [folder, f"{b}-concatenated.{ext}"]
-        )
+        output_audio_filename = osh.join([folder, f"{b}-concatenated.{ext}"])
 
     # Check if the file already exists and handle based on the overwrite flag
-    if not(_overwrite_audio_file(output_audio_filename, overwrite) is None):
+    if _overwrite_audio_file(output_audio_filename, overwrite) is not None:
         return output_audio_filename
 
     input_streams = [ffmpeg.input(f) for f in audio_files]
 
     quiet = True
 
-    _,_,ext = osh.folder_name_ext(output_audio_filename)
+    _, _, ext = osh.folder_name_ext(output_audio_filename)
 
     if ext.lower() == "wav":
         (
@@ -1060,12 +1144,12 @@ def audio_concatenation(audio_files, output_audio_filename: str = None, overwrit
             )
             sound_converter(temp_wav, output_audio_filename, freq=44100)
 
-    osh.checkfile(
-        output_audio_filename, msg=f"Failed to concatenate audio files: {audio_files}"
+    osh.checkfile(output_audio_filename, msg=f"Failed to concatenate audio files: {audio_files}")
+    assert is_valid_audio_file(output_audio_filename), (
+        f"Failed to concatenate audio files: {audio_files}"
     )
-    assert is_valid_audio_file(output_audio_filename), f"Failed to concatenate audio files: {audio_files}"
 
-    logging.info(f"Concatenated audio files into: {output_audio_filename}")
+    osh.info(f"Concatenated audio files into: {output_audio_filename}")
 
     return output_audio_filename
 
@@ -1128,16 +1212,16 @@ def mix_room_tone(
     >>> mix_room_tone("voice.mp3", color="brown", noise_db=-38)
     """
     osh.checkfile(input_audio, msg=f"Input audio file not found: {input_audio}")
-    assert is_valid_audio_file(input_audio), \
-        f"Invalid input audio file: {input_audio}"
-    assert color in {"white", "pink", "brown", "red", "blue", "violet", "velvet"}, \
+    assert is_valid_audio_file(input_audio), f"Invalid input audio file: {input_audio}"
+    assert color in {"white", "pink", "brown", "red", "blue", "violet", "velvet"}, (
         f"Unsupported noise color: {color!r}"
+    )
 
     if osh.emptystring(output_audio):
         folder, base, ext = osh.folder_name_ext(input_audio)
         output_audio = osh.join([folder, f"{base}-roomtone.{ext}"])
 
-    if not (_overwrite_audio_file(output_audio, overwrite) is None):
+    if _overwrite_audio_file(output_audio, overwrite) is not None:
         return output_audio
 
     duration = get_audio_duration(input_audio)
@@ -1164,26 +1248,36 @@ def mix_room_tone(
     )
     mixed = ffmpeg.filter(
         [speech.audio, noise.audio],
-        "amix", inputs=2, duration="first", dropout_transition=0,
+        "amix",
+        inputs=2,
+        duration="first",
+        dropout_transition=0,
     )
     ffmpeg.output(mixed, output_audio, **out_kwargs).run(
-        overwrite_output=True, quiet=quiet,
+        overwrite_output=True,
+        quiet=quiet,
     )
 
     osh.checkfile(
         output_audio,
         msg=f"Failed to write room-tone output: {output_audio}",
     )
-    assert is_valid_audio_file(output_audio), \
-        f"Generated room-tone file is invalid: {output_audio}"
+    assert is_valid_audio_file(output_audio), f"Generated room-tone file is invalid: {output_audio}"
 
-    logging.info(
+    osh.info(
         f"Mixed room tone ({noise_db} dB {color}) into: {output_audio}",
     )
     return output_audio
 
 
-def split_audio_regularly(sound_path: str, chunk_folder: str, split_time: float, output_format = "mp3", overwrite: bool = False, suffix:str="split") -> List[str]:
+def split_audio_regularly(
+    sound_path: str,
+    chunk_folder: str,
+    split_time: float,
+    output_format: str = "mp3",
+    overwrite: bool = False,
+    suffix: str = "split",
+) -> list[str]:
     """
     Split an audio file into chunks of a specified duration.
 
@@ -1210,7 +1304,7 @@ def split_audio_regularly(sound_path: str, chunk_folder: str, split_time: float,
     -----
     The function uses ffmpeg to split the audio file into chunks of the specified duration.
     """
-    
+
     assert is_valid_audio_file(sound_path), f"Invalid audio file: {sound_path}"
 
     output_format = output_format.lower().replace(".", "")
@@ -1226,39 +1320,33 @@ def split_audio_regularly(sound_path: str, chunk_folder: str, split_time: float,
     counter = 0
     output_audio_paths = []
     while time_cursor < total_duration - 1:
-        chunk_path = osh.join(
-            [chunk_folder, f"chunk_{counter:04d}_{suffix}.{output_format}"]
-        )
+        chunk_path = osh.join([chunk_folder, f"chunk_{counter:04d}_{suffix}.{output_format}"])
         s = time_cursor
         e = min(time_cursor + split_time, total_duration)
-        extract_audio_chunk(sound_path, s, e, output_audio_filename = chunk_path, overwrite=True)
+        extract_audio_chunk(sound_path, s, e, output_audio_filename=chunk_path, overwrite=True)
         added_duration = get_audio_duration(chunk_path)
-        logging.info(
-            f"Chunk {counter:04d} of duration {added_duration} saved to:\n\t{chunk_path}"
-        )
+        osh.info(f"Chunk {counter:04d} of duration {added_duration} saved to:\n\t{chunk_path}")
         output_audio_paths.append(chunk_path)
         time_cursor += added_duration
         counter += 1
 
     s = "\n\t".join(output_audio_paths)
-    logging.info(
+    osh.info(
         f"Audio file {sound_path} split into chunks of {split_time} seconds in {chunk_folder}:\n\t{s}"
     )
 
     return output_audio_paths
 
 
-
-
 def hz_to_mel(hz: float) -> float:
     """
     Convert a frequency in Hertz to the Mel scale.
-    
+
     Parameters
     ----------
     hz : float
         Frequency in Hertz.
-    
+
     Returns
     -------
     float
@@ -1266,15 +1354,16 @@ def hz_to_mel(hz: float) -> float:
     """
     return 2595 * np.log10(1 + hz / 700.0)
 
+
 def mel_to_hz(mel: float) -> float:
     """
     Convert a frequency in the Mel scale back to Hertz.
-    
+
     Parameters
     ----------
     mel : float
         Frequency in Mels.
-    
+
     Returns
     -------
     float
@@ -1283,14 +1372,12 @@ def mel_to_hz(mel: float) -> float:
     return 700 * (10 ** (mel / 2595.0) - 1)
 
 
-def mel_filter_banks(num_filters: int, 
-                     n_fft: int, 
-                     sample_rate: int, 
-                     low_freq: int, 
-                     high_freq: int) -> np.ndarray:
+def mel_filter_banks(
+    num_filters: int, n_fft: int, sample_rate: int, low_freq: int, high_freq: int
+) -> np.ndarray:
     """
     Compute a Mel-filter bank for given parameters.
-    
+
     Parameters
     ----------
     num_filters : int
@@ -1303,31 +1390,31 @@ def mel_filter_banks(num_filters: int,
         The lowest frequency in the Mel filter bank (in Hz).
     high_freq : int
         The highest frequency in the Mel filter bank (in Hz).
-    
+
     Returns
     -------
     np.ndarray
         A 2D array where each row is a filter in the Mel-filter bank.
     """
-    
+
     # Convert frequencies to the Mel scale
     low_mel = hz_to_mel(low_freq)
     high_mel = hz_to_mel(high_freq)
     mel_points = np.linspace(low_mel, high_mel, num_filters + 2)  # Equally spaced in Mel scale
-    
+
     # Convert Mel frequencies back to Hz
     hz_points = mel_to_hz(mel_points)
-    
+
     # Convert Hz frequencies to FFT bin indices
     bin_points = np.floor((n_fft + 1) * hz_points / sample_rate).astype(np.int32)
-    
+
     # Create the Mel filter bank
     fbank = np.zeros((num_filters, int(np.floor(n_fft / 2 + 1))))
     for i in range(1, num_filters + 1):
         f_m_minus = bin_points[i - 1]  # Left
-        f_m = bin_points[i]            # Center
-        f_m_plus = bin_points[i + 1]   # Right
-        
+        f_m = bin_points[i]  # Center
+        f_m_plus = bin_points[i + 1]  # Right
+
         # Construct the filters
         for j in range(f_m_minus, f_m):
             fbank[i - 1, j] = (j - f_m_minus) / (f_m - f_m_minus)
@@ -1337,16 +1424,18 @@ def mel_filter_banks(num_filters: int,
     return fbank
 
 
-def mfcc(signal: np.ndarray, 
-         sample_rate: int, 
-         num_mfcc: int = 13, 
-         n_fft: int = 512, 
-         num_filters: int = 26, 
-         low_freq: int = 0, 
-         high_freq: Optional[int] = None) -> np.ndarray:
+def mfcc(
+    signal: np.ndarray,
+    sample_rate: int,
+    num_mfcc: int = 13,
+    n_fft: int = 512,
+    num_filters: int = 26,
+    low_freq: int = 0,
+    high_freq: int | None = None,
+) -> np.ndarray:
     """
     Compute Mel-frequency Cepstral Coefficients (MFCC) for an audio signal.
-    
+
     Parameters
     ----------
     signal : np.ndarray
@@ -1363,49 +1452,53 @@ def mfcc(signal: np.ndarray,
         The lowest frequency to consider in the Mel filter bank, by default 0 Hz.
     high_freq : int, optional
         The highest frequency to consider in the Mel filter bank, by default None (set to half the sample rate).
-    
+
     Returns
     -------
     np.ndarray
         A 2D NumPy array containing the computed MFCC features for each frame.
     """
-    
+
     # 1. Pre-emphasis filter: Apply a high-pass filter to amplify high frequencies
     pre_emphasis = 0.97
     emphasized_signal = np.append(signal[0], signal[1:] - pre_emphasis * signal[:-1])
-    
+
     # 2. Framing: Split the signal into overlapping frames of 25ms (default)
     frame_size = 0.025  # 25 milliseconds per frame
     frame_stride = 0.01  # 10 milliseconds between consecutive frames
     frame_length = int(round(frame_size * sample_rate))  # Convert frame length to samples
     frame_step = int(round(frame_stride * sample_rate))  # Convert frame step to samples
-    
+
     # Compute the number of frames and pad the signal to fit exact frames
     num_frames = int(np.ceil(float(len(emphasized_signal) - frame_length) / frame_step)) + 1
     pad_signal_length = num_frames * frame_step + frame_length
     pad_signal = np.append(emphasized_signal, np.zeros(pad_signal_length - len(emphasized_signal)))
-    
+
     # Create an index array for all frames and extract frames
-    indices = np.tile(np.arange(0, frame_length), (num_frames, 1)) + \
-              np.tile(np.arange(0, num_frames * frame_step, frame_step), (frame_length, 1)).T
+    indices = (
+        np.tile(np.arange(0, frame_length), (num_frames, 1))
+        + np.tile(np.arange(0, num_frames * frame_step, frame_step), (frame_length, 1)).T
+    )
     frames = pad_signal[indices.astype(np.int32, copy=False)]
 
     # 3. Windowing: Apply a Hamming window to reduce spectral leakage
-    frames *= get_window('hamming', frame_length)
-    
+    frames *= get_window("hamming", frame_length)
+
     # 4. FFT and Power Spectrum: Compute the FFT and power spectrum for each frame
     mag_frames = np.absolute(np.fft.rfft(frames, n_fft))  # Magnitude of the FFT
-    pow_frames = (1.0 / n_fft) * (mag_frames ** 2)  # Power spectrum
+    pow_frames = (1.0 / n_fft) * (mag_frames**2)  # Power spectrum
 
     # 5. Mel Filter Banks: Convert the power spectrum into the Mel scale
-    high_freq = high_freq or sample_rate / 2  # If not provided, use half the sample rate (Nyquist frequency)
+    high_freq = (
+        high_freq or sample_rate / 2
+    )  # If not provided, use half the sample rate (Nyquist frequency)
     mel_filters = mel_filter_banks(num_filters, n_fft, sample_rate, low_freq, high_freq)
     filter_banks = np.dot(pow_frames, mel_filters.T)
     filter_banks = np.where(filter_banks == 0, np.finfo(float).eps, filter_banks)  # Avoid log(0)
     filter_banks = 20 * np.log10(filter_banks)  # Convert to decibels (logarithmic scale)
 
     # 6. DCT: Compute the Discrete Cosine Transform (DCT) of the log Mel filter banks
-    mfccs = dct(filter_banks, type=2, axis=1, norm='ortho')[:, :num_mfcc]
+    mfccs = dct(filter_banks, type=2, axis=1, norm="ortho")[:, :num_mfcc]
 
     return mfccs
 
@@ -1439,8 +1532,12 @@ def sound_resemblance(audio_file_1: str, audio_file_2: str) -> float:
     """
     sample_rate = 24000
     # Load audio files, convert to mono and numpy arrays, resample to target sample rate
-    audio_1, _ = load_audio(audio_file_1, to_numpy=True, to_mono=True, target_sample_rate=sample_rate)
-    audio_2, _ = load_audio(audio_file_2, to_numpy=True, to_mono=True, target_sample_rate=sample_rate)
+    audio_1, _ = load_audio(
+        audio_file_1, to_numpy=True, to_mono=True, target_sample_rate=sample_rate
+    )
+    audio_2, _ = load_audio(
+        audio_file_2, to_numpy=True, to_mono=True, target_sample_rate=sample_rate
+    )
 
     max_len = max(len(audio_1), len(audio_2))
     audio_1 = np.pad(audio_1, (0, max_len - len(audio_1)))
@@ -1453,8 +1550,8 @@ def sound_resemblance(audio_file_1: str, audio_file_2: str) -> float:
     b = np.sqrt(np.dot(mfcc1.ravel(), mfcc1.ravel()) * np.dot(mfcc2.ravel(), mfcc2.ravel()))
 
     if b == 0:
-        return 0.0 # by convention (one of the signals is made of zeros)
-    
+        return 0.0  # by convention (one of the signals is made of zeros)
+
     score = a / b
-        
+
     return score

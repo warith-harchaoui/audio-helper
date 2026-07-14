@@ -38,8 +38,15 @@ def test_argparse_parser_builds_without_error():
         a for a in parser._actions if a.__class__.__name__ == "_SubParsersAction"
     )
     expected = {
-        "convert", "duration", "chunk", "silence", "concat",
-        "roomtone", "split", "separate", "resemblance",
+        "convert",
+        "duration",
+        "chunk",
+        "silence",
+        "concat",
+        "roomtone",
+        "split",
+        "separate",
+        "resemblance",
     }
     assert expected.issubset(set(subparsers_action.choices.keys()))
 
@@ -57,8 +64,17 @@ def test_argparse_help_exits_zero(capsys):
 
 @pytest.mark.parametrize(
     "sub",
-    ["convert", "duration", "chunk", "silence", "concat",
-     "roomtone", "split", "separate", "resemblance"],
+    [
+        "convert",
+        "duration",
+        "chunk",
+        "silence",
+        "concat",
+        "roomtone",
+        "split",
+        "separate",
+        "resemblance",
+    ],
 )
 def test_argparse_subcommand_help_exits_zero(sub, capsys):
     """Every subcommand's ``--help`` should exit 0 (no wiring bug)."""
@@ -74,8 +90,15 @@ def test_click_group_has_expected_subcommands():
     from audio_helper.cli_click import cli
 
     expected = {
-        "convert", "duration", "chunk", "silence", "concat",
-        "roomtone", "split", "separate", "resemblance",
+        "convert",
+        "duration",
+        "chunk",
+        "silence",
+        "concat",
+        "roomtone",
+        "split",
+        "separate",
+        "resemblance",
     }
     assert expected.issubset(set(cli.commands.keys()))
 
@@ -92,8 +115,17 @@ def test_click_help_exits_zero():
 
 @pytest.mark.parametrize(
     "sub",
-    ["convert", "duration", "chunk", "silence", "concat",
-     "roomtone", "split", "separate", "resemblance"],
+    [
+        "convert",
+        "duration",
+        "chunk",
+        "silence",
+        "concat",
+        "roomtone",
+        "split",
+        "separate",
+        "resemblance",
+    ],
 )
 def test_click_subcommand_help_exits_zero(sub):
     """Every click subcommand's ``--help`` should exit 0."""

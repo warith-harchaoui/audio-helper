@@ -39,8 +39,7 @@ try:
     import click
 except ImportError as exc:  # pragma: no cover
     raise ImportError(
-        "The click CLI requires the [cli] extra. "
-        "Install with: pip install 'audio-helper[cli]'"
+        "The click CLI requires the [cli] extra. Install with: pip install 'audio-helper[cli]'"
     ) from exc
 
 # Same underlying functions as the argparse twin — one source of truth.
@@ -55,7 +54,6 @@ from . import (
     sound_resemblance,
     split_audio_regularly,
 )
-
 
 # ---------------------------------------------------------------------------
 # Top-level group
@@ -82,13 +80,23 @@ def cli() -> None:
 
 
 @cli.command()
-@click.option("--input", "input_", required=True, type=click.Path(exists=True), help="Input audio path.")
+@click.option(
+    "--input", "input_", required=True, type=click.Path(exists=True), help="Input audio path."
+)
 @click.option("--output", required=True, type=click.Path(), help="Output audio path.")
-@click.option("--freq", type=int, default=44100, show_default=True, help="Target sample rate in Hz.")
-@click.option("--channels", type=int, default=1, show_default=True, help="Channel count (1 = mono).")
+@click.option(
+    "--freq", type=int, default=44100, show_default=True, help="Target sample rate in Hz."
+)
+@click.option(
+    "--channels", type=int, default=1, show_default=True, help="Channel count (1 = mono)."
+)
 @click.option("--encoding", default="pcm_s16le", show_default=True, help="ffmpeg codec name.")
-@click.option("--overwrite/--no-overwrite", default=True, show_default=True, help="Overwrite existing output.")
-def convert(input_: str, output: str, freq: int, channels: int, encoding: str, overwrite: bool) -> None:
+@click.option(
+    "--overwrite/--no-overwrite", default=True, show_default=True, help="Overwrite existing output."
+)
+def convert(
+    input_: str, output: str, freq: int, channels: int, encoding: str, overwrite: bool
+) -> None:
     """Re-encode an audio file (freq / channels / codec)."""
     # Thin dispatch to the library.
     out = sound_converter(
@@ -200,7 +208,9 @@ def concat(inputs: tuple[str, ...], output: str | None, overwrite: bool) -> None
 )
 @click.option("--sample-rate", type=int, default=44100, show_default=True)
 @click.option("--overwrite/--no-overwrite", default=False, show_default=True)
-def roomtone(input_: str, output: str | None, db: float, color: str, sample_rate: int, overwrite: bool) -> None:
+def roomtone(
+    input_: str, output: str | None, db: float, color: str, sample_rate: int, overwrite: bool
+) -> None:
     """Mix low-level colored ambient noise on top of a speech track."""
     out = mix_room_tone(
         input_audio=input_,
@@ -220,12 +230,16 @@ def roomtone(input_: str, output: str | None, db: float, color: str, sample_rate
 
 @cli.command()
 @click.option("--input", "input_", required=True, type=click.Path(exists=True))
-@click.option("--output-dir", required=True, type=click.Path(), help="Folder that receives the chunks.")
+@click.option(
+    "--output-dir", required=True, type=click.Path(), help="Folder that receives the chunks."
+)
 @click.option("--seconds", type=float, required=True, help="Chunk duration in seconds.")
 @click.option("--output-format", default="mp3", show_default=True, help="Chunk extension.")
 @click.option("--suffix", default="split", show_default=True, help="Filename suffix.")
 @click.option("--overwrite/--no-overwrite", default=False, show_default=True)
-def split(input_: str, output_dir: str, seconds: float, output_format: str, suffix: str, overwrite: bool) -> None:
+def split(
+    input_: str, output_dir: str, seconds: float, output_format: str, suffix: str, overwrite: bool
+) -> None:
     """Split an audio file into fixed-duration chunks."""
     outputs = split_audio_regularly(
         sound_path=input_,
@@ -248,10 +262,23 @@ def split(input_: str, output_dir: str, seconds: float, output_format: str, suff
 @click.option("--input", "input_", required=True, type=click.Path(exists=True))
 @click.option("--output-dir", type=click.Path(), default=None)
 @click.option("--device", default=None, help="'cuda' / 'cpu' / None (auto).")
-@click.option("--workers", type=int, default=-2, show_default=True, help="Worker threads (sklearn convention).")
+@click.option(
+    "--workers",
+    type=int,
+    default=-2,
+    show_default=True,
+    help="Worker threads (sklearn convention).",
+)
 @click.option("--output-format", default="mp3", show_default=True)
 @click.option("--overwrite/--no-overwrite", default=False, show_default=True)
-def separate(input_: str, output_dir: str | None, device: str | None, workers: int, output_format: str, overwrite: bool) -> None:
+def separate(
+    input_: str,
+    output_dir: str | None,
+    device: str | None,
+    workers: int,
+    output_format: str,
+    overwrite: bool,
+) -> None:
     """Run Demucs source separation (needs the ``[demucs]`` extra)."""
     try:
         result = separate_sources(

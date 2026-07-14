@@ -46,7 +46,9 @@ jobs:
   lint:
     name: ruff
     runs-on: ubuntu-latest
-    continue-on-error: true
+    # No continue-on-error: per the coding standard (rule 15) a PEP 8 / lint
+    # violation must BLOCK merging, exactly like a failing test. Both the
+    # lint check and the format check have to exit 0 for this job to pass.
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -55,5 +57,10 @@ jobs:
           cache: pip
       - name: Install ruff
         run: pip install ruff
-      - name: Run ruff
-        run: ruff check . || true
+      # Lint the library package and the test suite. The repo's ruff config
+      # in pyproject.toml is the single source of truth for the rule set.
+      - name: Run ruff check
+        run: ruff check audio_helper tests
+      # Enforce formatting too so style never drifts between contributors.
+      - name: Run ruff format check
+        run: ruff format --check audio_helper tests

@@ -22,8 +22,8 @@ from scipy.io import wavfile
 
 from audio_helper.main import (
     hz_to_mel,
-    mel_to_hz,
     mel_filter_banks,
+    mel_to_hz,
     mfcc,
     sound_resemblance,
 )
