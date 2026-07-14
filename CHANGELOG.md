@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.7] - 2026-07-14
+
+### Documentation
+
+- Finalize suite wording: describe capabilities in plain language
+  (Voice Activity Detection, Speech to Text, Speech Synthesis, source
+  separation) instead of specific tool names, for consistency across the
+  suite's descriptions and the documentation site.
+
+
 ## [1.5.6] - 2026-07-14
 
 ### Maintenance

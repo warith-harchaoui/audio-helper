@@ -55,7 +55,7 @@ Audio Helper ships in two flavors. Pick the one you need:
 pip install --force-reinstall --no-cache-dir \
   "git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.5"
 
-# Add Demucs source separation (pulls in torch + torchaudio, ~2 GB)
+# Add source separation (pulls in torch + torchaudio, ~2 GB)
 pip install --force-reinstall --no-cache-dir \
   "audio-helper[demucs] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.5"
 ```

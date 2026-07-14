@@ -27,7 +27,7 @@ is not penalised — the score just reflects fit to *this* niche.
 
 `audio-helper` deliberately sits at the intersection of **pydub-level ergonomics**
 (one-line load / convert / split / concat / silence) and **AI-pipeline
-needs** (Demucs source separation on demand, MFCC similarity for A/B
+needs** (source separation on demand, MFCC similarity for A/B
 comparisons). It intentionally does *not* try to compete with `librosa`
 or `essentia` on the analysis side, and it keeps `torch` **optional** —
 you only pay the ~2 GB torch/torchaudio cost if you actually call
