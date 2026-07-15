@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.8] - 2026-07-15
+
+### Documentation
+
+- Harmonize README/LISEZMOI to the AI Helpers common structure (single
+  H1, PyPI + source install paths, refreshed version pins to v1.5.8); no
+  code changes.
+
 ## [1.5.7] - 2026-07-14
 
 ### Documentation

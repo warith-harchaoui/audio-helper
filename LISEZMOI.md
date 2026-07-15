@@ -12,13 +12,25 @@
 
 Audio Helper est une bibliothèque Python qui fournit des fonctions utilitaires pour le traitement de fichiers audio. Elle inclut le chargement audio, la conversion de formats, la séparation de sources, et le découpage / la concaténation de fichiers audio.
 
-# Documentation
+## Documentation
 
 [💻 Documentation](https://harchaoui.org/warith/ai-helpers/docs/audio-helper-doc/)
 
 [📋 Exemples](https://github.com/warith-harchaoui/audio-helper/blob/main/EXAMPLES.md)
 
-# Installation
+## Fonctionnalités
+
+- Chargement audio : charger des fichiers avec rééchantillonnage et downmix mono optionnels.
+- Conversion : conversion de format / fréquence d'échantillonnage / canaux via ffmpeg.
+- Séparation de sources : voix / batterie / basse / autres via Demucs (extra `[demucs]` optionnel).
+- Découpage audio : morceaux de durée fixe ou tranches arbitraires `[start, end]`.
+- Concaténation : jointure bout-à-bout dans n'importe quel conteneur ffmpeg.
+- Génération de silence : écrire un silence d'une durée spécifiée.
+- Mixage de bruit ambiant (room-tone) : bruit rose / blanc / brun pour masquer des coupures.
+- Similarité : score `sound_resemblance` basé sur les MFCC pour comparaison A/B.
+- Extraction de caractéristiques : primitives Mel / MFCC basées sur scipy.
+
+## Installation
 
 **Prérequis** — **Python 3.10–3.13** et **git**, **ffmpeg**, multiplateforme :
 
@@ -26,49 +38,41 @@ Audio Helper est une bibliothèque Python qui fournit des fonctions utilitaires 
 - 🐧 **Ubuntu/Debian** : `sudo apt update && sudo apt install -y python3 python3-pip git ffmpeg`
 - 🪟 **Windows** (PowerShell) : `winget install Python.Python.3.12 Git.Git Gyan.FFmpeg`
 
-Puis installer le paquet :
+Nous recommandons l'utilisation d'environnements Python. Consultez ce lien si vous ne savez pas comment faire : [🥸 Conseils techniques](https://harchaoui.org/warith/4ml/#install).
 
-
-## Installer le paquet
-
-Nous recommandons l'utilisation d'environnements Python. Consultez ce lien si vous ne savez pas comment faire :
-
-[🥸 Conseils techniques](https://harchaoui.org/warith/4ml/#install)
-
-## Installer `ffmpeg`
-Pour installer Audio Helper, vous devez d'abord installer `ffmpeg` :
-
-- Sous macOS 🍎
-
-  Récupérer [brew](https://brew.sh)
-  ```bash
-  brew install ffmpeg
-  ```
-- Sous Ubuntu 🐧
-  ```bash
-  sudo apt install ffmpeg
-  ```
-- Sous Windows 🪟
-
-  Allez sur le [site FFmpeg](https://ffmpeg.org/download.html) et suivez les instructions. Il faut ajouter manuellement FFmpeg au PATH système.
-
-Pour finir, nous discutons encore entre différents gestionnaires de paquets Python et essayons de supporter autant que possible.
-
-Audio Helper se livre en deux versions. Choisissez celle qu'il vous faut :
+### Depuis PyPI (recommandé)
 
 ```bash
 # Utilitaires audio de base (load, convert, split, concatenate, silent audio, chunks)
-pip install --force-reinstall --no-cache-dir \
-  "git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.5"
+pip install audio-helper
 
 # Ajout de la séparation de sources Demucs (tire torch + torchaudio, ~2 Go)
-pip install --force-reinstall --no-cache-dir \
-  "audio-helper[demucs] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.5"
+pip install "audio-helper[demucs]"
+
+# Surfaces optionnelles
+pip install "audio-helper[cli]"       # CLI click jumelle
+pip install "audio-helper[api]"       # surface HTTP FastAPI
+pip install "audio-helper[api,mcp]"   # outils MCP au-dessus de FastAPI
+```
+
+### Depuis les sources (sans PyPI)
+
+```bash
+# Utilitaires audio de base
+pip install "git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.8"
+
+# Ajout de la séparation de sources Demucs (tire torch + torchaudio, ~2 Go)
+pip install "audio-helper[demucs] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.8"
+
+# Surfaces optionnelles
+pip install "audio-helper[cli] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.8"
+pip install "audio-helper[api] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.8"
+pip install "audio-helper[api,mcp] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.8"
 ```
 
 Si vous appelez `separate_sources` sans l'extra `[demucs]`, la fonction lève une `ImportError` qui vous redirige ici.
 
-# Utilisation
+## Utilisation
 
 Pour le catalogue complet d'exemples, voir [📋 EXAMPLES.md](EXAMPLES.md).
 
@@ -121,18 +125,7 @@ print(sources)
 # {'vocals': 'audio_tests/vocals.mp3', 'drums': 'audio_tests/drums.mp3', 'bass': 'audio_tests/bass.mp3', 'other': 'audio_tests/other.mp3'}
 ```
 
-# Fonctionnalités
-- Chargement audio : charger des fichiers avec rééchantillonnage et downmix mono optionnels.
-- Conversion : conversion de format / fréquence d'échantillonnage / canaux via ffmpeg.
-- Séparation de sources : voix / batterie / basse / autres via Demucs (extra `[demucs]` optionnel).
-- Découpage audio : morceaux de durée fixe ou tranches arbitraires `[start, end]`.
-- Concaténation : jointure bout-à-bout dans n'importe quel conteneur ffmpeg.
-- Génération de silence : écrire un silence d'une durée spécifiée.
-- Mixage de bruit ambiant (room-tone) : bruit rose / blanc / brun pour masquer des coupures.
-- Similarité : score `sound_resemblance` basé sur les MFCC pour comparaison A/B.
-- Extraction de caractéristiques : primitives Mel / MFCC basées sur scipy.
-
-# Exposition multi-surface
+## Exposition multi-surface
 
 `audio-helper` n'est pas qu'une bibliothèque — les mêmes fonctions sont
 exposées en CLI, en API HTTP FastAPI et en outils MCP :
@@ -148,16 +141,22 @@ audio-helper separate --input mix.mp3 --output-dir stems/
 audio-helper resemblance --a a.mp3 --b b.mp3
 
 # CLI click jumelle (extra [cli])
-pip install 'audio-helper[cli] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.5'
+pip install "audio-helper[cli]"
+# ou depuis les sources :
+pip install "audio-helper[cli] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.8"
 audio-helper-click convert --input in.mp3 --output out.wav --freq 44100
 
 # Surface HTTP FastAPI (extra [api])
-pip install 'audio-helper[api] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.5'
+pip install "audio-helper[api]"
+# ou depuis les sources :
+pip install "audio-helper[api] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.8"
 uvicorn audio_helper.api:app --port 8000
 # → docs OpenAPI sur http://localhost:8000/docs
 
 # Outils MCP au-dessus de FastAPI (extras [api,mcp])
-pip install 'audio-helper[api,mcp] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.5'
+pip install "audio-helper[api,mcp]"
+# ou depuis les sources :
+pip install "audio-helper[api,mcp] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.8"
 audio-helper-mcp                  # sert FastAPI + MCP sur le port 8000
 ```
 
@@ -176,8 +175,14 @@ Un plan de GUI innovant (éditeur de recettes en canvas, comparateur
 Le paysage concurrentiel (librosa, torchaudio, pydub, essentia,
 Demucs, Spleeter, …) est analysé dans [LANDSCAPE.md](LANDSCAPE.md).
 
-# Auteur
+## Auteur
+
  - [Warith HARCHAOUI](https://linkedin.com/in/warith-harchaoui)
 
-# Remerciements
+## Remerciements
+
 Remerciements chaleureux à [Mohamed Chelali](https://mchelali.github.io) et [Bachir Zerroug](https://www.linkedin.com/in/bachirzerroug) pour nos échanges fructueux.
+
+## Licence
+
+Ce projet est distribué sous licence BSD-3-Clause — voir le fichier [LICENSE](LICENSE) pour les détails.
