@@ -59,15 +59,15 @@ pip install "audio-helper[api,mcp]"   # MCP tools over FastAPI
 
 ```bash
 # Core audio utilities only
-pip install "git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.8"
+pip install "git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9"
 
 # Add source separation (pulls in torch + torchaudio, ~2 GB)
-pip install "audio-helper[demucs] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.8"
+pip install "audio-helper[demucs] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9"
 
 # Optional surfaces
-pip install "audio-helper[cli] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.8"
-pip install "audio-helper[api] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.8"
-pip install "audio-helper[api,mcp] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.8"
+pip install "audio-helper[cli] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9"
+pip install "audio-helper[api] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9"
+pip install "audio-helper[api,mcp] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9"
 ```
 
 If you call `separate_sources` without the `[demucs]` extra, the function raises an `ImportError` pointing you back here.
@@ -143,20 +143,20 @@ audio-helper resemblance --a a.mp3 --b b.mp3
 # click-based CLI twin (needs the [cli] extra)
 pip install "audio-helper[cli]"
 # or from source:
-pip install "audio-helper[cli] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.8"
+pip install "audio-helper[cli] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9"
 audio-helper-click convert --input in.mp3 --output out.wav --freq 44100
 
 # FastAPI HTTP surface (needs the [api] extra)
 pip install "audio-helper[api]"
 # or from source:
-pip install "audio-helper[api] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.8"
+pip install "audio-helper[api] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9"
 uvicorn audio_helper.api:app --port 8000
 # → OpenAPI docs at http://localhost:8000/docs
 
 # MCP tools over FastAPI (needs the [api,mcp] extras)
 pip install "audio-helper[api,mcp]"
 # or from source:
-pip install "audio-helper[api,mcp] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.8"
+pip install "audio-helper[api,mcp] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9"
 audio-helper-mcp                  # serves FastAPI + MCP on port 8000
 ```
 

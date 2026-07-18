@@ -38,14 +38,14 @@ Install with pip (replace the tag with the version you want):
 
 ```bash
 pip install --force-reinstall --no-cache-dir \
-    git+https://github.com/warith-harchaoui/audio-helper.git@v1.4.2
+    git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9
 ```
 
 To enable Demucs-based source separation:
 
 ```bash
 pip install --force-reinstall --no-cache-dir \
-    "audio-helper[demucs] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.4.2"
+    "audio-helper[demucs] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9"
 ```
 
 ## Validity & Duration
