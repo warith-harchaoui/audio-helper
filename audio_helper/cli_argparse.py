@@ -70,6 +70,20 @@ from . import (
 
 
 def _handle_convert(ns: argparse.Namespace) -> int:
+    """Dispatch the ``convert`` subcommand to :func:`sound_converter`.
+
+    Parameters
+    ----------
+    ns : argparse.Namespace
+        Parsed arguments carrying ``input``, ``output``, ``freq``,
+        ``channels``, ``encoding`` and ``overwrite``.
+
+    Returns
+    -------
+    int
+        Process exit code (``0`` on success). The resulting output path
+        is printed to stdout for shell chaining.
+    """
     # sound_converter re-encodes an input file to a target sample rate /
     # channel layout / codec. Returns the output path on success.
     out = sound_converter(
@@ -86,6 +100,19 @@ def _handle_convert(ns: argparse.Namespace) -> int:
 
 
 def _handle_duration(ns: argparse.Namespace) -> int:
+    """Dispatch the ``duration`` subcommand to :func:`get_audio_duration`.
+
+    Parameters
+    ----------
+    ns : argparse.Namespace
+        Parsed arguments carrying the ``input`` audio path.
+
+    Returns
+    -------
+    int
+        Process exit code (``0`` on success). The duration in seconds is
+        printed to stdout with six-decimal precision.
+    """
     # get_audio_duration returns a float in seconds — print it verbatim.
     duration = get_audio_duration(ns.input)
     print(f"{duration:.6f}")
@@ -93,6 +120,20 @@ def _handle_duration(ns: argparse.Namespace) -> int:
 
 
 def _handle_chunk(ns: argparse.Namespace) -> int:
+    """Dispatch the ``chunk`` subcommand to :func:`extract_audio_chunk`.
+
+    Parameters
+    ----------
+    ns : argparse.Namespace
+        Parsed arguments carrying ``input``, ``start``, ``end``,
+        ``output`` and ``overwrite``.
+
+    Returns
+    -------
+    int
+        Process exit code (``0`` on success). The resulting output path
+        is printed to stdout.
+    """
     # extract_audio_chunk cuts a [start, end] slice into a new file.
     out = extract_audio_chunk(
         audio_file=ns.input,
@@ -106,6 +147,20 @@ def _handle_chunk(ns: argparse.Namespace) -> int:
 
 
 def _handle_silence(ns: argparse.Namespace) -> int:
+    """Dispatch the ``silence`` subcommand to :func:`generate_silent_audio`.
+
+    Parameters
+    ----------
+    ns : argparse.Namespace
+        Parsed arguments carrying ``duration``, ``output``,
+        ``sample_rate`` and ``overwrite``.
+
+    Returns
+    -------
+    int
+        Process exit code (``0`` on success). The resulting output path
+        is printed to stdout.
+    """
     # generate_silent_audio writes a silent file of the given duration.
     out = generate_silent_audio(
         duration=ns.duration,
@@ -118,6 +173,20 @@ def _handle_silence(ns: argparse.Namespace) -> int:
 
 
 def _handle_concat(ns: argparse.Namespace) -> int:
+    """Dispatch the ``concat`` subcommand to :func:`audio_concatenation`.
+
+    Parameters
+    ----------
+    ns : argparse.Namespace
+        Parsed arguments carrying ``inputs`` (the ordered list of files),
+        ``output`` and ``overwrite``.
+
+    Returns
+    -------
+    int
+        Process exit code (``0`` on success). The resulting output path
+        is printed to stdout.
+    """
     # audio_concatenation joins N files into one using ffmpeg's concat filter.
     out = audio_concatenation(
         audio_files=list(ns.inputs),
@@ -129,6 +198,20 @@ def _handle_concat(ns: argparse.Namespace) -> int:
 
 
 def _handle_roomtone(ns: argparse.Namespace) -> int:
+    """Dispatch the ``roomtone`` subcommand to :func:`mix_room_tone`.
+
+    Parameters
+    ----------
+    ns : argparse.Namespace
+        Parsed arguments carrying ``input``, ``output``, ``db``,
+        ``color``, ``sample_rate`` and ``overwrite``.
+
+    Returns
+    -------
+    int
+        Process exit code (``0`` on success). The resulting output path
+        is printed to stdout.
+    """
     # mix_room_tone overlays a low-level colored-noise bed on a speech track
     # to mask cuts. -42 dB pink noise is a typical post-production default.
     out = mix_room_tone(
@@ -144,6 +227,20 @@ def _handle_roomtone(ns: argparse.Namespace) -> int:
 
 
 def _handle_split(ns: argparse.Namespace) -> int:
+    """Dispatch the ``split`` subcommand to :func:`split_audio_regularly`.
+
+    Parameters
+    ----------
+    ns : argparse.Namespace
+        Parsed arguments carrying ``input``, ``output_dir``, ``seconds``,
+        ``output_format``, ``overwrite`` and ``suffix``.
+
+    Returns
+    -------
+    int
+        Process exit code (``0`` on success). Each generated chunk path is
+        printed to stdout, one per line.
+    """
     # split_audio_regularly chops an audio file into fixed-duration chunks.
     # Returns a list of output paths — emit them one per line so shell
     # pipelines can `xargs -n 1` over the result.
@@ -161,6 +258,21 @@ def _handle_split(ns: argparse.Namespace) -> int:
 
 
 def _handle_separate(ns: argparse.Namespace) -> int:
+    """Dispatch the ``separate`` subcommand to :func:`separate_sources`.
+
+    Parameters
+    ----------
+    ns : argparse.Namespace
+        Parsed arguments carrying ``input``, ``output_dir``, ``device``,
+        ``overwrite``, ``workers`` and ``output_format``.
+
+    Returns
+    -------
+    int
+        Process exit code: ``0`` on success (the stem map is printed as
+        JSON to stdout), or ``2`` when the optional ``[demucs]`` extra is
+        missing (an actionable message is printed to stderr).
+    """
     # separate_sources runs Demucs to split a mix into vocals/drums/bass/other.
     # Requires the optional [demucs] extra — if torch is missing the
     # underlying function raises ImportError, which we surface with a
@@ -184,6 +296,19 @@ def _handle_separate(ns: argparse.Namespace) -> int:
 
 
 def _handle_resemblance(ns: argparse.Namespace) -> int:
+    """Dispatch the ``resemblance`` subcommand to :func:`sound_resemblance`.
+
+    Parameters
+    ----------
+    ns : argparse.Namespace
+        Parsed arguments carrying the two audio paths ``a`` and ``b``.
+
+    Returns
+    -------
+    int
+        Process exit code (``0`` on success). The similarity score is
+        printed to stdout with six-decimal precision.
+    """
     # sound_resemblance returns a scalar in [0, 1] (MFCC cosine similarity).
     score = sound_resemblance(ns.a, ns.b)
     print(f"{score:.6f}")
@@ -200,6 +325,19 @@ def _handle_resemblance(ns: argparse.Namespace) -> int:
 
 
 def _add_convert(sub: argparse._SubParsersAction) -> None:
+    """Register the ``convert`` subcommand on the subparsers action.
+
+    Parameters
+    ----------
+    sub : argparse._SubParsersAction
+        The subparsers container returned by ``add_subparsers``.
+
+    Returns
+    -------
+    None
+        The parser is mutated in place; :func:`_handle_convert` is wired
+        as its handler via ``set_defaults``.
+    """
     # Convert / re-encode via ffmpeg.
     p = sub.add_parser("convert", help="Re-encode an audio file (freq / channels / codec).")
     p.add_argument("--input", required=True, help="Input audio path.")
@@ -229,6 +367,19 @@ def _add_convert(sub: argparse._SubParsersAction) -> None:
 
 
 def _add_duration(sub: argparse._SubParsersAction) -> None:
+    """Register the ``duration`` subcommand on the subparsers action.
+
+    Parameters
+    ----------
+    sub : argparse._SubParsersAction
+        The subparsers container returned by ``add_subparsers``.
+
+    Returns
+    -------
+    None
+        The parser is mutated in place; :func:`_handle_duration` is wired
+        as its handler via ``set_defaults``.
+    """
     # Print duration in seconds. Handy in shell for `--to` bounds.
     p = sub.add_parser("duration", help="Print the duration of an audio file, in seconds.")
     p.add_argument("--input", required=True, help="Audio path.")
@@ -236,6 +387,19 @@ def _add_duration(sub: argparse._SubParsersAction) -> None:
 
 
 def _add_chunk(sub: argparse._SubParsersAction) -> None:
+    """Register the ``chunk`` subcommand on the subparsers action.
+
+    Parameters
+    ----------
+    sub : argparse._SubParsersAction
+        The subparsers container returned by ``add_subparsers``.
+
+    Returns
+    -------
+    None
+        The parser is mutated in place; :func:`_handle_chunk` is wired as
+        its handler via ``set_defaults``.
+    """
     # Extract [start, end] slice.
     p = sub.add_parser("chunk", help="Extract a [start, end] slice from an audio file.")
     p.add_argument("--input", required=True, help="Source audio path.")
@@ -248,6 +412,19 @@ def _add_chunk(sub: argparse._SubParsersAction) -> None:
 
 
 def _add_silence(sub: argparse._SubParsersAction) -> None:
+    """Register the ``silence`` subcommand on the subparsers action.
+
+    Parameters
+    ----------
+    sub : argparse._SubParsersAction
+        The subparsers container returned by ``add_subparsers``.
+
+    Returns
+    -------
+    None
+        The parser is mutated in place; :func:`_handle_silence` is wired
+        as its handler via ``set_defaults``.
+    """
     # Silent WAV / MP3 / … of N seconds.
     p = sub.add_parser("silence", help="Generate a silent audio file of a given duration.")
     p.add_argument("--duration", type=float, required=True, help="Duration in seconds.")
@@ -264,6 +441,19 @@ def _add_silence(sub: argparse._SubParsersAction) -> None:
 
 
 def _add_concat(sub: argparse._SubParsersAction) -> None:
+    """Register the ``concat`` subcommand on the subparsers action.
+
+    Parameters
+    ----------
+    sub : argparse._SubParsersAction
+        The subparsers container returned by ``add_subparsers``.
+
+    Returns
+    -------
+    None
+        The parser is mutated in place; :func:`_handle_concat` is wired as
+        its handler via ``set_defaults``.
+    """
     # Head-to-tail join of N files.
     p = sub.add_parser("concat", help="Concatenate several audio files head-to-tail.")
     p.add_argument("--inputs", nargs="+", required=True, help="Audio files, in order.")
@@ -273,6 +463,19 @@ def _add_concat(sub: argparse._SubParsersAction) -> None:
 
 
 def _add_roomtone(sub: argparse._SubParsersAction) -> None:
+    """Register the ``roomtone`` subcommand on the subparsers action.
+
+    Parameters
+    ----------
+    sub : argparse._SubParsersAction
+        The subparsers container returned by ``add_subparsers``.
+
+    Returns
+    -------
+    None
+        The parser is mutated in place; :func:`_handle_roomtone` is wired
+        as its handler via ``set_defaults``.
+    """
     # Room-tone masking — standard post-production trick.
     p = sub.add_parser("roomtone", help="Mix low-level colored noise on top of a speech track.")
     p.add_argument("--input", required=True, help="Speech / narration audio path.")
@@ -290,6 +493,19 @@ def _add_roomtone(sub: argparse._SubParsersAction) -> None:
 
 
 def _add_split(sub: argparse._SubParsersAction) -> None:
+    """Register the ``split`` subcommand on the subparsers action.
+
+    Parameters
+    ----------
+    sub : argparse._SubParsersAction
+        The subparsers container returned by ``add_subparsers``.
+
+    Returns
+    -------
+    None
+        The parser is mutated in place; :func:`_handle_split` is wired as
+        its handler via ``set_defaults``.
+    """
     # Fixed-duration chunks.
     p = sub.add_parser("split", help="Split an audio file into fixed-duration chunks.")
     p.add_argument("--input", required=True, help="Source audio path.")
@@ -311,6 +527,19 @@ def _add_split(sub: argparse._SubParsersAction) -> None:
 
 
 def _add_separate(sub: argparse._SubParsersAction) -> None:
+    """Register the ``separate`` subcommand on the subparsers action.
+
+    Parameters
+    ----------
+    sub : argparse._SubParsersAction
+        The subparsers container returned by ``add_subparsers``.
+
+    Returns
+    -------
+    None
+        The parser is mutated in place; :func:`_handle_separate` is wired
+        as its handler via ``set_defaults``.
+    """
     # Demucs. Optional extra.
     p = sub.add_parser("separate", help="Run Demucs source separation (needs the [demucs] extra).")
     p.add_argument("--input", required=True, help="Mixed audio path.")
@@ -332,6 +561,19 @@ def _add_separate(sub: argparse._SubParsersAction) -> None:
 
 
 def _add_resemblance(sub: argparse._SubParsersAction) -> None:
+    """Register the ``resemblance`` subcommand on the subparsers action.
+
+    Parameters
+    ----------
+    sub : argparse._SubParsersAction
+        The subparsers container returned by ``add_subparsers``.
+
+    Returns
+    -------
+    None
+        The parser is mutated in place; :func:`_handle_resemblance` is
+        wired as its handler via ``set_defaults``.
+    """
     # MFCC cosine similarity between two files.
     p = sub.add_parser("resemblance", help="MFCC-based similarity score between two audio files.")
     p.add_argument("--a", required=True, help="First audio path.")

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.9] - 2026-07-18
+
+### Documentation
+
+- Complete Numpy-style docstrings and full type annotations across the
+  package per CODING.md (API endpoints return types, CLI argparse
+  handlers).
+
 ## [1.5.8] - 2026-07-15
 
 ### Documentation

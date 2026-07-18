@@ -162,7 +162,7 @@ def convert(
     freq: int = Form(44100),
     channels: int = Form(1),
     encoding: str = Form("pcm_s16le"),
-):
+) -> FileResponse:
     """Re-encode an uploaded file at the requested sample rate / channels / codec."""
     # Every action endpoint follows the same shape: spool the upload to a
     # request-scoped temp dir, run the pure library function on real paths
@@ -206,7 +206,7 @@ def chunk(
     start: float = Form(...),
     end: float = Form(...),
     output_format: str = Form("mp3"),
-):
+) -> FileResponse:
     """Extract a ``[start, end]`` slice from the uploaded audio."""
     # Same spool-run-cleanup shape as /convert; the slice bounds come
     # straight from the multipart form fields.
@@ -230,7 +230,7 @@ def silence(
     duration_seconds: float = Form(..., alias="duration"),
     sample_rate: int = Form(44100),
     output_format: str = Form("wav"),
-):
+) -> FileResponse:
     """Generate a silent audio file of a given duration."""
     # No upload to spool here — silence is synthesized — but we still need a
     # temp dir to hold the generated file until the response is streamed.
@@ -251,7 +251,7 @@ def concat(
     background: BackgroundTasks,
     files: list[UploadFile] = File(...),
     output_format: str = Form("mp3"),
-):
+) -> FileResponse:
     """Concatenate multiple uploaded audio files head-to-tail."""
     # Concatenating a single file is a no-op the caller almost never means;
     # reject it early with a 400 rather than returning the input unchanged.
@@ -274,7 +274,7 @@ def roomtone(
     color: str = Form("pink", description="white | pink | brown | red | blue | violet | velvet"),
     sample_rate: int = Form(44100),
     output_format: str = Form("wav"),
-):
+) -> FileResponse:
     """Mix low-level colored ambient noise on top of an uploaded speech track."""
     # Room tone defaults to WAV output because the mix is meant to feed back
     # into an edit; a lossy container would defeat the point of a clean bed.
@@ -316,7 +316,7 @@ def split(
     seconds: float = Form(..., description="Chunk duration in seconds."),
     output_format: str = Form("mp3"),
     suffix: str = Form("split"),
-):
+) -> StreamingResponse:
     """Split the uploaded audio into fixed-duration chunks; response is a ZIP."""
     # Chunks land in their own subdir so ``_zip_folder`` bundles only the
     # generated pieces, not the spooled source that sits alongside them.
@@ -348,7 +348,7 @@ def separate(
     device: str | None = Form(None, description="'cuda' / 'cpu' / None (auto)."),
     workers: int = Form(-2),
     output_format: str = Form("mp3"),
-):
+) -> StreamingResponse:
     """Run Demucs source separation; response is a ZIP with the 4 stems."""
     # Isolate the stems in their own subdir (same reasoning as /split).
     tmp = _new_tmpdir()
