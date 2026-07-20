@@ -30,6 +30,22 @@ Audio Helper is a Python library that provides utility functions for processing 
 - Similarity: MFCC-based `sound_resemblance` score for A/B comparison.
 - Feature Extraction: scipy-based Mel / MFCC primitives.
 
+**Five surfaces, one toolkit** — every operation above is reachable as:
+
+- **Library**: `import audio_helper as ah`.
+- **CLI ×2**: `audio-helper` (argparse, always installed) and
+  `audio-helper-click` (click twin, `[cli]` extra) with identical flags.
+- **HTTP API**: FastAPI app (`[api]` extra), OpenAPI docs at `/docs`.
+- **MCP**: FastAPI-MCP tool set (`[api,mcp]` extra) for MCP-aware hosts.
+- **GUI**: a minimal, build-step-free browser "audition bench" served at
+  `GET /gui` — drop a file, pick an operation, run it, and A/B the input vs
+  output. See [GUI.md](https://github.com/warith-harchaoui/audio-helper/blob/main/GUI.md).
+
+It also ships as a **Claude / OpenCode skill** — see
+[skills/README.md](https://github.com/warith-harchaoui/audio-helper/blob/main/skills/README.md)
+and the exhaustive
+[TRIGGERS.md](https://github.com/warith-harchaoui/audio-helper/blob/main/TRIGGERS.md).
+
 ## Installation
 
 **Prerequisites** — **Python 3.10–3.13** and **git**, **ffmpeg**, cross-platform:
@@ -59,15 +75,15 @@ pip install "audio-helper[api,mcp]"   # MCP tools over FastAPI
 
 ```bash
 # Core audio utilities only
-pip install "git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9"
+pip install "git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0"
 
 # Add source separation (pulls in torch + torchaudio, ~2 GB)
-pip install "audio-helper[demucs] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9"
+pip install "audio-helper[demucs] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0"
 
 # Optional surfaces
-pip install "audio-helper[cli] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9"
-pip install "audio-helper[api] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9"
-pip install "audio-helper[api,mcp] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9"
+pip install "audio-helper[cli] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0"
+pip install "audio-helper[api] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0"
+pip install "audio-helper[api,mcp] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0"
 ```
 
 If you call `separate_sources` without the `[demucs]` extra, the function raises an `ImportError` pointing you back here.
@@ -143,20 +159,20 @@ audio-helper resemblance --a a.mp3 --b b.mp3
 # click-based CLI twin (needs the [cli] extra)
 pip install "audio-helper[cli]"
 # or from source:
-pip install "audio-helper[cli] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9"
+pip install "audio-helper[cli] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0"
 audio-helper-click convert --input in.mp3 --output out.wav --freq 44100
 
 # FastAPI HTTP surface (needs the [api] extra)
 pip install "audio-helper[api]"
 # or from source:
-pip install "audio-helper[api] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9"
+pip install "audio-helper[api] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0"
 uvicorn audio_helper.api:app --port 8000
 # → OpenAPI docs at http://localhost:8000/docs
 
 # MCP tools over FastAPI (needs the [api,mcp] extras)
 pip install "audio-helper[api,mcp]"
 # or from source:
-pip install "audio-helper[api,mcp] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9"
+pip install "audio-helper[api,mcp] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0"
 audio-helper-mcp                  # serves FastAPI + MCP on port 8000
 ```
 
@@ -169,8 +185,11 @@ docker run --rm -p 8000:8000 audio-helper
 docker build --build-arg WITH_DEMUCS=1 -t audio-helper:demucs .
 ```
 
-An innovative GUI plan (canvas-based recipe editor, ear-first
-comparator, MFCC-cluster batch view) lives in [GUI.md](https://github.com/warith-harchaoui/audio-helper/blob/main/GUI.md).
+A minimal browser GUI ("audition bench") ships now — it is served by the
+FastAPI app at `GET /gui` (open `http://localhost:8000/gui` after starting
+the server). The ambitious future GUI (canvas-based recipe editor, ear-first
+comparator, MFCC-cluster batch view) is documented as a roadmap in
+[GUI.md](https://github.com/warith-harchaoui/audio-helper/blob/main/GUI.md).
 
 The competitive landscape (librosa, torchaudio, pydub, essentia,
 Demucs, Spleeter, …) is analysed in [LANDSCAPE.md](https://github.com/warith-harchaoui/audio-helper/blob/main/LANDSCAPE.md).

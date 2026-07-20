@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-07-20
+
+### Added
+
+- **Minimal browser GUI ("audition bench")** served by the FastAPI app at
+  `GET /gui` (and `GET /` redirects there). A single self-contained
+  HTML + Tailwind-CDN + vanilla-JS page (in `audio_helper/gui.py`): drop an
+  audio file, pick an operation (convert / chunk / silence / concat / roomtone
+  / split / separate / resemblance), run it against the existing endpoints,
+  then A/B the input vs output in `<audio>` players and download the result.
+- **Agent skill** `skills/audio-helper/` (Claude Skills + OpenCode standard):
+  trigger-rich `SKILL.md` plus progressive-disclosure `references/`
+  (`cli-reference.md`, `surfaces.md`, `triggers.md`) and a `skills/README.md`.
+- **`TRIGGERS.md`** at the repo root — an exhaustive, auditable catalogue of
+  invocation phrasings, commands, functions, and file types; linked from
+  README and LISEZMOI.
+
+### Changed
+
+- FastAPI app `version` is now resolved from installed package metadata instead
+  of a hard-coded string (it had drifted to `1.5.5`).
+- Explicit `X | None` type hints on optional parameters across `main.py`
+  (`load_audio`, `extract_audio_chunk`, `generate_silent_audio`,
+  `audio_concatenation`, `mix_room_tone`, `separate_sources`, `_separate_sources`).
+
+### Fixed
+
+- `.gitignore` no longer ignores `*.json` / `*.yaml` wholesale (it silently
+  swallowed skill metadata and any exported `openapi.json`); scoped to
+  `audio_tests/`. Added `.private/` to the ignore list.
+
+### Documentation
+
+- Reconciled `GUI.md`: documents the shipped minimal GUI and clearly labels the
+  richer canvas editor as future/roadmap.
+- README and LISEZMOI: added the GUI, agent-skill, and `TRIGGERS.md` sections;
+  refreshed version pins to `v1.6.0`.
+
 ## [1.5.9] - 2026-07-18
 
 ### Documentation

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "audio-helper"
-version = "1.5.9"
+version = "1.6.0"
 description = "Audio Helper — utility functions for processing audio files exposed as library, argparse CLI, click CLI, FastAPI HTTP surface and MCP tools. Load audio, convert formats, separate audio sources (Demucs), split and concatenate audio. Shannon-correct resampling via ffmpeg/libswresample."
 readme = "README.md"
 requires-python = ">=3.10,<3.14"

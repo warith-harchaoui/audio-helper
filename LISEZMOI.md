@@ -30,6 +30,22 @@ Audio Helper est une bibliothèque Python qui fournit des fonctions utilitaires 
 - Similarité : score `sound_resemblance` basé sur les MFCC pour comparaison A/B.
 - Extraction de caractéristiques : primitives Mel / MFCC basées sur scipy.
 
+**Cinq surfaces, une boîte à outils** — chaque opération ci-dessus est
+accessible via :
+
+- **Bibliothèque** : `import audio_helper as ah`.
+- **CLI ×2** : `audio-helper` (argparse, toujours installée) et
+  `audio-helper-click` (jumelle click, extra `[cli]`), aux options identiques.
+- **API HTTP** : application FastAPI (extra `[api]`), docs OpenAPI sur `/docs`.
+- **MCP** : jeu d'outils FastAPI-MCP (extra `[api,mcp]`) pour hôtes MCP.
+- **GUI** : un « banc d'écoute » minimal dans le navigateur, sans étape de
+  build, servi sur `GET /gui` — déposez un fichier, choisissez une opération,
+  lancez-la, puis comparez l'entrée et la sortie. Voir [GUI.md](GUI.md).
+
+Elle s'installe aussi comme **skill Claude / OpenCode** — voir
+[skills/README.md](skills/README.md) et le catalogue exhaustif
+[TRIGGERS.md](TRIGGERS.md).
+
 ## Installation
 
 **Prérequis** — **Python 3.10–3.13** et **git**, **ffmpeg**, multiplateforme :
@@ -59,15 +75,15 @@ pip install "audio-helper[api,mcp]"   # outils MCP au-dessus de FastAPI
 
 ```bash
 # Utilitaires audio de base
-pip install "git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9"
+pip install "git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0"
 
 # Ajout de la séparation de sources Demucs (tire torch + torchaudio, ~2 Go)
-pip install "audio-helper[demucs] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9"
+pip install "audio-helper[demucs] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0"
 
 # Surfaces optionnelles
-pip install "audio-helper[cli] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9"
-pip install "audio-helper[api] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9"
-pip install "audio-helper[api,mcp] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9"
+pip install "audio-helper[cli] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0"
+pip install "audio-helper[api] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0"
+pip install "audio-helper[api,mcp] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0"
 ```
 
 Si vous appelez `separate_sources` sans l'extra `[demucs]`, la fonction lève une `ImportError` qui vous redirige ici.
@@ -143,20 +159,20 @@ audio-helper resemblance --a a.mp3 --b b.mp3
 # CLI click jumelle (extra [cli])
 pip install "audio-helper[cli]"
 # ou depuis les sources :
-pip install "audio-helper[cli] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9"
+pip install "audio-helper[cli] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0"
 audio-helper-click convert --input in.mp3 --output out.wav --freq 44100
 
 # Surface HTTP FastAPI (extra [api])
 pip install "audio-helper[api]"
 # ou depuis les sources :
-pip install "audio-helper[api] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9"
+pip install "audio-helper[api] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0"
 uvicorn audio_helper.api:app --port 8000
 # → docs OpenAPI sur http://localhost:8000/docs
 
 # Outils MCP au-dessus de FastAPI (extras [api,mcp])
 pip install "audio-helper[api,mcp]"
 # ou depuis les sources :
-pip install "audio-helper[api,mcp] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9"
+pip install "audio-helper[api,mcp] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0"
 audio-helper-mcp                  # sert FastAPI + MCP sur le port 8000
 ```
 
@@ -169,8 +185,11 @@ docker run --rm -p 8000:8000 audio-helper
 docker build --build-arg WITH_DEMUCS=1 -t audio-helper:demucs .
 ```
 
-Un plan de GUI innovant (éditeur de recettes en canvas, comparateur
-"ear-first", vue MFCC-cluster batch) est décrit dans [GUI.md](GUI.md).
+Une GUI minimale (« banc d'écoute ») est déjà disponible : elle est servie
+par l'application FastAPI sur `GET /gui` (ouvrez `http://localhost:8000/gui`
+après avoir lancé le serveur). La GUI ambitieuse à venir (éditeur de recettes
+en canvas, comparateur « ear-first », vue MFCC-cluster batch) est décrite comme
+feuille de route dans [GUI.md](GUI.md).
 
 Le paysage concurrentiel (librosa, torchaudio, pydub, essentia,
 Demucs, Spleeter, …) est analysé dans [LANDSCAPE.md](LANDSCAPE.md).

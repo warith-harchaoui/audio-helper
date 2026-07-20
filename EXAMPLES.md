@@ -38,14 +38,14 @@ Install with pip (replace the tag with the version you want):
 
 ```bash
 pip install --force-reinstall --no-cache-dir \
-    git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9
+    git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0
 ```
 
 To enable Demucs-based source separation:
 
 ```bash
 pip install --force-reinstall --no-cache-dir \
-    "audio-helper[demucs] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.5.9"
+    "audio-helper[demucs] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0"
 ```
 
 ## Validity & Duration
@@ -239,3 +239,53 @@ signal = np.random.randn(sample_rate).astype(np.float32)
 coefs = mfcc(signal, sample_rate, num_mfcc=13, n_fft=512)
 print(coefs.shape)  # (n_frames, 13)
 ```
+
+---
+
+## Surfaces (CLI / API / MCP / GUI)
+
+The same operations are reachable without writing Python.
+
+**argparse CLI (always installed):**
+
+```bash
+audio-helper convert --input in.mp3 --output out.wav --freq 16000 --channels 1
+audio-helper chunk   --input in.mp3 --start 3.0 --end 8.5 --output cut.mp3
+audio-helper split   --input in.mp3 --output-dir chunks/ --seconds 30
+audio-helper concat  --inputs a.mp3 b.mp3 c.mp3 --output all.mp3
+audio-helper roomtone --input speech.wav --output speech-rt.wav --db -42 --color pink
+audio-helper separate --input mix.mp3 --output-dir stems/          # needs [demucs]
+audio-helper resemblance --a take1.wav --b take2.wav
+```
+
+**click CLI twin (`[cli]` extra)** — identical flags:
+
+```bash
+pip install "audio-helper[cli]"
+audio-helper-click convert --input in.mp3 --output out.wav --freq 16000
+```
+
+**FastAPI HTTP surface + GUI (`[api]` extra):**
+
+```bash
+pip install "audio-helper[api]"
+uvicorn audio_helper.api:app --port 8000
+
+# Convert over HTTP (multipart upload):
+curl -F 'file=@in.mp3' -F 'output_format=wav' -F 'freq=16000' \
+     -o out.wav http://localhost:8000/convert
+
+# OpenAPI docs:  http://localhost:8000/docs
+# Browser GUI:   http://localhost:8000/gui   (drop a file, pick an op, A/B the result)
+```
+
+**MCP tools (`[api,mcp]` extras):**
+
+```bash
+pip install "audio-helper[api,mcp]"
+audio-helper-mcp                 # FastAPI + MCP on :8000
+```
+
+See [TRIGGERS.md](TRIGGERS.md) for the full catalogue of phrasings, commands,
+and file types, and [skills/README.md](skills/README.md) to install `audio-helper`
+as a Claude / OpenCode agent skill.

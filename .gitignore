@@ -49,10 +49,12 @@ forget.zsh
 # logs
 logs/
 
-# json and yaml
-*.json
-*.yaml
-# *.yml
+# Ad-hoc JSON/YAML scratch outputs from local runs. We deliberately do NOT
+# ignore *.json / *.yaml wholesale anymore (that silently swallowed skill
+# metadata and any exported openapi.json). Real credential files stay
+# ignored by the dedicated block at the bottom of this file.
+audio_tests/**/*.json
+audio_tests/**/*.yaml
 
 # Distribution / packaging
 .Python
@@ -222,3 +224,9 @@ cython_debug/
 nomoreclaude.sh
 .secrets/
 .pypirc
+
+# Ralph-loop / local scratch workspace — never committed.
+.private/
+
+# Editor / IDE local caches (VS Code autocompletion dumps, etc.).
+.vscode/

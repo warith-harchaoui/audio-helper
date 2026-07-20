@@ -1,9 +1,46 @@
 # GUI — Audio Helper
 
+This document has two parts: **(1) what ships today** — a minimal, working
+"audition bench" served by the FastAPI app — and **(2) the roadmap** — an
+ambitious, opinionated visual product we may build later. The roadmap is
+explicitly *not yet implemented*; do not mistake it for current behaviour.
+
+---
+
+## Part 1 — What ships today: the minimal audition bench
+
+A single, self-contained HTML page (Tailwind via CDN + vanilla ES-module JS,
+**no build step, no framework**) served by the existing FastAPI app.
+
+- **Route**: `GET /gui` (and `GET /` redirects to it). Source:
+  `audio_helper/gui.py` (`GUI_HTML`), wired in `audio_helper/api.py`.
+- **Run it**:
+  ```bash
+  pip install 'audio-helper[api]'
+  uvicorn audio_helper.api:app --port 8000
+  # open http://localhost:8000/gui
+  ```
+- **Workflow**: drop or pick an audio file → choose one operation (`convert`,
+  `chunk`, `silence`, `concat`, `roomtone`, `split`, `separate`,
+  `resemblance`) → the page reveals only that operation's fields → **Run**
+  POSTs `multipart/form-data` to the *same* API endpoints the CLI and MCP use
+  → the result plays back in an `<audio>` element next to the input for A/B
+  comparison, with a download link (a single file, or a `.zip` for `split` /
+  `separate`; `resemblance` shows the score inline).
+- **Deliberately minimal**: it adds *zero* server-side logic. It is a thin,
+  friendly front door to the API — and the canonical template other AI Helpers
+  repos copy (swap the operation list and per-op fields, keep the plumbing).
+
+Everything below is a **future roadmap**, not shipped.
+
+---
+
+## Part 2 — Roadmap (aspirational, not implemented)
+
 > A design plan, not a CLI mirror. The CLI already handles "one file at
-> a time, one operation at a time". A GUI must go further — otherwise
-> why build one? This document lays out an ambitious, opinionated
-> visual product for the audio-prep-for-AI workflow.
+> a time, one operation at a time". A richer GUI could go further. This
+> section lays out an ambitious, opinionated visual product for the
+> audio-prep-for-AI workflow — a target, not current behaviour.
 
 ## North star
 

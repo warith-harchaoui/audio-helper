@@ -281,7 +281,8 @@ def is_valid_audio_file(file_path: str) -> bool:
     -----
     The function uses ffprobe to inspect the file and determine if an audio stream is present.
     """
-    global audio_extensions
+    # ``audio_extensions`` is read-only here (module-level list built once at
+    # import), so no ``global`` declaration is needed.
     # By default, the file is considered invalid
     valid = False
     try:
@@ -335,7 +336,7 @@ def get_audio_duration(file_path: str) -> float:
 
 def load_audio(
     file_path: str,
-    target_sample_rate: int = None,
+    target_sample_rate: int | None = None,
     to_mono: bool = True,
     to_numpy: bool = False,
     two_channels: bool = False,
@@ -590,8 +591,8 @@ def _separate_sources(
     sample_rate: int,
     segment: float = 10.0,
     overlap: float = 0.1,
-    device: str = None,
-    nb_workers: int = 2,
+    device: str | None = None,
+    nb_workers: int | None = 2,
 ) -> torch.Tensor:
     """
     Apply a source separation model to a given audio mixture, processing the mixture in segments with overlap and fades,
@@ -755,8 +756,8 @@ separator_engine_sample_rate: int | None = None
 
 def separate_sources(
     input_audio_file: str,
-    output_folder: str = None,
-    device: str = None,
+    output_folder: str | None = None,
+    device: str | None = None,
     overwrite: bool = False,
     nb_workers: int = -2,
     output_format: str = "mp3",
@@ -884,7 +885,7 @@ def extract_audio_chunk(
     audio_file: str,
     start_time: float,
     end_time: float,
-    output_audio_filename: str = None,
+    output_audio_filename: str | None = None,
     overwrite: bool = True,
 ) -> str:
     """
@@ -993,7 +994,7 @@ def extract_audio_chunk(
 
 def generate_silent_audio(
     duration: float,
-    output_audio_filename: str = None,
+    output_audio_filename: str | None = None,
     sample_rate: int = 44100,
     overwrite: bool = False,
 ) -> str:
@@ -1070,7 +1071,7 @@ def generate_silent_audio(
 
 def audio_concatenation(
     audio_files: list[str],
-    output_audio_filename: str = None,
+    output_audio_filename: str | None = None,
     overwrite: bool = False,
 ) -> str:
     """
@@ -1156,7 +1157,7 @@ def audio_concatenation(
 
 def mix_room_tone(
     input_audio: str,
-    output_audio: str = None,
+    output_audio: str | None = None,
     noise_db: float = -42.0,
     color: str = "pink",
     sample_rate: int = 44100,

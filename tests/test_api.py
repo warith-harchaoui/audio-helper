@@ -67,3 +67,25 @@ def test_docs_endpoint_is_served(client):
     r = client.get("/docs")
     assert r.status_code == 200
     assert "swagger" in r.text.lower() or "openapi" in r.text.lower()
+
+
+def test_gui_returns_200_html(client):
+    """``GET /gui`` should return 200 with a self-contained HTML page."""
+    r = client.get("/gui")
+    assert r.status_code == 200
+    # It must be an HTML document (correct content type + a doctype/tag).
+    assert r.headers["content-type"].startswith("text/html")
+    body = r.text.lower()
+    assert "<!doctype html>" in body
+    # Sanity-check it is the audition bench and offers the real operations
+    # (the JS builds endpoint URLs as "/" + op, so we assert on the op names).
+    assert "audition bench" in body
+    assert 'value="convert"' in r.text and 'value="separate"' in r.text
+
+
+def test_root_redirects_to_gui(client):
+    """``GET /`` should redirect (or resolve) to the GUI page."""
+    # follow_redirects defaults True in the TestClient; assert we land on HTML.
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "audition bench" in r.text.lower()
