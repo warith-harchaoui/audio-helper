@@ -11,12 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Minimal browser GUI ("audition bench")** served by the FastAPI app at
-  `GET /gui` (and `GET /` redirects there). A single self-contained
-  HTML + Tailwind-CDN + vanilla-JS page (in `audio_helper/gui.py`): drop an
-  audio file, pick an operation (convert / chunk / silence / concat / roomtone
-  / split / separate / resemblance), run it against the existing endpoints,
-  then A/B the input vs output in `<audio>` players and download the result.
+- **Browser GUI — "Recipe Canvas"** served by the FastAPI app at `GET /gui`
+  (and `GET /` redirects there). A single self-contained HTML + Tailwind-CDN +
+  vanilla-JS page (in `audio_helper/gui.py`), **no build step / no framework /
+  no npm**, that chains the eight verbs (convert / chunk / silence / concat /
+  roomtone / split / separate / resemblance) into a **sequential pipeline**:
+  - Client-orchestrated runner: each step POSTs to the *existing* API endpoint
+    and its output file is piped into the next step's input (the browser is the
+    orchestrator — zero new server-side recipe logic).
+  - Per step: a WaveSurfer.js waveform + an `<audio>` player of that step's
+    output, an on-demand Vega-Lite spectrogram, and a **Bypass** toggle for
+    instant A/B. `split` / `separate` zips are unzipped in-browser (fflate) so a
+    chosen member can chain downstream; `resemblance` shows its score inline.
+  - **Ear-first comparator**: pick a before/after clip, scrub two aligned
+    WaveSurfer tracks together, and toggle which you hear at the same playhead
+    with the **Space bar**; an optional difference view draws `after − before`.
+  - **`recipe.yaml` export / import** (client-side) so a pipeline is a
+    committable, human-diffable artifact.
+  - CDN libraries only (WaveSurfer.js, Vega-Lite/Vega/vega-embed, fflate,
+    Tailwind) — matches the AI Helpers house style.
 - **Agent skill** `skills/audio-helper/` (Claude Skills + OpenCode standard):
   trigger-rich `SKILL.md` plus progressive-disclosure `references/`
   (`cli-reference.md`, `surfaces.md`, `triggers.md`) and a `skills/README.md`.
@@ -40,9 +53,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
-- Reconciled `GUI.md`: documents the shipped minimal GUI and clearly labels the
-  richer canvas editor as future/roadmap.
-- README and LISEZMOI: added the GUI, agent-skill, and `TRIGGERS.md` sections;
+- Reworked `GUI.md`: "what ships today" now documents the full Recipe Canvas
+  (runner, per-step bypass, ear-first comparator, `recipe.yaml` round-trip); the
+  remaining surfaces (live-keystroke spectrogram, batch drop zone, MFCC cluster
+  view) stay clearly labelled as roadmap.
+- README and LISEZMOI: added a local-first badge and an honest three-case
+  **Promise / La promesse** section (guaranteed-local · model-weights caveat ·
+  your decision); added the GUI, agent-skill, and `TRIGGERS.md` sections;
   refreshed version pins to `v1.6.0`.
 
 ## [1.5.9] - 2026-07-18

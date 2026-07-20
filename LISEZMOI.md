@@ -2,7 +2,7 @@
 
 [🇫🇷](LISEZMOI.md) · [🇬🇧](README.md)
 
-[![CI](https://github.com/warith-harchaoui/audio-helper/actions/workflows/ci.yml/badge.svg)](https://github.com/warith-harchaoui/audio-helper/actions/workflows/ci.yml) [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.10%E2%80%933.13-blue.svg)](#)
+[![CI](https://github.com/warith-harchaoui/audio-helper/actions/workflows/ci.yml/badge.svg)](https://github.com/warith-harchaoui/audio-helper/actions/workflows/ci.yml) [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.10%E2%80%933.13-blue.svg)](#) [![Local-first](https://img.shields.io/badge/local--first-ffmpeg%20%2B%20Demucs%20local-brightgreen.svg)](#la-promesse)
 
 `Audio Helper` fait partie d'une collection de bibliothèques appelée `AI Helpers`, développée pour bâtir des applications d'intelligence artificielle.
 
@@ -11,6 +11,22 @@
 [![logo](assets/logo.png)](https://harchaoui.org/warith/ai-helpers)
 
 Audio Helper est une bibliothèque Python qui fournit des fonctions utilitaires pour le traitement de fichiers audio. Elle inclut le chargement audio, la conversion de formats, la séparation de sources, et le découpage / la concaténation de fichiers audio.
+
+## La promesse
+
+Audio Helper est **local-first** par conception. Trois cas, en toute honnêteté :
+
+1. **Garanti local.** Chaque opération — y compris l'interface web sur
+   `GET /gui` — s'exécute sur votre machine via **ffmpeg** et **Demucs en
+   local**. Votre audio n'est **jamais téléversé** vers un tiers. **Aucune
+   télémétrie, aucun compte, aucune dépendance SaaS.**
+2. **La seule réserve : les poids des modèles.** La séparation de sources
+   télécharge les poids du modèle **Demucs** **une seule fois**, au premier
+   lancement (un simple cache Hugging Face / PyTorch). Ensuite, tout fonctionne
+   hors ligne. Rien d'autre n'a besoin du réseau.
+3. **Votre décision.** Rien ici ne force le cloud. Si vous souhaitez un jour
+   déployer derrière un proxy ou dans un conteneur, la surface FastAPI le rend
+   facile — mais c'est un choix que vous faites, pas un défaut que nous imposons.
 
 ## Documentation
 
@@ -38,9 +54,12 @@ accessible via :
   `audio-helper-click` (jumelle click, extra `[cli]`), aux options identiques.
 - **API HTTP** : application FastAPI (extra `[api]`), docs OpenAPI sur `/docs`.
 - **MCP** : jeu d'outils FastAPI-MCP (extra `[api,mcp]`) pour hôtes MCP.
-- **GUI** : un « banc d'écoute » minimal dans le navigateur, sans étape de
-  build, servi sur `GET /gui` — déposez un fichier, choisissez une opération,
-  lancez-la, puis comparez l'entrée et la sortie. Voir [GUI.md](GUI.md).
+- **GUI** : un **Recipe Canvas** dans le navigateur, sans étape de build, servi
+  sur `GET /gui` — enchaînez les huit verbes en un pipeline séquentiel, écoutez
+  chaque étape intermédiaire (formes d'onde WaveSurfer), court-circuitez
+  n'importe quelle étape pour un A/B instantané, utilisez le comparateur
+  avant/après (bascule à la barre d'espace), et exportez le pipeline en un
+  `recipe.yaml` versionnable. Voir [GUI.md](GUI.md).
 
 Elle s'installe aussi comme **skill Claude / OpenCode** — voir
 [skills/README.md](skills/README.md) et le catalogue exhaustif

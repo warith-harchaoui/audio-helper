@@ -2,7 +2,7 @@
 
 [🇫🇷](https://github.com/warith-harchaoui/audio-helper/blob/main/LISEZMOI.md) · [🇬🇧](https://github.com/warith-harchaoui/audio-helper/blob/main/README.md)
 
-[![CI](https://github.com/warith-harchaoui/audio-helper/actions/workflows/ci.yml/badge.svg)](https://github.com/warith-harchaoui/audio-helper/actions/workflows/ci.yml) [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.10%E2%80%933.13-blue.svg)](#)
+[![CI](https://github.com/warith-harchaoui/audio-helper/actions/workflows/ci.yml/badge.svg)](https://github.com/warith-harchaoui/audio-helper/actions/workflows/ci.yml) [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.10%E2%80%933.13-blue.svg)](#) [![Local-first](https://img.shields.io/badge/local--first-ffmpeg%20%2B%20local%20Demucs-brightgreen.svg)](#the-promise)
 
 `Audio Helper` belongs to a collection of libraries called `AI Helpers` developed for building Artificial Intelligence.
 
@@ -11,6 +11,22 @@
 [![logo](https://raw.githubusercontent.com/warith-harchaoui/audio-helper/main/assets/logo.png)](https://harchaoui.org/warith/ai-helpers)
 
 Audio Helper is a Python library that provides utility functions for processing audio files. It includes features like loading audio, converting formats, separating audio sources, and splitting and concatenating audio files.
+
+## The Promise
+
+Audio Helper is **local-first** by design. Three honest cases:
+
+1. **Guaranteed local.** Every operation — including the browser GUI at
+   `GET /gui` — runs on your machine via **ffmpeg** and **local Demucs**.
+   Your audio is **never uploaded** to any third party. There is **no
+   telemetry, no account, no SaaS** dependency.
+2. **The one caveat: model weights.** Source separation downloads the
+   **Demucs** model weights **once**, on first run (a normal Hugging Face /
+   PyTorch cache fetch). After that it is fully offline. Nothing else needs the
+   network.
+3. **Your decision.** Nothing here forces the cloud. If you ever want to run
+   behind a proxy or in a container, the FastAPI surface makes that easy — but
+   that is a choice you make, not a default we impose.
 
 ## Documentation
 
@@ -37,9 +53,12 @@ Audio Helper is a Python library that provides utility functions for processing 
   `audio-helper-click` (click twin, `[cli]` extra) with identical flags.
 - **HTTP API**: FastAPI app (`[api]` extra), OpenAPI docs at `/docs`.
 - **MCP**: FastAPI-MCP tool set (`[api,mcp]` extra) for MCP-aware hosts.
-- **GUI**: a minimal, build-step-free browser "audition bench" served at
-  `GET /gui` — drop a file, pick an operation, run it, and A/B the input vs
-  output. See [GUI.md](https://github.com/warith-harchaoui/audio-helper/blob/main/GUI.md).
+- **GUI**: a build-step-free browser **Recipe Canvas** served at `GET /gui` —
+  chain the eight verbs into a sequential pipeline, hear every intermediate step
+  (WaveSurfer waveforms), bypass any step for instant A/B, use the ear-first
+  before/after comparator (Space bar toggles), and export the pipeline as a
+  committable `recipe.yaml`.
+  See [GUI.md](https://github.com/warith-harchaoui/audio-helper/blob/main/GUI.md).
 
 It also ships as a **Claude / OpenCode skill** — see
 [skills/README.md](https://github.com/warith-harchaoui/audio-helper/blob/main/skills/README.md)
