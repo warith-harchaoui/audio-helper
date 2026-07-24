@@ -12,6 +12,7 @@ is not penalised — the score just reflects fit to *this* niche.
 
 ## At a glance
 
+<!-- TABLE:START -->
 | Audio Wrangling | Multi-format I/O | Format conversion | Split / concat / silence | MFCC / spectral features | Source separation | Light install | AI-pipeline ergonomics |
 | --- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | **audio-helper** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
@@ -24,14 +25,17 @@ is not penalised — the score just reflects fit to *this* niche.
 | madmom | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐ | ⭐⭐⭐ | ⭐⭐ |
 | Demucs | ⭐⭐⭐ | ⭐⭐ | ⭐ | ⭐ | ⭐⭐⭐⭐⭐ | ⭐ | ⭐⭐ |
 | Spleeter | ⭐⭐⭐ | ⭐⭐ | ⭐ | ⭐ | ⭐⭐⭐⭐ | ⭐ | ⭐⭐ |
+<!-- TABLE:END -->
 
 ## Positioning map
 
+<!-- FIGURE:START -->
 2D representation of the table above.
 
 ![Positioning map](https://raw.githubusercontent.com/warith-harchaoui/audio-helper/main/assets/landscape.png)
 
-The map is a 2-D summary of the seven criteria, so read it as a shape, not a scoreboard. `audio-helper` is at the top-right corner. The axes read **Horizontal — Separation ↔ Install** and **Vertical — Spectral ↔ Format**.
+The map is a 2-D summary of the seven criteria, so read it as a shape, not a scoreboard. `audio-helper` is at the top-right corner. The axes read **Horizontal — Clarity ↔ Versatile** and **Vertical — Efficient ↔ Comprehensive**.
+<!-- FIGURE:END -->
 
 ## Positioning
 

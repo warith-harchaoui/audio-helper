@@ -14,6 +14,7 @@ temps réel) n'est pas pénalisée — la note reflète seulement l'adéquation
 
 ## En un coup d'œil
 
+<!-- TABLE:START -->
 | Manipulation audio | E/S multi-format | Conversion de format | Découpage / concat / silence | Caractéristiques MFCC / spectrales | Séparation de sources | Installation légère | Ergonomie pipeline d'IA |
 | --- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | **audio-helper** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
@@ -26,14 +27,17 @@ temps réel) n'est pas pénalisée — la note reflète seulement l'adéquation
 | madmom | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐ | ⭐⭐⭐ | ⭐⭐ |
 | Demucs | ⭐⭐⭐ | ⭐⭐ | ⭐ | ⭐ | ⭐⭐⭐⭐⭐ | ⭐ | ⭐⭐ |
 | Spleeter | ⭐⭐⭐ | ⭐⭐ | ⭐ | ⭐ | ⭐⭐⭐⭐ | ⭐ | ⭐⭐ |
+<!-- TABLE:END -->
 
 ## Carte de positionnement
 
+<!-- FIGURE:START -->
 Représentation 2D du tableau ci-dessus.
 
 ![Carte de positionnement](https://raw.githubusercontent.com/warith-harchaoui/audio-helper/main/assets/paysage.png)
 
-La carte est un résumé en 2D des 7 critères : à lire comme une forme, pas comme un classement. « audio-helper » se situe dans le coin en haut à droite. Les axes se lisent **Horizontal — Paration ↔ Installation** et **Vertical — Spectrales ↔ Format**.
+La carte est un résumé en 2D des 7 critères : à lire comme une forme, pas comme un classement. « audio-helper » se situe dans le coin en haut à droite. Les axes se lisent **Horizontal — Clarté des sources ↔ Adaptabilité et simplicité** et **Vertical — Léger et efficace ↔ Polyvalence et fiabilité**.
+<!-- FIGURE:END -->
 
 ## Positionnement
 

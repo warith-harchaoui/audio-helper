@@ -232,5 +232,3 @@ nomoreclaude.sh
 .vscode/
 
 # Generated landscape CSVs (rebuilt from LANDSCAPE.md / PAYSAGE.md).
-assets/landscape.csv
-assets/paysage.csv
