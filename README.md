@@ -212,9 +212,6 @@ the server). The ambitious future GUI (canvas-based recipe editor, ear-first
 comparator, MFCC-cluster batch view) is documented as a roadmap in
 [GUI.md](https://github.com/warith-harchaoui/audio-helper/blob/main/GUI.md).
 
-The competitive landscape (librosa, torchaudio, pydub, essentia,
-Demucs, Spleeter, …) is analysed with a positioning map in [LANDSCAPE.md](https://github.com/warith-harchaoui/audio-helper/blob/main/LANDSCAPE.md).
-
 ## Author
 
  - [Warith HARCHAOUI](https://linkedin.com/in/warith-harchaoui)

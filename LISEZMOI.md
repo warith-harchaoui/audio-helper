@@ -212,9 +212,6 @@ après avoir lancé le serveur). La GUI ambitieuse à venir (éditeur de recette
 en canvas, comparateur « ear-first », vue MFCC-cluster batch) est décrite comme
 feuille de route dans [GUI.md](GUI.md).
 
-Le paysage concurrentiel (librosa, torchaudio, pydub, essentia,
-Demucs, Spleeter, …) est analysé avec une carte de positionnement dans [PAYSAGE.md](PAYSAGE.md).
-
 ## Auteur
 
  - [Warith HARCHAOUI](https://linkedin.com/in/warith-harchaoui)
