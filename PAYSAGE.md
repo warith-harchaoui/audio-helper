@@ -36,7 +36,7 @@ Représentation 2D du tableau ci-dessus.
 
 ![Carte de positionnement](https://raw.githubusercontent.com/warith-harchaoui/audio-helper/main/assets/paysage.png)
 
-La carte est un résumé en 2D des 7 critères : à lire comme une forme, pas comme un classement. « audio-helper » se situe dans le coin en haut à droite. Les axes se lisent **Horizontal — Clarté des sources ↔ Adaptabilité et simplicité** et **Vertical — Léger et efficace ↔ Polyvalence et fiabilité**.
+La carte est un résumé en 2D des 7 critères : à lire comme une forme, pas comme un classement. « audio-helper » se situe dans le coin en haut à droite. Les axes se lisent **Horizontal — Flexibilité ↔ Simplicité** et **Vertical — Efficacité ↔ Précision**.
 <!-- FIGURE:END -->
 
 ## Positionnement

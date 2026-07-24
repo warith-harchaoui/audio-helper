@@ -34,7 +34,7 @@ is not penalised — the score just reflects fit to *this* niche.
 
 ![Positioning map](https://raw.githubusercontent.com/warith-harchaoui/audio-helper/main/assets/landscape.png)
 
-The map is a 2-D summary of the seven criteria, so read it as a shape, not a scoreboard. `audio-helper` is at the top-right corner. The axes read **Horizontal — Clarity ↔ Versatile** and **Vertical — Efficient ↔ Comprehensive**.
+The map is a 2-D summary of the seven criteria, so read it as a shape, not a scoreboard. `audio-helper` is at the top-right corner. The axes read **Horizontal — Clean Output ↔ User-Friendly** and **Vertical — Efficient Setup ↔ Format**.
 <!-- FIGURE:END -->
 
 ## Positioning
