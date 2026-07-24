@@ -75,7 +75,7 @@ Elle s'installe aussi comme **skill Claude / OpenCode** — voir
 - 🐧 **Ubuntu/Debian** : `sudo apt update && sudo apt install -y python3 python3-pip git ffmpeg`
 - 🪟 **Windows** (PowerShell) : `winget install Python.Python.3.12 Git.Git Gyan.FFmpeg`
 
-Nous recommandons l'utilisation d'environnements Python. Consultez ce lien si vous ne savez pas comment faire : [🥸 Conseils techniques](https://harchaoui.org/warith/4ml/#install).
+On recommande de travailler dans un environnement Python. Si vous ne savez pas comment en créer un : [🥸 Conseils techniques](https://harchaoui.org/warith/4ml/#install).
 
 ### Depuis PyPI (recommandé)
 
@@ -113,11 +113,11 @@ Si vous appelez `separate_sources` sans l'extra `[demucs]`, la fonction lève un
 
 Pour le catalogue complet d'exemples, voir [📋 EXAMPLES.md](EXAMPLES.md).
 
-Voici un exemple d'utilisation d'Audio Helper pour charger, convertir et découper un fichier audio :
+Exemple : charger, convertir et découper un fichier audio.
 
-(télécharger [example.mp3](https://harchaoui.org/warith/example.mp3))
+(à télécharger : [example.mp3](https://harchaoui.org/warith/example.mp3))
 
-C'est un extrait d'un discours de JFK qui est très mal enregistré.
+C'est un extrait d'un discours de JFK, très mal enregistré.
 
 ```python
 import audio_helper as ah
@@ -137,7 +137,7 @@ new_concatenated_audio = "audio_tests/concatenated.wav"
 concatenated_audio = ah.audio_concatenation(chunks, output_audio_filename = new_concatenated_audio)
 ```
 
-Un autre exemple intéressant concerne la séparation de sources (DEMUCS de META) avec une IA qui sépare une piste audio en 4 pistes :
+Autre exemple : la séparation de sources (Demucs, de Meta), qui découpe une piste audio en 4 pistes :
 - voix (vocals)
 - batterie (drums)
 - basse (bass)
