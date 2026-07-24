@@ -32,6 +32,8 @@ Audio Helper is **local-first** by design. Three honest cases:
 
 [💻 Documentation](https://harchaoui.org/warith/ai-helpers/docs/audio-helper-doc/)
 
+[🗺️ Landscape](https://github.com/warith-harchaoui/audio-helper/blob/main/LANDSCAPE.md)
+
 [📋 Examples](https://github.com/warith-harchaoui/audio-helper/blob/main/EXAMPLES.md)
 
 ## Features
@@ -211,7 +213,7 @@ comparator, MFCC-cluster batch view) is documented as a roadmap in
 [GUI.md](https://github.com/warith-harchaoui/audio-helper/blob/main/GUI.md).
 
 The competitive landscape (librosa, torchaudio, pydub, essentia,
-Demucs, Spleeter, …) is analysed in [LANDSCAPE.md](https://github.com/warith-harchaoui/audio-helper/blob/main/LANDSCAPE.md).
+Demucs, Spleeter, …) is analysed with a positioning map in [LANDSCAPE.md](https://github.com/warith-harchaoui/audio-helper/blob/main/LANDSCAPE.md).
 
 ## Author
 
