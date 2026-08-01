@@ -56,7 +56,10 @@ jobs:
           python-version: "3.12"
           cache: pip
       - name: Install ruff
-        run: pip install ruff
+        # Pinned: an unpinned install let ruff 0.16 make Markdown code-fence
+        # formatting the default, silently breaking format-check on doc examples.
+        # Bump this deliberately, not by surprise.
+        run: pip install "ruff==0.15.21"
       # Lint the library package and the test suite. The repo's ruff config
       # in pyproject.toml is the single source of truth for the rule set.
       - name: Run ruff check
