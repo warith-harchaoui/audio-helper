@@ -48,13 +48,12 @@ Audio Helper is **local-first** by design. Three honest cases:
 - Similarity: MFCC-based `sound_resemblance` score for A/B comparison.
 - Feature Extraction: scipy-based Mel / MFCC primitives.
 
-**Five surfaces, one toolkit** — every operation above is reachable as:
+**Four surfaces, one toolkit** — every operation above is reachable as:
 
 - **Library**: `import audio_helper as ah`.
 - **CLI ×2**: `audio-helper` (argparse, always installed) and
   `audio-helper-click` (click twin, `[cli]` extra) with identical flags.
 - **HTTP API**: FastAPI app (`[api]` extra), OpenAPI docs at `/docs`.
-- **MCP**: FastAPI-MCP tool set (`[api,mcp]` extra) for MCP-aware hosts.
 - **GUI**: a build-step-free browser **Recipe Canvas** served at `GET /gui` —
   chain the eight verbs into a sequential pipeline, hear every intermediate step
   (WaveSurfer waveforms), bypass any step for instant A/B, use the ear-first
@@ -62,9 +61,7 @@ Audio Helper is **local-first** by design. Three honest cases:
   committable `recipe.yaml`.
   See [GUI.md](https://github.com/warith-harchaoui/audio-helper/blob/main/GUI.md).
 
-It also ships as a **Claude / OpenCode skill** — see
-[skills/README.md](https://github.com/warith-harchaoui/audio-helper/blob/main/skills/README.md)
-and the exhaustive
+For the exhaustive trigger catalogue, see
 [TRIGGERS.md](https://github.com/warith-harchaoui/audio-helper/blob/main/TRIGGERS.md).
 
 ## Installation
@@ -89,22 +86,20 @@ pip install "audio-helper[demucs]"
 # Optional surfaces
 pip install "audio-helper[cli]"       # click-based CLI twin
 pip install "audio-helper[api]"       # FastAPI HTTP surface
-pip install "audio-helper[api,mcp]"   # MCP tools over FastAPI
 ```
 
 ### From source (no PyPI)
 
 ```bash
 # Core audio utilities only
-pip install "git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0"
+pip install "git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.1"
 
 # Add source separation (pulls in torch + torchaudio, ~2 GB)
-pip install "audio-helper[demucs] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0"
+pip install "audio-helper[demucs] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.1"
 
 # Optional surfaces
-pip install "audio-helper[cli] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0"
-pip install "audio-helper[api] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0"
-pip install "audio-helper[api,mcp] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0"
+pip install "audio-helper[cli] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.1"
+pip install "audio-helper[api] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.1"
 ```
 
 If you call `separate_sources` without the `[demucs]` extra, the function raises an `ImportError` pointing you back here.
@@ -165,7 +160,7 @@ print(sources)
 ## Multi-surface exposure
 
 `audio-helper` is not just a library — the same functions are exposed
-as a CLI, a FastAPI HTTP surface, and an MCP tool set:
+as a CLI and a FastAPI HTTP surface:
 
 ```bash
 # Python library (default)
@@ -180,21 +175,15 @@ audio-helper resemblance --a a.mp3 --b b.mp3
 # click-based CLI twin (needs the [cli] extra)
 pip install "audio-helper[cli]"
 # or from source:
-pip install "audio-helper[cli] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0"
+pip install "audio-helper[cli] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.1"
 audio-helper-click convert --input in.mp3 --output out.wav --freq 44100
 
 # FastAPI HTTP surface (needs the [api] extra)
 pip install "audio-helper[api]"
 # or from source:
-pip install "audio-helper[api] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0"
+pip install "audio-helper[api] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.1"
 uvicorn audio_helper.api:app --port 8000
 # → OpenAPI docs at http://localhost:8000/docs
-
-# MCP tools over FastAPI (needs the [api,mcp] extras)
-pip install "audio-helper[api,mcp]"
-# or from source:
-pip install "audio-helper[api,mcp] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0"
-audio-helper-mcp                  # serves FastAPI + MCP on port 8000
 ```
 
 Docker image (light, without Demucs by default):

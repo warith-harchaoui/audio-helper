@@ -16,7 +16,7 @@ in ``GUI.md`` — a *sequential* pipeline where the user chains the eight verbs
 ``separate``, ``resemblance``) into a recipe and hears every intermediate step.
 
 The whole thing is still client-only: running a recipe calls the very same
-``/convert`` / ``/chunk`` / … endpoints the CLI and MCP use, in order, feeding
+``/convert`` / ``/chunk`` / … endpoints the CLI uses, in order, feeding
 each step's output file straight into the next step's input. No new server
 logic is required to run a recipe — the browser is the orchestrator.
 
@@ -230,7 +230,7 @@ GUI_HTML: str = r"""<!doctype html>
     // Recipe Canvas — client-orchestrated sequential pipeline.
     //
     // The whole runner is browser-side: each step POSTs to the SAME API
-    // endpoint the CLI/MCP use, and the returned blob becomes the next
+    // endpoint the CLI uses, and the returned blob becomes the next
     // step's input file. No new server logic is needed to run a recipe.
     // ===================================================================
 
@@ -620,7 +620,7 @@ GUI_HTML: str = r"""<!doctype html>
           // Append the verb's scalar parameters.
           for (const [k, v] of Object.entries(step.values)) fd.append(k, v);
 
-          // Fire the request against the same endpoint the CLI/MCP use.
+          // Fire the request against the same endpoint the CLI uses.
           const res = await fetch(spec.endpoint, { method: "POST", body: fd });
           if (!res.ok) {
             const txt = await res.text();

@@ -38,14 +38,14 @@ Install with pip (replace the tag with the version you want):
 
 ```bash
 pip install --force-reinstall --no-cache-dir \
-    git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0
+    git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.1
 ```
 
 To enable Demucs-based source separation:
 
 ```bash
 pip install --force-reinstall --no-cache-dir \
-    "audio-helper[demucs] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.0"
+    "audio-helper[demucs] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.1"
 ```
 
 ## Validity & Duration
@@ -242,7 +242,7 @@ print(coefs.shape)  # (n_frames, 13)
 
 ---
 
-## Surfaces (CLI / API / MCP / GUI)
+## Surfaces (CLI / API / GUI)
 
 The same operations are reachable without writing Python.
 
@@ -277,13 +277,6 @@ curl -F 'file=@in.mp3' -F 'output_format=wav' -F 'freq=16000' \
 
 # OpenAPI docs:  http://localhost:8000/docs
 # Browser GUI:   http://localhost:8000/gui   (drop a file, pick an op, A/B the result)
-```
-
-**MCP tools (`[api,mcp]` extras):**
-
-```bash
-pip install "audio-helper[api,mcp]"
-audio-helper-mcp                 # FastAPI + MCP on :8000
 ```
 
 See [TRIGGERS.md](TRIGGERS.md) for the full catalogue of phrasings, commands,

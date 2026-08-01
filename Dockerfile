@@ -4,16 +4,16 @@
 #
 # Two-stage build: the base stage pulls system deps (ffmpeg is
 # mandatory for the whole toolkit) and installs the package with the
-# [api,mcp] extras so the container can serve the HTTP + MCP surfaces
-# out of the box. The optional [demucs] extra is *not* installed by
-# default — it drags in ~2 GB of torch + torchaudio + a downloaded
-# model. Enable it by building with `--build-arg WITH_DEMUCS=1`.
+# [api] extra so the container can serve the HTTP surface out of the
+# box. The optional [demucs] extra is *not* installed by default — it
+# drags in ~2 GB of torch + torchaudio + a downloaded model. Enable it
+# by building with `--build-arg WITH_DEMUCS=1`.
 #
 # Build:
 #   docker build -t audio-helper .
 #   docker build --build-arg WITH_DEMUCS=1 -t audio-helper:demucs .
 #
-# Run (HTTP + MCP on 0.0.0.0:8000):
+# Run (HTTP on 0.0.0.0:8000):
 #   docker run --rm -p 8000:8000 audio-helper
 #
 # Run CLI one-shot:
@@ -45,9 +45,9 @@ COPY --chown=app:app audio_helper ./audio_helper
 ARG WITH_DEMUCS=0
 RUN pip install --no-cache-dir --upgrade pip \
  && if [ "$WITH_DEMUCS" = "1" ] ; then \
-        pip install --no-cache-dir '.[api,mcp,demucs]' ; \
+        pip install --no-cache-dir '.[api,demucs]' ; \
     else \
-        pip install --no-cache-dir '.[api,mcp]' ; \
+        pip install --no-cache-dir '.[api]' ; \
     fi
 
 # --- runtime ----------------------------------------------------------------
@@ -59,5 +59,5 @@ ENV PYTHONUNBUFFERED=1 \
 
 # tini reaps orphan children (ffmpeg subprocesses) cleanly on SIGTERM.
 ENTRYPOINT ["/usr/bin/tini", "--"]
-# Default: serve FastAPI + MCP. Override for one-shot CLI usage.
-CMD ["audio-helper-mcp"]
+# Default: serve FastAPI. Override for one-shot CLI usage.
+CMD ["uvicorn", "audio_helper.api:app", "--host", "0.0.0.0", "--port", "8000"]

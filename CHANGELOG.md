@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-08-01
+
+### Removed
+
+- **MCP surface dropped.** `fastapi-mcp`'s latest release is incompatible with
+  the latest `mcp` SDK (`Server.__init__()` signature mismatch — both packages
+  are at their own latest, mutually incompatible release with no version
+  pairing available). `audio_helper/mcp.py`, the `audio-helper-mcp` entry
+  point, the `mcp` extra, and `tests/test_mcp.py` are removed; the FastAPI
+  surface (`[api]` extra) is unaffected. Docs/Dockerfile updated (four
+  surfaces: library, CLI ×2, HTTP API, GUI).
+- **Agent skill dropped from the public repo.** Without an MCP surface, the
+  Claude/OpenCode skill (`skills/`) no longer earns its keep as public
+  distribution — moved to the gitignored `.private/skills/` (kept locally as
+  reference, never published). `TRIGGERS.md` stays public; its skill-specific
+  framing and dead `skills/` links are removed.
+
 ## [1.6.0] - 2026-07-20
 
 ### Added

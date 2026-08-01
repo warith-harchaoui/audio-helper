@@ -2,9 +2,7 @@
 
 This is the user-facing, exhaustive catalogue of what `audio-helper` can do and
 the natural-language phrasings, commands, functions, and file types that should
-invoke it — whether you call it yourself or drive it as a Claude / OpenCode
-**skill** (see [`skills/audio-helper/SKILL.md`](skills/audio-helper/SKILL.md)
-and its [`references/triggers.md`](skills/audio-helper/references/triggers.md)).
+invoke it.
 
 `audio-helper` transforms audio **files** (and the audio track of video files).
 It is local-first and ffmpeg-backed. It does **not** transcribe, synthesize, or
@@ -12,8 +10,8 @@ download audio.
 
 ## The nine operations → how to invoke
 
-| Intent | CLI | Library | API / MCP |
-|--------|-----|---------|-----------|
+| Intent | CLI | Library | API |
+|--------|-----|---------|-----|
 | Re-encode format / sample rate / channels | `audio-helper convert` | `sound_converter` | `POST /convert` |
 | Get duration in seconds | `audio-helper duration` | `get_audio_duration` | `POST /duration` |
 | Extract a `[start, end]` slice | `audio-helper chunk` | `extract_audio_chunk` | `POST /chunk` |
@@ -42,7 +40,7 @@ same flags) and the browser GUI at `GET /gui`.
 - **Resemblance**: "how similar are these two clips", "compare these takes",
   "MFCC / audio fingerprint similarity".
 - **Probe**: "how long is this", "is this a valid audio file".
-- **Surfaces**: "run the audio API / MCP server", "open the audio GUI", "install
+- **Surfaces**: "run the audio API server", "open the audio GUI", "install
   audio-helper".
 
 ## File types it accepts
@@ -67,4 +65,3 @@ same flags) and the browser GUI at `GET /gui`.
 - [`README.md`](README.md) — features, install, quick start.
 - [`EXAMPLES.md`](EXAMPLES.md) — runnable recipes.
 - [`GUI.md`](GUI.md) — the shipped minimal GUI + the roadmap for a richer one.
-- [`skills/README.md`](skills/README.md) — installing this as an agent skill.
