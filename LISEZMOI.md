@@ -1,14 +1,14 @@
 # Audio Helper
 
-[🇫🇷](LISEZMOI.md) · [🇬🇧](README.md)
+[🇫🇷](https://github.com/warith-harchaoui/audio-helper/blob/main/LISEZMOI.md) · [🇬🇧](https://github.com/warith-harchaoui/audio-helper/blob/main/README.md)
 
-[![CI](https://github.com/warith-harchaoui/audio-helper/actions/workflows/ci.yml/badge.svg)](https://github.com/warith-harchaoui/audio-helper/actions/workflows/ci.yml) [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.10%E2%80%933.13-blue.svg)](#) [![Local-first](https://img.shields.io/badge/local--first-ffmpeg%20%2B%20Demucs%20local-brightgreen.svg)](#la-promesse)
+[![CI](https://github.com/warith-harchaoui/audio-helper/actions/workflows/ci.yml/badge.svg)](https://github.com/warith-harchaoui/audio-helper/actions/workflows/ci.yml) [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://github.com/warith-harchaoui/audio-helper/blob/main/LICENSE) [![Python](https://img.shields.io/badge/python-3.10%E2%80%933.13-blue.svg)](#) [![Local-first](https://img.shields.io/badge/local--first-ffmpeg%20%2B%20Demucs%20local-brightgreen.svg)](#la-promesse)
 
 `Audio Helper` fait partie d'une collection de bibliothèques appelée `AI Helpers`, développée pour bâtir des applications d'intelligence artificielle.
 
 [🌍 AI Helpers](https://harchaoui.org/warith/ai-helpers)
 
-[![logo](assets/logo.png)](https://harchaoui.org/warith/ai-helpers)
+[![logo](https://raw.githubusercontent.com/warith-harchaoui/audio-helper/main/assets/logo.png)](https://harchaoui.org/warith/ai-helpers)
 
 Audio Helper est une bibliothèque Python qui fournit des fonctions utilitaires pour le traitement de fichiers audio. Elle inclut le chargement audio, la conversion de formats, la séparation de sources, et le découpage / la concaténation de fichiers audio.
 
@@ -60,9 +60,9 @@ accessible via :
   chaque étape intermédiaire (formes d'onde WaveSurfer), court-circuitez
   n'importe quelle étape pour un A/B instantané, utilisez le comparateur
   avant/après (bascule à la barre d'espace), et exportez le pipeline en un
-  `recipe.yaml` versionnable. Voir [GUI.md](GUI.md).
+  `recipe.yaml` versionnable. Voir [GUI.md](https://github.com/warith-harchaoui/audio-helper/blob/main/GUI.md).
 
-Pour le catalogue exhaustif, voir [TRIGGERS.md](TRIGGERS.md).
+Pour le catalogue exhaustif, voir [TRIGGERS.md](https://github.com/warith-harchaoui/audio-helper/blob/main/TRIGGERS.md).
 
 ## Installation
 
@@ -106,7 +106,7 @@ Si vous appelez `separate_sources` sans l'extra `[demucs]`, la fonction lève un
 
 ## Utilisation
 
-Pour le catalogue complet d'exemples, voir [📋 EXAMPLES.md](EXAMPLES.md).
+Pour le catalogue complet d'exemples, voir [📋 EXAMPLES.md](https://github.com/warith-harchaoui/audio-helper/blob/main/EXAMPLES.md).
 
 Exemple : charger, convertir et découper un fichier audio.
 
@@ -199,7 +199,7 @@ Une GUI minimale (« banc d'écoute ») est déjà disponible : elle est servie
 par l'application FastAPI sur `GET /gui` (ouvrez `http://localhost:8000/gui`
 après avoir lancé le serveur). La GUI ambitieuse à venir (éditeur de recettes
 en canvas, comparateur « ear-first », vue MFCC-cluster batch) est décrite comme
-feuille de route dans [GUI.md](GUI.md).
+feuille de route dans [GUI.md](https://github.com/warith-harchaoui/audio-helper/blob/main/GUI.md).
 
 ## Auteur
 
@@ -211,4 +211,4 @@ Remerciements chaleureux à [Mohamed Chelali](https://mchelali.github.io) et [Ba
 
 ## Licence
 
-Ce projet est distribué sous licence BSD-3-Clause — voir le fichier [LICENSE](LICENSE) pour les détails.
+Ce projet est distribué sous licence BSD-3-Clause — voir le fichier [LICENSE](https://github.com/warith-harchaoui/audio-helper/blob/main/LICENSE) pour les détails.

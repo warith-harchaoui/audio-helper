@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-08-02
+
+### Changed
+
+- Adopt the os-helper 2.0.0 foundation: pin `os-helper>=2.0.0,<3`. Logging and
+  file management continue to route through os-helper (`osh.info` / `osh.warning`
+  / `osh.error`), now on the suite's stable 2.x contract. Major bump because the
+  shared foundation crossed a major boundary.
+- README and LISEZMOI now use absolute github.com / raw.githubusercontent URLs so
+  images and links render on the PyPI project page (relative paths 404 there).
+- CI trimmed to a super-light single-Python gate (ruff + pytest both blocking);
+  the full multi-version sweep runs locally before push.
+
 ## [1.6.1] - 2026-08-01
 
 ### Removed
