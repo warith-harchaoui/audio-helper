@@ -13,18 +13,19 @@ is not penalised — the score just reflects fit to *this* niche.
 ## At a glance
 
 <!-- TABLE:START -->
-| Audio Wrangling | Multi-format I/O | Format conversion | Split / concat / silence | MFCC / spectral features | Source separation | Light install | AI-pipeline ergonomics |
-| --- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **audio-helper** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
-| librosa | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ |
-| torchaudio | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐ | ⭐⭐⭐ |
-| pydub | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐ | ⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
-| soundfile | ⭐⭐ | ⭐ | ⭐ | ⭐ | ⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
-| pyAudioAnalysis | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐ | ⭐⭐⭐ | ⭐⭐ |
-| essentia | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐ | ⭐⭐ |
-| madmom | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐ | ⭐⭐⭐ | ⭐⭐ |
-| Demucs | ⭐⭐⭐ | ⭐⭐ | ⭐ | ⭐ | ⭐⭐⭐⭐⭐ | ⭐ | ⭐⭐ |
-| Spleeter | ⭐⭐⭐ | ⭐⭐ | ⭐ | ⭐ | ⭐⭐⭐⭐ | ⭐ | ⭐⭐ |
+| Audio Wrangling | Multi-format I/O | Format conversion | Split / concat / silence | Spectral / MFCC features | Source separation | Correct resampling | Light install | AI-pipeline ergonomics |
+| --- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **audio-helper** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| pydub | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐ | ⭐ | ⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
+| librosa | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ |
+| soundfile | ⭐⭐ | ⭐⭐ | ⭐ | ⭐ | ⭐ | ⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
+| torchaudio | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐ | ⭐⭐⭐ |
+| ffmpeg-python | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐ | ⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐ |
+| sox / pysox | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐ | ⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐ |
+| audioread | ⭐⭐⭐ | ⭐ | ⭐ | ⭐ | ⭐ | ⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐ |
+| scipy.io.wavfile | ⭐ | ⭐ | ⭐ | ⭐ | ⭐ | ⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐ |
+| Demucs | ⭐⭐⭐ | ⭐⭐ | ⭐ | ⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐ | ⭐⭐ |
+| Spleeter | ⭐⭐⭐ | ⭐⭐ | ⭐ | ⭐ | ⭐⭐⭐⭐ | ⭐⭐ | ⭐ | ⭐⭐ |
 <!-- TABLE:END -->
 
 ## Positioning map
@@ -34,7 +35,7 @@ is not penalised — the score just reflects fit to *this* niche.
 
 ![Positioning map](https://raw.githubusercontent.com/warith-harchaoui/audio-helper/main/assets/landscape.png)
 
-The map is a 2-D summary of the seven criteria, so read it as a shape, not a scoreboard. `audio-helper` is at the top-right corner. The axes read **Horizontal — Clean Output ↔ User-Friendly** and **Vertical — Efficient Setup ↔ Format**.
+The map is a 2-D summary of the eight criteria, so read it as a shape, not a scoreboard. `audio-helper` is at the top-right corner. The axes read **Horizontal — Compact ↔ Versatile** and **Vertical — Efficient ↔ User-friendly**.
 <!-- FIGURE:END -->
 
 ## Positioning
@@ -43,22 +44,27 @@ The map is a 2-D summary of the seven criteria, so read it as a shape, not a sco
 (one-line load / convert / split / concat / silence) and **AI-pipeline
 needs** (source separation on demand, MFCC similarity for A/B
 comparisons). It intentionally does *not* try to compete with `librosa`
-or `essentia` on the analysis side, and it keeps `torch` **optional** —
+on the analysis side, and it keeps `torch` **optional** —
 you only pay the ~2 GB torch/torchaudio cost if you actually call
 `separate_sources` (Demucs ships behind the `[demucs]` extra). That
 trade-off is the main differentiator against `torchaudio` (torch is
-mandatory) and against `librosa` (no source separation).
+mandatory) and against `librosa` (analysis-first, thin on format
+conversion and everyday I/O).
 
 The nuance behind each rating is worth spelling out. `audio-helper`'s
 multi-format I/O leans on an ffmpeg fallback, so it reads and writes
 essentially anything ffmpeg understands, where `soundfile` covers only
-WAV / FLAC / OGG and `librosa`'s write path is limited. On features,
-`librosa`, `essentia`, `pyAudioAnalysis` and `madmom` are MIR-grade and
-earn five stars — `audio-helper` exposes MFCC similarity for A/B
-comparison, not a full analysis suite, hence its middle rating. On
-separation, `Demucs` is state-of-the-art and `audio-helper` wraps it
-directly; `torchaudio` reaches similar quality through its HDEMUCS
-pipeline, while `Spleeter` is TensorFlow-based and unmaintained.
+WAV / FLAC / OGG, `audioread` is read-only, and `scipy.io.wavfile`
+handles WAV alone. On features, `librosa` is the MIR-grade reference and
+earns five stars — `audio-helper` exposes MFCC similarity for A/B
+comparison, not a full analysis suite, hence its middle rating. Correct
+resampling is a quiet but real strength: `audio-helper`, `pydub`,
+`soundfile`, `ffmpeg-python` and `audioread` resample cleanly, whereas
+`torchaudio` and the separation models (`Demucs`, `Spleeter`) leave that
+responsibility to you. On separation, `Demucs` is state-of-the-art and
+`audio-helper` wraps it directly; `torchaudio` reaches similar quality
+through its HDEMUCS pipeline, while `Spleeter` is TensorFlow-based and
+unmaintained.
 
 ## When to pick what
 
@@ -71,9 +77,11 @@ pipeline, while `Spleeter` is TensorFlow-based and unmaintained.
   between audio I/O and your model.
 - **`pydub`** — quick scripting, DJ-style cut/paste, no MFCC or
   separation needed.
+- **`soundfile`** — plain, fast WAV / FLAC / OGG read/write when you
+  need neither conversion nor analysis.
+- **`ffmpeg-python` / `sox` / `pysox`** — heavy format conversion and
+  transcoding, driving the ffmpeg or SoX CLI yourself.
 - **`Demucs` / `Spleeter`** — production source separation with your own
   wrapper around the underlying model.
-- **`essentia` / `madmom` / `pyAudioAnalysis`** — music-information
-  retrieval, beat/downbeat/tempo estimation.
 </content>
 </invoke>
