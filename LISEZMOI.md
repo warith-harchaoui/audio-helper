@@ -92,14 +92,14 @@ pip install "audio-helper[api]"       # surface HTTP FastAPI
 
 ```bash
 # Utilitaires audio de base
-pip install "git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.1"
+pip install audio-helper
 
 # Ajout de la séparation de sources Demucs (tire torch + torchaudio, ~2 Go)
-pip install "audio-helper[demucs] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.1"
+pip install "audio-helper[demucs]"
 
 # Surfaces optionnelles
-pip install "audio-helper[cli] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.1"
-pip install "audio-helper[api] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.1"
+pip install "audio-helper[cli]"
+pip install "audio-helper[api]"
 ```
 
 Si vous appelez `separate_sources` sans l'extra `[demucs]`, la fonction lève une `ImportError` qui vous redirige ici.
@@ -175,13 +175,13 @@ audio-helper resemblance --a a.mp3 --b b.mp3
 # CLI click jumelle (extra [cli])
 pip install "audio-helper[cli]"
 # ou depuis les sources :
-pip install "audio-helper[cli] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.1"
+pip install "audio-helper[cli]"
 audio-helper-click convert --input in.mp3 --output out.wav --freq 44100
 
 # Surface HTTP FastAPI (extra [api])
 pip install "audio-helper[api]"
 # ou depuis les sources :
-pip install "audio-helper[api] @ git+https://github.com/warith-harchaoui/audio-helper.git@v1.6.1"
+pip install "audio-helper[api]"
 uvicorn audio_helper.api:app --port 8000
 # → docs OpenAPI sur http://localhost:8000/docs
 ```
