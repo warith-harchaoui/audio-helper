@@ -47,7 +47,7 @@ l'**ergonomie à la pydub** (chargement / conversion / découpage /
 concaténation / silence en une ligne) et des **besoins des pipelines
 d'IA** (séparation de sources à la demande, similarité MFCC pour les
 comparaisons A/B). Il ne cherche délibérément *pas* à concurrencer
-`librosa` sur le versant analyse, et il garde `torch`
+`librosa` sur le versant analyse et il garde `torch`
 **optionnel** — on ne paie le coût de ~2 Go de torch/torchaudio que si
 l'on appelle réellement `separate_sources` (Demucs est livré derrière
 l'extra `[demucs]`). Ce compromis est le principal facteur de

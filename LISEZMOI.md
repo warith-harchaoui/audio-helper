@@ -10,7 +10,7 @@
 
 [![logo](https://raw.githubusercontent.com/warith-harchaoui/audio-helper/main/assets/logo.png)](https://harchaoui.org/warith/ai-helpers)
 
-Audio Helper est une bibliothèque Python qui fournit des fonctions utilitaires pour le traitement de fichiers audio. Elle inclut le chargement audio, la conversion de formats, la séparation de sources, et le découpage / la concaténation de fichiers audio.
+Audio Helper est une bibliothèque Python qui fournit des fonctions utilitaires pour le traitement de fichiers audio. Elle inclut le chargement audio, la conversion de formats, la séparation de sources et le découpage / la concaténation de fichiers audio.
 
 ## La promesse
 
@@ -59,7 +59,7 @@ accessible via :
   sur `GET /gui` — enchaînez les huit verbes en un pipeline séquentiel, écoutez
   chaque étape intermédiaire (formes d'onde WaveSurfer), court-circuitez
   n'importe quelle étape pour un A/B instantané, utilisez le comparateur
-  avant/après (bascule à la barre d'espace), et exportez le pipeline en un
+  avant/après (bascule à la barre d'espace) et exportez le pipeline en un
   `recipe.yaml` versionnable. Voir [GUI.md](https://github.com/warith-harchaoui/audio-helper/blob/main/GUI.md).
 
 Pour le catalogue exhaustif, voir [TRIGGERS.md](https://github.com/warith-harchaoui/audio-helper/blob/main/TRIGGERS.md).
@@ -148,7 +148,7 @@ audio_path = "input_audio.m4a"
 sources = ah.separate_sources(
     audio_path,
     output_folder="audio_tests",
-    device = "cpu", # ou "cuda" si GPU disponible, ou rien pour laisser décider
+    device = "cpu", # ou "cuda" si GPU disponible ou rien pour laisser décider
     nb_workers = 4, # ignoré si pas en mode cpu
     output_format = "mp3",
 )
