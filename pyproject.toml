@@ -46,8 +46,20 @@ api = [
     "uvicorn>=0.30,<1",
     "python-multipart>=0.0.9,<1",
 ]
+# MCP surface (audio_helper.mcp) — exposes the SAME FastAPI app from `[api]`
+# as MCP tools via fastapi-mcp; needs the api extra's runtime deps too.
+mcp = [
+    "audio-helper[api]",
+    "fastapi-mcp>=0.3,<1",
+    # Cap the MCP SDK below 2.0: fastapi-mcp 0.4.0 declares only `mcp>=1.12`
+    # (no upper bound), but mcp 2.0.0 changed the low-level `Server.__init__`
+    # signature and breaks fastapi-mcp at import. Pin to the 1.x line until
+    # fastapi-mcp ships a 2.x-compatible release (same issue hit md2star).
+    "mcp>=1.12,<2",
+]
 # `dev` keeps the bar low for CI — pytest + httpx (for FastAPI TestClient)
-# + click (so the click CLI import always resolves in tests). To run the
+# + click (so the click CLI import always resolves in tests) + fastapi-mcp
+# (so the MCP surface is actually exercised on every push). To run the
 # integration suite (which exercises Demucs), install with
 # `pip install -e .[dev,demucs]`.
 dev = [
@@ -56,6 +68,8 @@ dev = [
     "click>=8.1,<9",
     "fastapi>=0.111,<1",
     "python-multipart>=0.0.9,<1",
+    "fastapi-mcp>=0.3,<1",
+    "mcp>=1.12,<2",
 ]
 
 [project.scripts]
@@ -63,6 +77,8 @@ dev = [
 audio-helper = "audio_helper.cli_argparse:main"
 # click-based twin — install with [cli] extra.
 audio-helper-click = "audio_helper.cli_click:cli"
+# MCP server — install with [mcp] extra.
+audio-helper-mcp = "audio_helper.mcp:main"
 
 [project.urls]
 Homepage = "https://github.com/warith-harchaoui/audio-helper"

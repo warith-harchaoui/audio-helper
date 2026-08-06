@@ -48,12 +48,14 @@ Audio Helper is **local-first** by design. Three honest cases:
 - Similarity: MFCC-based `sound_resemblance` score for A/B comparison.
 - Feature Extraction: scipy-based Mel / MFCC primitives.
 
-**Four surfaces, one toolkit** — every operation above is reachable as:
+**Five surfaces, one toolkit** — every operation above is reachable as:
 
 - **Library**: `import audio_helper as ah`.
 - **CLI ×2**: `audio-helper` (argparse, always installed) and
   `audio-helper-click` (click twin, `[cli]` extra) with identical flags.
 - **HTTP API**: FastAPI app (`[api]` extra), OpenAPI docs at `/docs`.
+- **MCP**: the same FastAPI app exposed as MCP tools (`audio-helper-mcp`,
+  `[mcp]` extra) for any MCP-aware agent host.
 - **GUI**: a build-step-free browser **Recipe Canvas** served at `GET /gui` —
   chain the eight verbs into a sequential pipeline, hear every intermediate step
   (WaveSurfer waveforms), bypass any step for instant A/B, use the ear-first
@@ -184,6 +186,11 @@ pip install "audio-helper[api]"
 pip install "audio-helper[api]"
 uvicorn audio_helper.api:app --port 8000
 # → OpenAPI docs at http://localhost:8000/docs
+
+# MCP tools for any MCP-aware agent host (needs the [mcp] extra)
+pip install "audio-helper[mcp]"
+audio-helper-mcp
+# → same app + an /mcp endpoint (fastapi-mcp)
 ```
 
 Docker image (light, without Demucs by default):

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **MCP surface** (`audio_helper.mcp`, `[mcp]` extra, entry point
+  `audio-helper-mcp`): exposes the existing FastAPI app as MCP tools via
+  `fastapi-mcp`, mirroring the pattern already shipped in `standpoint` /
+  `vocal-helper` / `md2star` / `os-helper`. Closes the CLI/API/MCP surface
+  gap for audio-helper flagged in `ai-helpers/.private/do.md` §7.
+
 ## [2.0.1] - 2026-08-02
 
 Documentation-only follow-up. The install commands now point at PyPI

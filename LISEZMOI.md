@@ -48,13 +48,15 @@ Audio Helper est **local-first** par conception. Trois cas, en toute honnêteté
 - Similarité : score `sound_resemblance` basé sur les MFCC pour comparaison A/B.
 - Extraction de caractéristiques : primitives Mel / MFCC basées sur scipy.
 
-**Quatre surfaces, une boîte à outils** — chaque opération ci-dessus est
+**Cinq surfaces, une boîte à outils** — chaque opération ci-dessus est
 accessible via :
 
 - **Bibliothèque** : `import audio_helper as ah`.
 - **CLI ×2** : `audio-helper` (argparse, toujours installée) et
   `audio-helper-click` (jumelle click, extra `[cli]`), aux options identiques.
 - **API HTTP** : application FastAPI (extra `[api]`), docs OpenAPI sur `/docs`.
+- **MCP** : la même application FastAPI exposée comme outils MCP
+  (`audio-helper-mcp`, extra `[mcp]`) pour tout hôte agentique compatible.
 - **GUI** : un **Recipe Canvas** dans le navigateur, sans étape de build, servi
   sur `GET /gui` — enchaînez les huit verbes en un pipeline séquentiel, écoutez
   chaque étape intermédiaire (formes d'onde WaveSurfer), court-circuitez
@@ -160,7 +162,7 @@ print(sources)
 ## Exposition multi-surface
 
 `audio-helper` n'est pas qu'une bibliothèque — les mêmes fonctions sont
-exposées en CLI et en API HTTP FastAPI :
+exposées en CLI, en API HTTP FastAPI et en outils MCP :
 
 ```bash
 # Bibliothèque Python (par défaut)
@@ -184,6 +186,11 @@ pip install "audio-helper[api]"
 pip install "audio-helper[api]"
 uvicorn audio_helper.api:app --port 8000
 # → docs OpenAPI sur http://localhost:8000/docs
+
+# Outils MCP pour tout hôte agentique compatible (extra [mcp])
+pip install "audio-helper[mcp]"
+audio-helper-mcp
+# → même app + un endpoint /mcp (fastapi-mcp)
 ```
 
 Image Docker (légère, sans Demucs par défaut) :
