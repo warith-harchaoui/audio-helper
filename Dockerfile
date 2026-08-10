@@ -36,15 +36,19 @@ RUN useradd --create-home --shell /bin/bash app
 WORKDIR /app
 
 # --- deps -------------------------------------------------------------------
-# Copy the package first so pip picks up pyproject.toml before we invalidate
-# the layer with source changes.
+# requirements.txt first (core deps only) so this layer caches independently
+# of source changes; the package itself (with its extras) is installed once
+# the source is in place, right below.
+COPY --chown=app:app requirements.txt ./
+RUN pip install --no-cache-dir --upgrade pip \
+ && pip install --no-cache-dir -r requirements.txt
+
 COPY --chown=app:app pyproject.toml README.md LICENSE ./
 COPY --chown=app:app audio_helper ./audio_helper
 
 # Build-arg switch: install demucs extra if requested. Default = light image.
 ARG WITH_DEMUCS=0
-RUN pip install --no-cache-dir --upgrade pip \
- && if [ "$WITH_DEMUCS" = "1" ] ; then \
+RUN if [ "$WITH_DEMUCS" = "1" ] ; then \
         pip install --no-cache-dir '.[api,demucs]' ; \
     else \
         pip install --no-cache-dir '.[api]' ; \
