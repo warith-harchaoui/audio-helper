@@ -34,7 +34,7 @@ Audio Helper est **local-first** par conception. Trois cas, en toute honnêteté
 
 [🗺️ Paysage](https://github.com/warith-harchaoui/audio-helper/blob/main/PAYSAGE.md)
 
-[📋 Exemples](https://github.com/warith-harchaoui/audio-helper/blob/main/EXAMPLES.md)
+[📋 Exemples](https://github.com/warith-harchaoui/audio-helper/blob/main/EXEMPLES.md)
 
 ## Fonctionnalités
 
@@ -108,7 +108,7 @@ Si vous appelez `separate_sources` sans l'extra `[demucs]`, la fonction lève un
 
 ## Utilisation
 
-Pour le catalogue complet d'exemples, voir [📋 EXAMPLES.md](https://github.com/warith-harchaoui/audio-helper/blob/main/EXAMPLES.md).
+Pour le catalogue complet d'exemples, voir [📋 EXEMPLES.md](https://github.com/warith-harchaoui/audio-helper/blob/main/EXEMPLES.md).
 
 Exemple : charger, convertir et découper un fichier audio.
 
