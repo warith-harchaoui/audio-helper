@@ -93,15 +93,16 @@ pip install "audio-helper[api]"       # FastAPI HTTP surface
 ### From source (no PyPI)
 
 ```bash
-# Core audio utilities only
-pip install audio-helper
+git clone https://github.com/warith-harchaoui/audio-helper.git
+cd audio-helper
+pip install -e .
 
 # Add source separation (pulls in torch + torchaudio, ~2 GB)
-pip install "audio-helper[demucs]"
+pip install -e ".[demucs]"
 
 # Optional surfaces
-pip install "audio-helper[cli]"
-pip install "audio-helper[api]"
+pip install -e ".[cli]"
+pip install -e ".[api]"
 ```
 
 If you call `separate_sources` without the `[demucs]` extra, the function raises an `ImportError` pointing you back here.
