@@ -21,10 +21,10 @@ Then run the app with any ASGI server::
 
     uvicorn audio_helper.api:app --host 0.0.0.0 --port 8000
 
-A minimal single-page GUI ("audition bench") is served at ``GET /gui``
-(and ``GET /`` redirects there): drop an audio file, pick an operation,
-run it against these same endpoints, then A/B the input vs output in
-``<audio>`` players and download the result.
+A single-page GUI (the "Recipe Canvas") is served at ``GET /gui``
+(and ``GET /`` redirects there): chain operations into a recipe, run it
+against these same endpoints, and hear every intermediate step in
+``<audio>`` players before downloading the result.
 
 Usage Example
 -------------
@@ -187,14 +187,14 @@ def health() -> dict:
 @app.get("/", include_in_schema=False)
 def root() -> RedirectResponse:
     """Redirect the bare root to the GUI so opening the server just works."""
-    # A human hitting http://host:port/ almost always wants the bench, not a
-    # 404. Machines use the documented endpoints directly, so this is safe.
+    # A human hitting http://host:port/ almost always wants the Recipe
+    # Canvas, not a 404. Machines use the documented endpoints directly.
     return RedirectResponse(url="/gui")
 
 
 @app.get("/gui", response_class=HTMLResponse, tags=["meta"])
 def gui() -> HTMLResponse:
-    """Serve the self-contained single-page 'audition bench' GUI.
+    """Serve the self-contained single-page 'Recipe Canvas' GUI.
 
     The page (defined in :mod:`audio_helper.gui`) is a build-step-free
     HTML + Tailwind-CDN + vanilla-JS client that calls the very same
