@@ -5,11 +5,11 @@
 Bibliothèques Python voisines et concurrentes dans l'espace
 « manipulation de fichiers audio », comparées à `audio-helper`. Les
 notes vont de ⭐ (1) à ⭐⭐⭐⭐⭐ (5), évaluées sur la tâche visée par
-`audio-helper` — le traitement audio quotidien des pipelines d'IA
+`audio-helper` : le traitement audio quotidien des pipelines d'IA
 (chargement, conversion, découpage, concaténation, silence, room-tone,
 séparation de sources, similarité MFCC). Une bibliothèque optimisée pour
 un tout autre usage (par ex. l'extraction d'information musicale, le DSP
-temps réel) n'est pas pénalisée — la note reflète seulement l'adéquation
+temps réel) n'est pas pénalisée : la note reflète seulement l'adéquation
 à *ce* créneau.
 
 ## En un coup d'œil
@@ -37,7 +37,7 @@ Représentation 2D du tableau ci-dessus.
 
 ![Carte de positionnement](https://raw.githubusercontent.com/warith-harchaoui/audio-helper/main/assets/paysage.png)
 
-La carte est un résumé en 2D des 8 critères : à lire comme une forme, pas comme un classement. « audio-helper » se situe dans le coin en haut à droite. Les axes se lisent **Horizontal — Agilité ↔ Maîtrise** et **Vertical — Adaptabilité ↔ Efficience**.
+La carte est un résumé en 2D des 8 critères : à lire comme une forme, pas comme un classement. « audio-helper » se situe dans le coin en haut à droite. Les axes se lisent **Horizontal : Agilité ↔ Maîtrise** et **Vertical : Adaptabilité ↔ Efficience**.
 <!-- FIGURE:END -->
 
 ## Positionnement
@@ -48,7 +48,7 @@ concaténation / silence en une ligne) et des **besoins des pipelines
 d'IA** (séparation de sources à la demande, similarité MFCC pour les
 comparaisons A/B). Il ne cherche délibérément *pas* à concurrencer
 `librosa` sur le versant analyse et il garde `torch`
-**optionnel** — on ne paie le coût de ~2 Go de torch/torchaudio que si
+**optionnel** : on ne paie le coût de ~2 Go de torch/torchaudio que si
 l'on appelle réellement `separate_sources` (Demucs est livré derrière
 l'extra `[demucs]`). Ce compromis est le principal facteur de
 différenciation face à `torchaudio` (torch obligatoire) et face à
@@ -61,7 +61,7 @@ qu'elle lit et écrit à peu près tout ce que ffmpeg comprend, là où
 `soundfile` ne couvre que WAV / FLAC / OGG, où `audioread` est en lecture
 seule et où `scipy.io.wavfile` ne gère que le WAV. Côté caractéristiques,
 `librosa` est la référence de niveau MIR et mérite cinq
-étoiles — `audio-helper` expose la similarité MFCC pour la comparaison
+étoiles : `audio-helper` expose la similarité MFCC pour la comparaison
 A/B, pas une suite d'analyse complète, d'où sa note médiane. Le
 rééchantillonnage correct est une force discrète mais réelle :
 `audio-helper`, `pydub`, `soundfile`, `ffmpeg-python` et `audioread`
@@ -74,21 +74,20 @@ n'est plus maintenu.
 
 ## Quand choisir quoi
 
-- **`audio-helper`** — préparation audio pour pipelines d'IA :
+- **`audio-helper`** : préparation audio pour pipelines d'IA :
   conversions par lots, découpage pour inférence par fenêtres, silence
   et room-tone pour la post-production, similarité par MFCC, Demucs à la
   demande.
-- **`librosa`** — travail à forte composante analyse (détection
+- **`librosa`** : travail à forte composante analyse (détection
   d'onsets, suivi de tempo, chroma) qui n'a pas besoin de conversion de
   format arbitraire.
-- **`torchaudio`** — quand on est déjà tensor-natif et qu'on veut du
+- **`torchaudio`** : quand on est déjà tensor-natif et qu'on veut du
   zéro-copie entre l'E/S audio et son modèle.
-- **`pydub`** — script rapide, montage à la volée, sans MFCC ni
+- **`pydub`** : script rapide, montage à la volée, sans MFCC ni
   séparation.
-- **`soundfile`** — lecture/écriture WAV / FLAC / OGG simple et rapide
+- **`soundfile`** : lecture/écriture WAV / FLAC / OGG simple et rapide
   quand on n'a besoin ni de conversion ni d'analyse.
-- **`ffmpeg-python` / `sox` / `pysox`** — conversion de format et
+- **`ffmpeg-python` / `sox` / `pysox`** : conversion de format et
   transcodage lourds, en pilotant soi-même la CLI ffmpeg ou SoX.
-- **`Demucs` / `Spleeter`** — séparation de sources en production avec
+- **`Demucs` / `Spleeter`** : séparation de sources en production avec
   son propre wrapper autour du modèle sous-jacent.
-</content>

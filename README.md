@@ -16,8 +16,8 @@ Audio Helper is a Python library that provides utility functions for processing 
 
 Audio Helper is **local-first** by design. Three honest cases:
 
-1. **Guaranteed local.** Every operation — including the browser GUI at
-   `GET /gui` — runs on your machine via **ffmpeg** and **local Demucs**.
+1. **Guaranteed local.** Every operation, including the browser GUI at
+   `GET /gui`, runs on your machine via **ffmpeg** and **local Demucs**.
    Your audio is **never uploaded** to any third party. There is **no
    telemetry, no account, no SaaS** dependency.
 2. **The one caveat: model weights.** Source separation downloads the
@@ -25,7 +25,7 @@ Audio Helper is **local-first** by design. Three honest cases:
    PyTorch cache fetch). After that it is fully offline. Nothing else needs the
    network.
 3. **Your decision.** Nothing here forces the cloud. If you ever want to run
-   behind a proxy or in a container, the FastAPI surface makes that easy — but
+   behind a proxy or in a container, the FastAPI surface makes that easy, but
    that is a choice you make, not a default we impose.
 
 ## Documentation
@@ -48,7 +48,7 @@ Audio Helper is **local-first** by design. Three honest cases:
 - Similarity: MFCC-based `sound_resemblance` score for A/B comparison.
 - Feature Extraction: scipy-based Mel / MFCC primitives.
 
-**Five surfaces, one toolkit** — every operation above is reachable as:
+**Five surfaces, one toolkit.** Every operation above is reachable as:
 
 - **Library**: `import audio_helper as ah`.
 - **CLI ×2**: `audio-helper` (argparse, always installed) and
@@ -56,8 +56,8 @@ Audio Helper is **local-first** by design. Three honest cases:
 - **HTTP API**: FastAPI app (`[api]` extra), OpenAPI docs at `/docs`.
 - **MCP**: the same FastAPI app exposed as MCP tools (`audio-helper-mcp`,
   `[mcp]` extra) for any MCP-aware agent host.
-- **GUI**: a build-step-free browser **Recipe Canvas** served at `GET /gui` —
-  chain the eight verbs into a sequential pipeline, hear every intermediate step
+- **GUI**: a build-step-free browser **Recipe Canvas** served at `GET /gui`.
+  Chain the eight verbs into a sequential pipeline, hear every intermediate step
   (WaveSurfer waveforms), bypass any step for instant A/B, use the ear-first
   before/after comparator (Space bar toggles), and export the pipeline as a
   committable `recipe.yaml`.
@@ -68,7 +68,7 @@ For the exhaustive trigger catalogue, see
 
 ## Installation
 
-**Prerequisites** — **Python 3.10–3.13** and **git**, **ffmpeg**, cross-platform:
+**Prerequisites**: **Python 3.10–3.13**, **git**, **ffmpeg**, cross-platform:
 
 - 🍎 **macOS** ([Homebrew](https://brew.sh)): `brew install python git ffmpeg`
 - 🐧 **Ubuntu/Debian**: `sudo apt update && sudo apt install -y python3 python3-pip git ffmpeg`
@@ -161,7 +161,7 @@ print(sources)
 
 ## Multi-surface exposure
 
-`audio-helper` is not just a library — the same functions are exposed
+`audio-helper` is not just a library: the same functions are exposed
 as a CLI and a FastAPI HTTP surface:
 
 ```bash
@@ -202,11 +202,13 @@ docker run --rm -p 8000:8000 audio-helper
 docker build --build-arg WITH_DEMUCS=1 -t audio-helper:demucs .
 ```
 
-A minimal browser GUI ("audition bench") ships now — it is served by the
-FastAPI app at `GET /gui` (open `http://localhost:8000/gui` after starting
-the server). The ambitious future GUI (canvas-based recipe editor, ear-first
-comparator, MFCC-cluster batch view) is documented as a roadmap in
-[GUI.md](https://github.com/warith-harchaoui/audio-helper/blob/main/GUI.md).
+The **Recipe Canvas** GUI ships today: it is served by the FastAPI app at
+`GET /gui` (open `http://localhost:8000/gui` after starting the server), and
+already covers the sequential pipeline builder, the ear-first before/after
+comparator, and `recipe.yaml` export/import. Batch triage across many files
+(a drop-zone contact sheet, an MFCC-cluster view) is the part still on the
+roadmap. See [GUI.md](https://github.com/warith-harchaoui/audio-helper/blob/main/GUI.md)
+for the full split between what ships and what is planned.
 
 ## Author
 
@@ -218,4 +220,4 @@ Special thanks to [Mohamed Chelali](https://mchelali.github.io) and [Bachir Zerr
 
 ## License
 
-This project is licensed under the BSD-3-Clause License — see the [LICENSE](https://github.com/warith-harchaoui/audio-helper/blob/main/LICENSE) file for details.
+This project is licensed under the BSD-3-Clause License: see the [LICENSE](https://github.com/warith-harchaoui/audio-helper/blob/main/LICENSE) file for details.

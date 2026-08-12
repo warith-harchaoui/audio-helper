@@ -1,4 +1,4 @@
-# TRIGGERS — audio-helper
+# TRIGGERS: audio-helper
 
 This is the user-facing, exhaustive catalogue of what `audio-helper` can do and
 the natural-language phrasings, commands, functions, and file types that should
@@ -46,7 +46,7 @@ same flags) and the browser GUI at `GET /gui`.
 ## File types it accepts
 
 - **Audio**: `.mp3 .wav .m4a .m4b .flac .ogg .oga .opus .aac .wma .aiff .aif .au`
-  (and more — full list in `audio_helper.main.audio_extensions`).
+  (and more; full list in `audio_helper.main.audio_extensions`).
 - **Video** (audio track decoded via ffmpeg): `.mp4 .mkv .mov .webm .avi .mpeg
   .mpg .m4v .3gp .ts …`.
 
@@ -62,6 +62,6 @@ same flags) and the browser GUI at `GET /gui`.
 
 ## See also
 
-- [`README.md`](README.md) — features, install, quick start.
-- [`EXAMPLES.md`](EXAMPLES.md) — runnable recipes.
-- [`GUI.md`](GUI.md) — the shipped minimal GUI + the roadmap for a richer one.
+- [`README.md`](README.md): features, install, quick start.
+- [`EXAMPLES.md`](EXAMPLES.md): runnable recipes.
+- [`GUI.md`](GUI.md): the shipped Recipe Canvas, plus the roadmap for batch triage.

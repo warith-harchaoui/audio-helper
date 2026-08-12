@@ -4,11 +4,11 @@
 
 Related and competing Python libraries in the "manipulate audio files"
 space, benchmarked against `audio-helper`. Ratings are ⭐ (1) to
-⭐⭐⭐⭐⭐ (5), scored on `audio-helper`'s intended job — everyday audio
+⭐⭐⭐⭐⭐ (5), scored on `audio-helper`'s intended job: everyday audio
 handling for AI pipelines (load, convert, split, concat, silence,
 room-tone, source separation, MFCC similarity). A library optimised for
 a very different job (e.g. music-information retrieval, real-time DSP)
-is not penalised — the score just reflects fit to *this* niche.
+is not penalised; the score just reflects fit to *this* niche.
 
 ## At a glance
 
@@ -35,7 +35,7 @@ is not penalised — the score just reflects fit to *this* niche.
 
 ![Positioning map](https://raw.githubusercontent.com/warith-harchaoui/audio-helper/main/assets/landscape.png)
 
-The map is a 2-D summary of the eight criteria, so read it as a shape, not a scoreboard. `audio-helper` is at the top-right corner. The axes read **Horizontal — Adaptable ↔ Ingenious** and **Vertical — Resourceful ↔ Flexible**.
+The map is a 2-D summary of the eight criteria, so read it as a shape, not a scoreboard. `audio-helper` is at the top-right corner. The axes read **Horizontal: Adaptable ↔ Ingenious** and **Vertical: Resourceful ↔ Flexible**.
 <!-- FIGURE:END -->
 
 ## Positioning
@@ -44,7 +44,7 @@ The map is a 2-D summary of the eight criteria, so read it as a shape, not a sco
 (one-line load / convert / split / concat / silence) and **AI-pipeline
 needs** (source separation on demand, MFCC similarity for A/B
 comparisons). It intentionally does *not* try to compete with `librosa`
-on the analysis side, and it keeps `torch` **optional** —
+on the analysis side, and it keeps `torch` **optional**:
 you only pay the ~2 GB torch/torchaudio cost if you actually call
 `separate_sources` (Demucs ships behind the `[demucs]` extra). That
 trade-off is the main differentiator against `torchaudio` (torch is
@@ -56,7 +56,7 @@ multi-format I/O leans on an ffmpeg fallback, so it reads and writes
 essentially anything ffmpeg understands, where `soundfile` covers only
 WAV / FLAC / OGG, `audioread` is read-only, and `scipy.io.wavfile`
 handles WAV alone. On features, `librosa` is the MIR-grade reference and
-earns five stars — `audio-helper` exposes MFCC similarity for A/B
+earns five stars; `audio-helper` exposes MFCC similarity for A/B
 comparison, not a full analysis suite, hence its middle rating. Correct
 resampling is a quiet but real strength: `audio-helper`, `pydub`,
 `soundfile`, `ffmpeg-python` and `audioread` resample cleanly, whereas
@@ -68,20 +68,18 @@ unmaintained.
 
 ## When to pick what
 
-- **`audio-helper`** — audio prep for AI pipelines: batch conversions,
+- **`audio-helper`**: audio prep for AI pipelines: batch conversions,
   chunking for windowed inference, silence and room-tone for
   post-production, MFCC-based similarity, Demucs on demand.
-- **`librosa`** — analysis-heavy work (onset detection, beat tracking,
+- **`librosa`**: analysis-heavy work (onset detection, beat tracking,
   chroma) that does not need arbitrary format conversion.
-- **`torchaudio`** — you are already tensor-native and want zero-copy
+- **`torchaudio`**: you are already tensor-native and want zero-copy
   between audio I/O and your model.
-- **`pydub`** — quick scripting, DJ-style cut/paste, no MFCC or
+- **`pydub`**: quick scripting, DJ-style cut/paste, no MFCC or
   separation needed.
-- **`soundfile`** — plain, fast WAV / FLAC / OGG read/write when you
+- **`soundfile`**: plain, fast WAV / FLAC / OGG read/write when you
   need neither conversion nor analysis.
-- **`ffmpeg-python` / `sox` / `pysox`** — heavy format conversion and
+- **`ffmpeg-python` / `sox` / `pysox`**: heavy format conversion and
   transcoding, driving the ffmpeg or SoX CLI yourself.
-- **`Demucs` / `Spleeter`** — production source separation with your own
+- **`Demucs` / `Spleeter`**: production source separation with your own
   wrapper around the underlying model.
-</content>
-</invoke>

@@ -286,6 +286,4 @@ curl -F 'file=@in.mp3' -F 'output_format=wav' -F 'freq=16000' \
 ```
 
 Voir [TRIGGERS.md](TRIGGERS.md) pour le catalogue complet des formulations,
-commandes et types de fichiers reconnus. Voir
-[skills/README.md](skills/README.md) pour installer `audio-helper` comme
-compétence (« skill ») d'agent Claude ou OpenCode.
+commandes et types de fichiers reconnus.

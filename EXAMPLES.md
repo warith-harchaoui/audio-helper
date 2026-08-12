@@ -258,7 +258,7 @@ audio-helper separate --input mix.mp3 --output-dir stems/          # needs [demu
 audio-helper resemblance --a take1.wav --b take2.wav
 ```
 
-**click CLI twin (`[cli]` extra)** — identical flags:
+**click CLI twin (`[cli]` extra)**, identical flags:
 
 ```bash
 pip install "audio-helper[cli]"
@@ -280,5 +280,4 @@ curl -F 'file=@in.mp3' -F 'output_format=wav' -F 'freq=16000' \
 ```
 
 See [TRIGGERS.md](TRIGGERS.md) for the full catalogue of phrasings, commands,
-and file types, and [skills/README.md](skills/README.md) to install `audio-helper`
-as a Claude / OpenCode agent skill.
+and file types.

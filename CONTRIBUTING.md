@@ -68,18 +68,18 @@ Every Python file in this suite follows the same shape (mandate 2026-06-29):
    Comments above blocks, not redundant inline. Cite the trade-off when
    picking an algorithm or backend.
 5. **No bare `print(...)` in `.py` code.** Use `os_helper`'s logging
-   surface — `osh.info(...)` / `osh.warning(...)` / `osh.error(...)` /
-   `osh.debug(...)` — so verbosity is controlled centrally via
+   surface (`osh.info(...)` / `osh.warning(...)` / `osh.error(...)` /
+   `osh.debug(...)`), so verbosity is controlled centrally via
    `osh.verbosity(level)`. **Docs (README, LISEZMOI, EXAMPLES.md, docstring
-   examples) keep `print(...)`** — tutorial code reads naturally that way.
+   examples) keep `print(...)`**: tutorial code reads naturally that way.
 6. **`print(...)` in docs is followed by a `#`-comment showing expected
-   output.** Doctest / REPL style — either trailing inline
+   output.** Doctest / REPL style, either trailing inline
    (`print(x)  # 42`) or on the next line (`# 42`).
 7. **EXAMPLES.md** at the repo root, linked from README + LISEZMOI. Self-
-   contained, runnable cookbook of the helper'''s main use cases.
-8. **`*_config.json.example`** for any helper that loads credentials via
-   `os_helper.get_config`. Real `*config.json` files are `.gitignore`d;
-   the `.example` is committed.
+   contained, runnable cookbook of the helper's main use cases.
+8. **`settings.yaml.example`** for any helper that loads credentials via
+   `os_helper.get_config`. The real `settings.yaml` is `.gitignore`d;
+   the `.example` template is committed.
 9. **Wherever `brew install <pkg>` appears in the docs**, the line is
    accompanied by `(install `brew` thanks to [brew.sh](https://brew.sh/))`
    when not already obvious from context.
@@ -90,16 +90,16 @@ Releases live in [`CHANGELOG.md`](CHANGELOG.md) following the
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Each
 release is tagged `vX.Y.Z` in git and published as a GitHub release.
 
-Cross-helper dependency pins (e.g. `os-helper @ git+...@v1.3.0`) are
-exact-pinned to a specific tag for now. Once helpers are on PyPI we
-will move to version ranges.
+Cross-helper dependencies (e.g. `os-helper>=2.0.0,<3`) are version
+ranges against the PyPI releases, not git tag pins.
 
 ## CI
 
-GitHub Actions runs `pytest` on Python 3.10 / 3.11 / 3.12 / 3.13
-(Linux) plus a non-blocking `ruff` lint job. Integration tests are
-gated by `pytestmark = pytest.mark.integration` and skipped by
-default (`addopts = -m 'not integration'`).
+GitHub Actions runs `pytest` on Python 3.12 (Linux), a deliberately
+light gate; the full local suite runs pre-push. A separate `ruff`
+job blocks merging on both lint and format violations. Integration
+tests are gated by `pytestmark = pytest.mark.integration` and
+skipped by default (`addopts = -m 'not integration'`).
 
 ## Running tests locally
 
@@ -113,7 +113,7 @@ pytest -v -m ""           # everything
 ## Authorship
 
 Sole author: [Warith HARCHAOUI](https://linkedin.com/in/warith-harchaoui).
-External contributions are welcome — please open an issue or PR.
+External contributions are welcome: please open an issue or PR.
 
 Special thanks to [Mohamed Chelali](https://mchelali.github.io) and
 [Bachir Zerroug](https://www.linkedin.com/in/bachirzerroug) for fruitful
@@ -121,4 +121,4 @@ discussions throughout the suite's evolution.
 
 ## License
 
-[BSD-3-Clause](LICENSE) — same as scikit-learn / numpy / scipy.
+[BSD-3-Clause](LICENSE), same as scikit-learn / numpy / scipy.
