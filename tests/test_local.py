@@ -114,6 +114,14 @@ def test_sound_converter_wav_to_wav_resample(tmp_path):
     assert sample_rate == 16000
 
 
+def test_sound_converter_returns_output_path(tmp_path):
+    """sound_converter must return the output path (both CLIs rely on it)."""
+    src = _write_tone(tmp_path / "tone.wav", sample_rate=24000, duration=1.0)
+    dst = tmp_path / "resampled.wav"
+    result = sound_converter(str(src), str(dst), freq=16000, channels=1, overwrite=True)
+    assert result == str(dst)
+
+
 # ---------------------------------------------------------------------------
 # extract_audio_chunk
 # ---------------------------------------------------------------------------

@@ -437,7 +437,7 @@ def sound_converter(
     channels: int = 1,
     encoding: str = "pcm_s16le",
     overwrite: bool = True,
-) -> None:
+) -> str:
     """
     Convert an audio file to the specified format using ffmpeg-python.
 
@@ -1304,6 +1304,9 @@ def split_audio_regularly(
     Notes
     -----
     The function uses ffmpeg to split the audio file into chunks of the specified duration.
+    A trailing remainder shorter than 1 second is dropped rather than saved as its own
+    chunk (not worth a separate file), so the returned chunks may cover slightly less
+    than the full ``sound_path`` duration.
     """
 
     assert is_valid_audio_file(sound_path), f"Invalid audio file: {sound_path}"
