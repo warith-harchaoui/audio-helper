@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-08-13
+
+### Fixed
+
+- `sound_converter`'s return-type annotation said `-> None`; it has always
+  returned the output path (both CLIs rely on it) — annotation corrected to
+  `-> str`.
+- `api.py`'s `/gui` docstring/redirect comment still called the shipped GUI
+  the "audition bench"; it's the "Recipe Canvas".
+
+### Changed
+
+- Documented `split_audio_regularly`'s existing sub-1-second tail-drop
+  behavior (was silent).
+- Added a conda `environment.yaml`; the Dockerfile now installs
+  `requirements.txt` as its own cached layer.
+- `requirements-dev.txt` is now derived from `pyproject.toml`'s `[dev]`
+  extra instead of maintained by hand.
+
 ## [2.1.0] - 2026-08-08
 
 ### Added
