@@ -52,8 +52,10 @@ from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _pkg_version
 from pathlib import Path
 
+import ffmpeg
+
 try:
-    from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, UploadFile
+    from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Request, UploadFile
     from fastapi.responses import (
         FileResponse,
         HTMLResponse,
@@ -116,6 +118,31 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+
+@app.exception_handler(AssertionError)
+async def _assertion_error_handler(request: Request, exc: AssertionError) -> JSONResponse:
+    """Map a library ``AssertionError`` to HTTP 400 instead of a generic 500.
+
+    Every ``main.py`` function validates its inputs with bare ``assert``
+    (invalid/missing audio file, an out-of-range chunk time range, ...) —
+    an ordinary client-input mistake, indistinguishable from an actual
+    server bug if left to fall through to FastAPI's default 500 handler.
+    """
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
+
+
+@app.exception_handler(ValueError)
+async def _value_error_handler(request: Request, exc: ValueError) -> JSONResponse:
+    """Map a library ``ValueError`` (e.g. ``load_audio`` on unreadable input) to 400."""
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
+
+
+@app.exception_handler(ffmpeg.Error)
+async def _ffmpeg_error_handler(request: Request, exc: ffmpeg.Error) -> JSONResponse:
+    """Map an ``ffmpeg.Error`` (bad/corrupt upload ffmpeg itself rejects) to 400."""
+    detail = exc.stderr.decode("utf-8", "replace") if exc.stderr else str(exc)
+    return JSONResponse(status_code=400, content={"detail": f"ffmpeg failed: {detail}"})
 
 
 def _spool(upload: UploadFile, dest_dir: Path, suffix_hint: str | None = None) -> Path:
@@ -233,18 +260,24 @@ def convert(
     # (the library speaks files, not streams), then hand the result back and
     # schedule the temp dir for deletion once the response has been sent.
     tmp = _new_tmpdir()
-    src = _spool(file, tmp)
-    # The output extension drives the container ffmpeg writes, so derive it
-    # from the requested format rather than hard-coding one.
-    dst = tmp / f"converted.{output_format.lstrip('.')}"
-    sound_converter(
-        input_audio=str(src),
-        output_audio=str(dst),
-        freq=freq,
-        channels=channels,
-        encoding=encoding,
-        overwrite=True,
-    )
+    try:
+        src = _spool(file, tmp)
+        # The output extension drives the container ffmpeg writes, so derive
+        # it from the requested format rather than hard-coding one.
+        dst = tmp / f"converted.{output_format.lstrip('.')}"
+        sound_converter(
+            input_audio=str(src),
+            output_audio=str(dst),
+            freq=freq,
+            channels=channels,
+            encoding=encoding,
+            overwrite=True,
+        )
+    except Exception:
+        # A raised exception means no response (and so no background task)
+        # is ever built -- clean up synchronously here or tmp leaks forever.
+        _cleanup(tmp)
+        raise
     # Clean the whole temp dir after the response has been sent.
     background.add_task(_cleanup, tmp)
     return FileResponse(str(dst), filename=dst.name, media_type="application/octet-stream")
@@ -275,15 +308,19 @@ def chunk(
     # Same spool-run-cleanup shape as /convert; the slice bounds come
     # straight from the multipart form fields.
     tmp = _new_tmpdir()
-    src = _spool(file, tmp)
-    dst = tmp / f"chunk.{output_format.lstrip('.')}"
-    extract_audio_chunk(
-        audio_file=str(src),
-        start_time=start,
-        end_time=end,
-        output_audio_filename=str(dst),
-        overwrite=True,
-    )
+    try:
+        src = _spool(file, tmp)
+        dst = tmp / f"chunk.{output_format.lstrip('.')}"
+        extract_audio_chunk(
+            audio_file=str(src),
+            start_time=start,
+            end_time=end,
+            output_audio_filename=str(dst),
+            overwrite=True,
+        )
+    except Exception:
+        _cleanup(tmp)
+        raise
     background.add_task(_cleanup, tmp)
     return FileResponse(str(dst), filename=dst.name, media_type="application/octet-stream")
 
@@ -299,13 +336,17 @@ def silence(
     # No upload to spool here — silence is synthesized — but we still need a
     # temp dir to hold the generated file until the response is streamed.
     tmp = _new_tmpdir()
-    dst = tmp / f"silence.{output_format.lstrip('.')}"
-    generate_silent_audio(
-        duration=duration_seconds,
-        output_audio_filename=str(dst),
-        sample_rate=sample_rate,
-        overwrite=True,
-    )
+    try:
+        dst = tmp / f"silence.{output_format.lstrip('.')}"
+        generate_silent_audio(
+            duration=duration_seconds,
+            output_audio_filename=str(dst),
+            sample_rate=sample_rate,
+            overwrite=True,
+        )
+    except Exception:
+        _cleanup(tmp)
+        raise
     background.add_task(_cleanup, tmp)
     return FileResponse(str(dst), filename=dst.name, media_type="application/octet-stream")
 
@@ -322,10 +363,14 @@ def concat(
     if len(files) < 2:
         raise HTTPException(status_code=400, detail="concat needs at least 2 files")
     tmp = _new_tmpdir()
-    # Spool inputs in order — FastAPI preserves multipart part ordering.
-    srcs = [str(_spool(f, tmp, suffix_hint=Path(f.filename or "").suffix)) for f in files]
-    dst = tmp / f"concat.{output_format.lstrip('.')}"
-    audio_concatenation(audio_files=srcs, output_audio_filename=str(dst), overwrite=True)
+    try:
+        # Spool inputs in order — FastAPI preserves multipart part ordering.
+        srcs = [str(_spool(f, tmp, suffix_hint=Path(f.filename or "").suffix)) for f in files]
+        dst = tmp / f"concat.{output_format.lstrip('.')}"
+        audio_concatenation(audio_files=srcs, output_audio_filename=str(dst), overwrite=True)
+    except Exception:
+        _cleanup(tmp)
+        raise
     background.add_task(_cleanup, tmp)
     return FileResponse(str(dst), filename=dst.name, media_type="application/octet-stream")
 
@@ -343,16 +388,20 @@ def roomtone(
     # Room tone defaults to WAV output because the mix is meant to feed back
     # into an edit; a lossy container would defeat the point of a clean bed.
     tmp = _new_tmpdir()
-    src = _spool(file, tmp)
-    dst = tmp / f"roomtone.{output_format.lstrip('.')}"
-    mix_room_tone(
-        input_audio=str(src),
-        output_audio=str(dst),
-        noise_db=db,
-        color=color,
-        sample_rate=sample_rate,
-        overwrite=True,
-    )
+    try:
+        src = _spool(file, tmp)
+        dst = tmp / f"roomtone.{output_format.lstrip('.')}"
+        mix_room_tone(
+            input_audio=str(src),
+            output_audio=str(dst),
+            noise_db=db,
+            color=color,
+            sample_rate=sample_rate,
+            overwrite=True,
+        )
+    except Exception:
+        _cleanup(tmp)
+        raise
     background.add_task(_cleanup, tmp)
     return FileResponse(str(dst), filename=dst.name, media_type="application/octet-stream")
 
@@ -385,18 +434,22 @@ def split(
     # Chunks land in their own subdir so ``_zip_folder`` bundles only the
     # generated pieces, not the spooled source that sits alongside them.
     tmp = _new_tmpdir()
-    src = _spool(file, tmp)
-    chunks_dir = tmp / "chunks"
-    chunks_dir.mkdir()
-    split_audio_regularly(
-        sound_path=str(src),
-        chunk_folder=str(chunks_dir),
-        split_time=seconds,
-        output_format=output_format,
-        overwrite=True,
-        suffix=suffix,
-    )
-    buf = _zip_folder(chunks_dir)
+    try:
+        src = _spool(file, tmp)
+        chunks_dir = tmp / "chunks"
+        chunks_dir.mkdir()
+        split_audio_regularly(
+            sound_path=str(src),
+            chunk_folder=str(chunks_dir),
+            split_time=seconds,
+            output_format=output_format,
+            overwrite=True,
+            suffix=suffix,
+        )
+        buf = _zip_folder(chunks_dir)
+    except Exception:
+        _cleanup(tmp)
+        raise
     background.add_task(_cleanup, tmp)
     return StreamingResponse(
         buf,
@@ -416,13 +469,15 @@ def separate(
     """Run Demucs source separation; response is a ZIP with the 4 stems."""
     # Isolate the stems in their own subdir (same reasoning as /split).
     tmp = _new_tmpdir()
-    src = _spool(file, tmp)
-    stems_dir = tmp / "stems"
-    stems_dir.mkdir()
     # Demucs lives behind the optional [demucs] extra. If torch is missing
     # the library raises ImportError; translate it into a clean 503 (service
     # unavailable) instead of a 500 so clients can tell it is a config gap.
+    # Any other exception (e.g. AssertionError from an invalid upload) still
+    # needs the same tmp-dir cleanup before propagating to the global handlers.
     try:
+        src = _spool(file, tmp)
+        stems_dir = tmp / "stems"
+        stems_dir.mkdir()
         separate_sources(
             input_audio_file=str(src),
             output_folder=str(stems_dir),
@@ -431,10 +486,13 @@ def separate(
             nb_workers=workers,
             output_format=output_format,
         )
+        buf = _zip_folder(stems_dir)
     except ImportError as exc:
         _cleanup(tmp)
         raise HTTPException(status_code=503, detail=str(exc)) from exc
-    buf = _zip_folder(stems_dir)
+    except Exception:
+        _cleanup(tmp)
+        raise
     background.add_task(_cleanup, tmp)
     return StreamingResponse(
         buf,
