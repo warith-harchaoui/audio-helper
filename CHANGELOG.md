@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Every FastAPI action endpoint (`/convert`, `/chunk`, `/silence`,
+  `/concat`, `/roomtone`, `/split`, `/separate`) leaked its request-scoped
+  temp directory on any failure.** Cleanup was only ever scheduled via
+  `background.add_task` on the success path, which never runs if the
+  underlying library call raises first — a malformed upload, an
+  out-of-range chunk time range, or any other ordinary client-input mistake
+  permanently left its temp directory on disk. Each endpoint now cleans up
+  synchronously on any exception before re-raising.
+- **The HTTP API collapsed every library exception into a generic 500.**
+  `AssertionError` (the library's own input validation), `ValueError`
+  (`load_audio` on unreadable input), and `ffmpeg.Error` (ffmpeg itself
+  rejecting a corrupt/non-audio upload) now map to HTTP 400 with the
+  underlying message, instead of an opaque, undiagnosable 500.
+- **Both CLI twins printed a raw Python traceback on an ordinary library
+  error** instead of a clean one-line message. Both `audio-helper` and
+  `audio-helper-click` now print `Error: ...` to stderr and exit 1;
+  `audio-helper-click`'s console-script entry point now points at a new
+  `cli_click.console_entry()` wrapper (was the bare `cli` group).
+
 ## [2.1.1] - 2026-08-13
 
 ### Fixed
