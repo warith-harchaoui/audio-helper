@@ -134,3 +134,48 @@ def test_click_subcommand_help_exits_zero(sub):
     runner = CliRunner()
     result = runner.invoke(cli, [sub, "--help"])
     assert result.exit_code == 0
+
+
+def test_argparse_main_prints_clean_error_on_library_exception(capsys):
+    """A library exception (missing input file) must print one clean
+    ``Error: ...`` line and return 1, not propagate as a raw traceback.
+
+    ``--input`` takes a plain string (no argparse-level existence check),
+    so a missing path reaches ``osh.checkfile``'s ``AssertionError``
+    without needing ffmpeg at all.
+    """
+    from audio_helper.cli_argparse import main
+
+    code = main(["duration", "--input", "/nonexistent/path/definitely-missing.mp3"])
+    assert code == 1
+    captured = capsys.readouterr()
+    assert captured.out.startswith("Error:") or captured.err.startswith("Error:")
+
+
+@pytest.mark.integration
+def test_click_console_entry_prints_clean_error_on_library_exception(tmp_path, capsys):
+    """Same guarantee as the argparse test above, but for the click twin's
+    ``console_entry()`` wrapper.
+
+    Click's own ``click.Path(exists=True)`` validation means a missing path
+    never reaches the library — so this uses an existing-but-not-audio file
+    to reach ``get_audio_duration``'s ``ffmpeg.probe()`` failure instead,
+    which needs a real ffmpeg on PATH (hence ``integration``).
+    """
+    import sys
+
+    from audio_helper.cli_click import console_entry
+
+    garbage = tmp_path / "not_audio.mp3"
+    garbage.write_text("this is not an audio file")
+
+    old_argv = sys.argv
+    sys.argv = ["audio-helper-click", "duration", "--input", str(garbage)]
+    try:
+        with pytest.raises(SystemExit) as exc:
+            console_entry()
+        assert exc.value.code == 1
+    finally:
+        sys.argv = old_argv
+    captured = capsys.readouterr()
+    assert captured.out.startswith("Error:") or captured.err.startswith("Error:")

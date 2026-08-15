@@ -17,6 +17,10 @@ Warith Harchaoui, Ph.D. — https://linkedin.com/in/warith-harchaoui/
 
 from __future__ import annotations
 
+import glob
+import os
+import tempfile
+
 import pytest
 
 # FastAPI is in the ``[api]`` optional extra — skip cleanly otherwise.
@@ -136,3 +140,39 @@ def test_gui_ships_recipe_canvas_features(client):
         "resemblance",
     ):
         assert f'value="{verb}"' in body
+
+
+@pytest.mark.integration
+def test_library_exception_returns_400_and_cleans_up_tmpdir(client, tmp_path):
+    """An ordinary library ``AssertionError`` (bad chunk time range) must map
+    to HTTP 400 (not a generic 500), and the request-scoped temp dir must not
+    survive the failure.
+
+    Before this fix, every action endpoint's temp dir was only ever
+    scheduled for cleanup on the success path (``background.add_task``,
+    which never runs if the endpoint raises before returning), so a failed
+    request leaked its temp directory on disk permanently -- and the
+    exception itself fell through to FastAPI's generic, undiagnosable 500.
+    """
+    import numpy as np
+    from scipy.io import wavfile
+
+    wav_path = tmp_path / "in.wav"
+    signal = np.zeros(int(24000 * 0.2), dtype=np.float32)  # 0.2s of silence
+    wavfile.write(str(wav_path), 24000, signal)
+
+    before = set(glob.glob(os.path.join(tempfile.gettempdir(), "audio-helper-*")))
+    with wav_path.open("rb") as f:
+        # start=5.0 is past the ~0.2s duration -> extract_audio_chunk's own
+        # `assert start_time < duration` fails with a clear AssertionError.
+        r = client.post(
+            "/chunk",
+            files={"file": ("in.wav", f, "audio/wav")},
+            data={"start": "5.0", "end": "6.0"},
+        )
+    after = set(glob.glob(os.path.join(tempfile.gettempdir(), "audio-helper-*")))
+
+    assert r.status_code == 400
+    assert "start" in r.json()["detail"].lower()
+    # No audio-helper-* temp dir should have survived the failed request.
+    assert after - before == set()
