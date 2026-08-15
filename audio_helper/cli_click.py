@@ -309,5 +309,26 @@ def resemblance(a: str, b: str) -> None:
     click.echo(f"{sound_resemblance(a, b):.6f}")
 
 
+def console_entry() -> None:
+    """Console entry point (``audio-helper-click``).
+
+    Click's own error handling only special-cases ``ClickException``/
+    ``Abort`` (and a broken pipe); a plain library exception (e.g. an
+    ``AssertionError`` from an invalid audio file, or an ``ffmpeg.Error``)
+    would otherwise propagate as a raw Python traceback instead of a clean
+    CLI error. This wraps the whole invocation and translates that last
+    case into a one-line stderr message + exit 1 — click's own control flow
+    (usage errors, ``--help``, an explicit ``sys.exit`` in a subcommand,
+    e.g. ``separate``'s missing-torch guard above) already raises
+    ``SystemExit``, a ``BaseException`` this does not catch, so it passes
+    through untouched.
+    """
+    try:
+        cli()
+    except Exception as err:  # noqa: BLE001 — last resort: see docstring
+        click.echo(f"Error: {err}", err=True)
+        sys.exit(1)
+
+
 if __name__ == "__main__":  # pragma: no cover
-    cli()
+    console_entry()

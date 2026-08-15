@@ -642,8 +642,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     # Every subparser sets ``func`` via ``set_defaults`` — no dispatch table
-    # needed, argparse resolved it for us.
-    return int(args.func(args))
+    # needed, argparse resolved it for us. A library exception (an invalid
+    # audio file, a bad ffmpeg invocation, ...) would otherwise propagate as
+    # a raw Python traceback; print one clean line instead. ``SystemExit``
+    # (argparse's own --help / usage-error handling) is a BaseException, not
+    # caught here, so it passes through untouched.
+    try:
+        return int(args.func(args))
+    except Exception as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":  # pragma: no cover

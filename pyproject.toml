@@ -76,7 +76,7 @@ dev = [
 # argparse-based CLI — no runtime dep beyond stdlib + core package.
 audio-helper = "audio_helper.cli_argparse:main"
 # click-based twin — install with [cli] extra.
-audio-helper-click = "audio_helper.cli_click:cli"
+audio-helper-click = "audio_helper.cli_click:console_entry"
 # MCP server — install with [mcp] extra.
 audio-helper-mcp = "audio_helper.mcp:main"
 
