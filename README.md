@@ -17,9 +17,11 @@ Audio Helper is a Python library that provides utility functions for processing 
 Audio Helper is **local-first** by design. Three honest cases:
 
 1. **Guaranteed local.** Every operation, including the browser GUI at
-   `GET /gui`, runs on your machine via **ffmpeg** and **local Demucs**.
-   Your audio is **never uploaded** to any third party. There is **no
-   telemetry, no account, no SaaS** dependency.
+   `GET /gui`, runs on your machine via **ffmpeg** and **local Demucs**
+   (Meta's AI model for splitting a mixed track into its component sounds:
+   vocals, drums, bass, everything else). Your audio is **never uploaded**
+   to any third party. There is **no telemetry, no account, no SaaS**
+   dependency.
 2. **The one caveat: model weights.** Source separation downloads the
    **Demucs** model weights **once**, on first run (a normal Hugging Face /
    PyTorch cache fetch). After that it is fully offline. Nothing else needs the
@@ -45,7 +47,11 @@ Audio Helper is **local-first** by design. Three honest cases:
 - Concatenation: head-to-tail join into any ffmpeg-supported container.
 - Silent Audio Generation: write silence of a specified duration.
 - Room-Tone Mixing: pink/white/brown ambient noise to mask edits between cuts.
-- Similarity: MFCC-based `sound_resemblance` score for A/B comparison.
+- Similarity: `sound_resemblance` score for A/B comparison, based on
+  Mel-Frequency Cepstral Coefficients (MFCCs), a standard way of boiling a
+  clip's spectrum down to a compact set of numbers that captures how it
+  sounds rather than its raw waveform, so two recordings of the same voice
+  score close together even if the takes differ slightly.
 - Feature Extraction: scipy-based Mel / MFCC primitives.
 
 **Five surfaces, one toolkit.** Every operation above is reachable as:
@@ -54,7 +60,9 @@ Audio Helper is **local-first** by design. Three honest cases:
 - **CLI ×2**: `audio-helper` (argparse, always installed) and
   `audio-helper-click` (click twin, `[cli]` extra) with identical flags.
 - **HTTP API**: FastAPI app (`[api]` extra), OpenAPI docs at `/docs`.
-- **MCP**: the same FastAPI app exposed as MCP tools (`audio-helper-mcp`,
+- **MCP**: the same FastAPI app exposed through the Model Context Protocol
+  (MCP), a standard that lets an AI agent call a program's functions as
+  tools instead of a human clicking through a UI (`audio-helper-mcp`,
   `[mcp]` extra) for any MCP-aware agent host.
 - **GUI**: a build-step-free browser **Recipe Canvas** served at `GET /gui`.
   Chain the eight verbs into a sequential pipeline, hear every intermediate step

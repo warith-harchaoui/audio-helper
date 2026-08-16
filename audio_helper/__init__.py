@@ -4,8 +4,10 @@ Audio Helper — public API surface.
 Re-exports the utility functions from :mod:`audio_helper.main` so that
 downstream code can simply write ``import audio_helper as ah`` and reach
 every supported operation (load, save, convert, split, concatenate,
-silence generation, room-tone mix, MFCC similarity, and optional Demucs
-source separation) without knowing about the module layout.
+silence generation, room-tone mix, MFCC similarity, a compact spectral
+fingerprint used to score how alike two clips sound, and optional
+Demucs source separation, Meta's model for splitting a mixed track into
+vocals/drums/bass/other) without knowing about the module layout.
 
 Usage Example
 -------------

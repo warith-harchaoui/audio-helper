@@ -9,7 +9,8 @@ import os_helper as osh
 ```
 
 and that `ffmpeg` is installed and on `PATH`. The optional `demucs`
-extra (Torch + torchaudio) is only required for [Source Separation](#source-separation).
+extra (Torch + torchaudio, for Meta's Demucs source-separation model) is
+only required for [Source Separation](#source-separation).
 
 ---
 
@@ -206,8 +207,11 @@ install hint.
 
 ## Similarity
 
-`sound_resemblance(a, b)` returns a score in `[0, 1]` based on MFCC
-similarity. A file vs itself is ≈1.0; unrelated tones drop sharply.
+`sound_resemblance(a, b)` returns a score in `[0, 1]` based on
+Mel-Frequency Cepstral Coefficient (MFCC) similarity, a standard way of
+boiling a clip's spectrum down to a compact set of numbers that captures
+how it sounds rather than its raw waveform. A file vs itself is ≈1.0;
+unrelated tones drop sharply.
 
 ```python
 score = ah.sound_resemblance("original.wav", "reconstructed.mp3")

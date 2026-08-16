@@ -18,8 +18,10 @@ Audio Helper est **local-first** par conception. Trois cas, en toute honnêteté
 
 1. **Garanti local.** Chaque opération, y compris l'interface web sur
    `GET /gui`, s'exécute sur votre machine via **ffmpeg** et **Demucs en
-   local**. Votre audio n'est **jamais téléversé** vers un tiers. **Aucune
-   télémétrie, aucun compte, aucune dépendance SaaS.**
+   local** (le modèle d'IA de Meta qui sépare une piste mixée en ses
+   composantes : voix, batterie, basse, le reste). Votre audio n'est
+   **jamais téléversé** vers un tiers. **Aucune télémétrie, aucun compte,
+   aucune dépendance SaaS.**
 2. **La seule réserve : les poids des modèles.** La séparation de sources
    télécharge les poids du modèle **Demucs** **une seule fois**, au premier
    lancement (un simple cache Hugging Face / PyTorch). Ensuite, tout fonctionne
@@ -45,7 +47,13 @@ Audio Helper est **local-first** par conception. Trois cas, en toute honnêteté
 - Concaténation : jointure bout-à-bout dans n'importe quel conteneur ffmpeg.
 - Génération de silence : écrire un silence d'une durée spécifiée.
 - Mixage de bruit ambiant (room-tone) : bruit rose / blanc / brun pour masquer des coupures.
-- Similarité : score `sound_resemblance` basé sur les MFCC pour comparaison A/B.
+- Similarité : score `sound_resemblance` pour comparaison A/B, fondé sur les
+  coefficients cepstraux à l'échelle de Mel (_Mel-Frequency Cepstral
+  Coefficients_ ou MFCC), une façon standard de réduire le spectre d'un
+  extrait à un petit ensemble de nombres qui capture sa sonorité plutôt
+  que sa forme d'onde brute, si bien que deux enregistrements de la même
+  voix obtiennent un score proche même quand les prises diffèrent
+  légèrement.
 - Extraction de caractéristiques : primitives Mel / MFCC basées sur scipy.
 
 **Cinq surfaces, une boîte à outils.** Chaque opération ci-dessus est
@@ -55,7 +63,10 @@ accessible via :
 - **CLI ×2** : `audio-helper` (argparse, toujours installée) et
   `audio-helper-click` (jumelle click, extra `[cli]`), aux options identiques.
 - **API HTTP** : application FastAPI (extra `[api]`), docs OpenAPI sur `/docs`.
-- **MCP** : la même application FastAPI exposée comme outils MCP
+- **MCP** : la même application FastAPI exposée via le protocole de
+  contexte de modèle (_Model Context Protocol_ ou MCP), une norme qui
+  permet à un agent d'IA d'appeler les fonctions d'un programme comme des
+  outils, sans passer par un humain cliquant dans une interface
   (`audio-helper-mcp`, extra `[mcp]`) pour tout hôte agentique compatible.
 - **GUI** : un **Recipe Canvas** dans le navigateur, sans étape de build, servi
   sur `GET /gui`. Enchaînez les huit verbes en un pipeline séquentiel, écoutez
