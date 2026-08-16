@@ -584,6 +584,11 @@ def save_audio(signal: torch.Tensor | np.ndarray, file_path: str, sample_rate: i
         assert is_valid_audio_file(file_path), f"Audio file not saved to {file_path}"
         osh.info(f"Audio signal saved to {file_path}")
 
+    else:
+        raise AssertionError(
+            f"signal must be a torch.Tensor or a numpy.ndarray, got {type(signal)!r}"
+        )
+
 
 def _separate_sources(
     model: torch.nn.Module,
@@ -676,9 +681,6 @@ def _separate_sources(
 
     from torchaudio.transforms import Fade
 
-    # Create a Fade transformation to apply linear fades between segments
-    fade = Fade(fade_in_len=0, fade_out_len=overlap_frames, fade_shape="linear")
-
     # Initialize a tensor to store the final separated sources
     final = torch.zeros(batch, len(model.sources), channels, length, device=device)
 
@@ -703,9 +705,16 @@ def _separate_sources(
             The clamped start and end indices and the separated output for
             this chunk (already faded so overlapping regions blend cleanly).
         """
+        # A fresh Fade instance per call, never a shared/mutated one: chunks run
+        # concurrently under ThreadPoolExecutor when nb_workers > 1, and mutating
+        # a single closed-over Fade's fade_out_len in place (the original code)
+        # raced across threads — the truncated last chunk's fade_out_len=0 could
+        # be read by an unrelated, concurrently-running chunk's fade(out) call.
+        fade_out_len = overlap_frames
         if end > length:
             end = length
-            fade.fade_out_len = 0  # Disable fade out for the last chunk
+            fade_out_len = 0  # Disable fade out for the last (truncated) chunk
+        fade = Fade(fade_in_len=0, fade_out_len=fade_out_len, fade_shape="linear")
 
         chunk = mix[:, :, start:end]
         with torch.no_grad():
@@ -903,9 +912,10 @@ def extract_audio_chunk(
         Path to save the extracted audio chunk. If None, the output file will be saved in the same directory
         as the input file with a filename based on the chunk's time range.
     overwrite : bool, optional
-        Currently advisory: the parameter is accepted for API compatibility
-        but ffmpeg is always invoked to (re)write the output file. A future
-        release may honor it by short-circuiting on an existing valid file.
+        If True (the default), an existing output file is deleted and
+        rewritten. If False, an existing **valid** output file is returned
+        as-is without re-extracting (mirrors every other function in this
+        module — see :func:`_overwrite_audio_file`).
 
     Returns
     -------
@@ -937,6 +947,10 @@ def extract_audio_chunk(
         s = round(start_time * 1000)  # ms
         e = round(end_time * 1000)
         output_audio_filename = osh.join([f, f"{b}_chunk-{s}-{e}.{ext}"])
+
+    o = _overwrite_audio_file(output_audio_filename, overwrite)
+    if o is not None:
+        return o
 
     # Validate start and end times against the actual audio duration.
     duration = get_audio_duration(audio_file)
@@ -1020,7 +1034,8 @@ def generate_silent_audio(
     Raises
     ------
     AssertionError
-        If the resulting file is missing or empty after generation.
+        If ``duration`` is not strictly positive, or if the resulting file
+        is missing or empty after generation.
     ffmpeg.Error
         If the underlying ffmpeg invocation fails.
 
@@ -1030,6 +1045,7 @@ def generate_silent_audio(
     specified duration and sample rate. When ``output_audio_filename`` is
     None, a default name is derived from ``duration``.
     """
+    assert duration > 0, f"duration must be strictly positive, got {duration}"
 
     # Generate default output file name if not provided
     if osh.emptystring(output_audio_filename):

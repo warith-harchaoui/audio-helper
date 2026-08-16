@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`save_audio` silently no-op'd on an unsupported input type** (anything
+  neither a `torch.Tensor` nor a `numpy.ndarray`) instead of raising the
+  `AssertionError` its own docstring promised — no file was written and no
+  error surfaced. Now raises with a clear message.
+- **`_separate_sources` mutated a `Fade` transform shared across concurrent
+  chunks** (`ThreadPoolExecutor`, `nb_workers > 1`): the last, possibly
+  truncated chunk disabled `fade_out_len` on the shared instance in place,
+  racing against any other chunk's concurrent `fade(out)` call. Each chunk
+  now builds its own `Fade` instance instead of mutating a shared one.
+- **`generate_silent_audio` accepted a non-positive `duration`**, reaching
+  an unguarded `np.zeros(...)` — a cryptic numpy `ValueError` for a negative
+  duration, or a silently-written zero-length file for zero. Now raises a
+  clear `AssertionError` up front.
+- **`extract_audio_chunk`'s `overwrite=False` was a no-op** (ffmpeg always
+  re-ran, contrary to its own docstring's "currently advisory" note and
+  every CLI/API surface that already exposes the flag). Now honors it via
+  the same `_overwrite_audio_file` skip-if-valid helper every sibling
+  function in this module already uses.
+
 ## [2.1.2] - 2026-08-15
 
 ### Fixed

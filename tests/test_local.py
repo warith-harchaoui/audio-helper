@@ -147,6 +147,22 @@ def test_extract_audio_chunk_end_before_start_raises(tmp_path):
         extract_audio_chunk(str(src), 1.0, 0.5, str(tmp_path / "bad.wav"), overwrite=True)
 
 
+def test_extract_audio_chunk_no_overwrite_skips_recompute(tmp_path):
+    # overwrite=False used to be a no-op (ffmpeg always re-ran); an existing
+    # valid output should now be returned as-is, mirroring every sibling
+    # function's _overwrite_audio_file skip behavior.
+    src = _write_tone(tmp_path / "tone.wav", duration=3.0)
+    out = tmp_path / "chunk.wav"
+    extract_audio_chunk(str(src), 0.5, 2.0, str(out), overwrite=True)
+    mtime_before = out.stat().st_mtime_ns
+
+    # A bad range would normally raise, but overwrite=False should skip
+    # validation entirely once a valid output already exists.
+    result = extract_audio_chunk(str(src), 50.0, 60.0, str(out), overwrite=False)
+    assert result == str(out)
+    assert out.stat().st_mtime_ns == mtime_before
+
+
 # ---------------------------------------------------------------------------
 # split_audio_regularly
 # ---------------------------------------------------------------------------
@@ -193,6 +209,15 @@ def test_generate_silent_audio_is_silent(tmp_path):
     assert abs(len(audio) - 2.0 * sr) <= 1
 
 
+def test_generate_silent_audio_rejects_nonpositive_duration(tmp_path):
+    # A negative/zero duration used to reach np.zeros(int(duration * sample_rate))
+    # unguarded: negative -> a cryptic numpy ValueError, zero -> a silently
+    # written zero-length "silent" file. Both should be a clear AssertionError.
+    for bad_duration in (0.0, -1.0):
+        with pytest.raises(AssertionError):
+            generate_silent_audio(bad_duration, str(tmp_path / "bad.wav"), overwrite=True)
+
+
 # ---------------------------------------------------------------------------
 # mix_room_tone
 # ---------------------------------------------------------------------------
@@ -231,3 +256,10 @@ def test_save_audio_numpy_roundtrip(tmp_path):
     loaded, loaded_sr = load_audio(str(out), to_numpy=True, to_mono=True)
     assert loaded_sr == sr
     assert abs(len(loaded) - len(signal)) <= 1
+
+
+def test_save_audio_rejects_unsupported_type(tmp_path):
+    # Neither a torch.Tensor nor a numpy.ndarray used to silently no-op (no
+    # error, no file written) despite the docstring promising AssertionError.
+    with pytest.raises(AssertionError):
+        save_audio([0.1, 0.2, 0.3], str(tmp_path / "out.wav"), sample_rate=16000)
