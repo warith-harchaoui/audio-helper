@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.4] - 2026-08-21
+
+### Fixed
+
+- **`_separate_sources` never actually moved the mixture tensor to the GPU.**
+  `Tensor.to(device)` returns a new tensor rather than moving in place, and
+  the return value was discarded, so on a CUDA machine the model moved to
+  the GPU while `mix` silently stayed on the CPU. The following
+  `model.forward(chunk)` call then failed on the first cross-device tensor
+  op. Fixed by reassigning `mix = mix.to(device)`.
+
 ## [2.1.3] - 2026-08-17
 
 ### Fixed

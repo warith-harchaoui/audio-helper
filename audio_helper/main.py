@@ -664,8 +664,12 @@ def _separate_sources(
     if isinstance(device, str):
         device = torch.device(device)
 
-    # Move the audio mixture and the model to the specified device
-    mix.to(device)
+    # Move the audio mixture and the model to the specified device. Unlike
+    # nn.Module.to (in-place), Tensor.to returns a NEW tensor — the result
+    # must be reassigned or `mix` silently stays on its original device,
+    # which then raises a cross-device error the first time `model.forward`
+    # (on `device`) touches a `mix` slice still sitting on the CPU.
+    mix = mix.to(device)
     mix = mix.float()  # Convert mix to float32
 
     model.to(device)
