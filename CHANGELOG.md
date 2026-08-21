@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the GPU while `mix` silently stayed on the CPU. The following
   `model.forward(chunk)` call then failed on the first cross-device tensor
   op. Fixed by reassigning `mix = mix.to(device)`.
+- **`split_audio_regularly` ignored its own `overwrite` parameter.** Every
+  chunk was extracted with `extract_audio_chunk(..., overwrite=True)`
+  hard-coded, regardless of what the caller passed in, so `overwrite=False`
+  silently re-extracted every chunk instead of skipping already-valid ones
+  as documented. Now forwards the caller's `overwrite` value.
 
 ## [2.1.3] - 2026-08-17
 

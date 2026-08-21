@@ -1347,7 +1347,7 @@ def split_audio_regularly(
         chunk_path = osh.join([chunk_folder, f"chunk_{counter:04d}_{suffix}.{output_format}"])
         s = time_cursor
         e = min(time_cursor + split_time, total_duration)
-        extract_audio_chunk(sound_path, s, e, output_audio_filename=chunk_path, overwrite=True)
+        extract_audio_chunk(sound_path, s, e, output_audio_filename=chunk_path, overwrite=overwrite)
         added_duration = get_audio_duration(chunk_path)
         osh.info(f"Chunk {counter:04d} of duration {added_duration} saved to:\n\t{chunk_path}")
         output_audio_paths.append(chunk_path)
