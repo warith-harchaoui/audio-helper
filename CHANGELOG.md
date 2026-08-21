@@ -20,6 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   hard-coded, regardless of what the caller passed in, so `overwrite=False`
   silently re-extracted every chunk instead of skipping already-valid ones
   as documented. Now forwards the caller's `overwrite` value.
+- **`split_audio_regularly` dropped the entire file for inputs under 1 second.**
+  The loop's exit condition (`time_cursor < total_duration - 1`) was meant to
+  drop a trailing remainder shorter than 1s after at least one full chunk had
+  already been produced, but it also gated the very first iteration: a
+  `sound_path` shorter than 1s never entered the loop at all, so the function
+  silently returned an empty list instead of one chunk covering the whole
+  file. The first chunk is now always produced.
 
 ## [2.1.3] - 2026-08-17
 

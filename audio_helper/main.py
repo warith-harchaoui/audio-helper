@@ -453,6 +453,10 @@ def sound_converter(
         Number of audio channels in the output (default is 1 for mono).
     encoding : str, optional
         Audio codec to use for encoding the output file (default is 'pcm_s16le').
+    overwrite : bool, optional
+        If True (the default), an existing output file is deleted and rewritten.
+        If False, an existing **valid** output file is returned as-is without
+        re-converting (see :func:`_overwrite_audio_file`).
 
     Returns
     -------
@@ -1326,7 +1330,10 @@ def split_audio_regularly(
     The function uses ffmpeg to split the audio file into chunks of the specified duration.
     A trailing remainder shorter than 1 second is dropped rather than saved as its own
     chunk (not worth a separate file), so the returned chunks may cover slightly less
-    than the full ``sound_path`` duration.
+    than the full ``sound_path`` duration. This "drop if < 1s" rule only ever applies to
+    a remainder that follows at least one already-produced chunk: the very first chunk is
+    always emitted, so a ``sound_path`` shorter than 1 second still yields one chunk that
+    covers it in full instead of silently returning an empty list.
     """
 
     assert is_valid_audio_file(sound_path), f"Invalid audio file: {sound_path}"
@@ -1343,7 +1350,13 @@ def split_audio_regularly(
     time_cursor = 0
     counter = 0
     output_audio_paths = []
-    while time_cursor < total_duration - 1:
+    # `counter == 0` keeps the very first chunk even when the whole file is
+    # shorter than 1 second: the `total_duration - time_cursor >= 1` half of
+    # this condition alone is meant to drop a tiny *trailing* remainder after
+    # at least one full chunk already exists, not to discard the entire file
+    # when it never reaches 1 second in the first place (that used to return
+    # an empty list for any sub-1s input, silently dropping all the audio).
+    while time_cursor < total_duration and (counter == 0 or total_duration - time_cursor >= 1):
         chunk_path = osh.join([chunk_folder, f"chunk_{counter:04d}_{suffix}.{output_format}"])
         s = time_cursor
         e = min(time_cursor + split_time, total_duration)

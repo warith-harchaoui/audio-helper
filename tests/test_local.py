@@ -180,6 +180,23 @@ def test_split_audio_regularly_three_chunks(tmp_path):
         assert is_valid_audio_file(chunk)
 
 
+def test_split_audio_regularly_sub_one_second_file_still_returns_a_chunk(tmp_path):
+    # Regression test: the loop used to gate its very first iteration on
+    # `time_cursor < total_duration - 1`, meant to drop a trailing remainder
+    # under 1s. Applied to the whole file (not just a remainder), any input
+    # shorter than 1 second matched that same condition on iteration zero and
+    # the function silently returned [] — the entire file dropped, not just a
+    # remainder. The first chunk must now always be produced.
+    src = _write_tone(tmp_path / "short.wav", duration=0.9)
+    out_dir = tmp_path / "short_splits"
+    chunks = split_audio_regularly(
+        str(src), str(out_dir), split_time=5.0, output_format="wav", overwrite=True
+    )
+    assert len(chunks) == 1
+    assert is_valid_audio_file(chunks[0])
+    assert abs(get_audio_duration(chunks[0]) - 0.9) < 0.05
+
+
 # ---------------------------------------------------------------------------
 # audio_concatenation
 # ---------------------------------------------------------------------------
