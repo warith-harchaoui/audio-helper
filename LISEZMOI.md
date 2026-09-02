@@ -225,6 +225,20 @@ déposer, vue par grappes MFCC) reste, lui, sur la feuille de route. Voir
 [GUI.md](https://github.com/warith-harchaoui/audio-helper/blob/main/GUI.md)
 pour la répartition complète entre ce qui est livré et ce qui est prévu.
 
+## Version Rust
+
+Un crate compagnon, [`audio-helper-rs`](https://github.com/warith-harchaoui/audio-helper-rs),
+réécrit la surface au niveau fichier (sonder, convertir, charger en PCM,
+découper, générer du silence, concaténer, insérer un bruit de fond, scinder)
+en Rust idiomatique. Ce n'est ni un portage ni un remplacement :
+`separate_sources` (Demucs) et `sound_resemblance` (MFCC) restent réservés à
+la version Python, disproportionnés à réimplémenter dans un crate Rust.
+L'intérêt d'y recourir plutôt qu'à ce paquet : une dépendance qui se compile
+directement dans votre propre binaire Rust, sans interpréteur Python, sans
+`pip install` ni environnement virtuel sur la machine cible — utile quand
+audio-helper n'est qu'une brique d'un programme Rust plus large, ou quand la
+cible de déploiement ne peut tout simplement pas embarquer de runtime Python.
+
 ## Auteur
 
  - [Warith HARCHAOUI](https://linkedin.com/in/warith-harchaoui)

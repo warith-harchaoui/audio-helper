@@ -221,6 +221,19 @@ comparator, and `recipe.yaml` export/import. Batch triage across many files
 roadmap. See [GUI.md](https://github.com/warith-harchaoui/audio-helper/blob/main/GUI.md)
 for the full split between what ships and what is planned.
 
+## Rust rewrite
+
+A companion crate, [`audio-helper-rs`](https://github.com/warith-harchaoui/audio-helper-rs),
+rewrites the file-level surface (probe, convert, load-to-PCM, chunk, silence,
+concatenate, room tone, split) in idiomatic Rust. It is not a port and not a
+replacement: `separate_sources` (Demucs) and `sound_resemblance` (MFCC) stay
+Python-only, disproportionate for a Rust crate to reimplement. The payoff of
+reaching for it instead of this package: a dependency that compiles straight
+into your own Rust binary, with no Python interpreter, `pip install`, or
+virtualenv on the target machine — useful when audio-helper's job is a small
+piece of a larger Rust program, or the deployment target can't carry a Python
+runtime at all.
+
 ## Author
 
  - [Warith HARCHAOUI](https://linkedin.com/in/warith-harchaoui)
