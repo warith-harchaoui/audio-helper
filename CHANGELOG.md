@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **`get_audio_duration` could raise a raw `KeyError` instead of a clear
+  error.** Some containers among `audio_extensions` (raw/headerless
+  formats, some ADTS/MP3 streams) omit `duration` on the audio stream
+  itself and only report it at the container ("format") level —
+  `is_valid_audio_file`'s own `except` clause already anticipates this
+  (it catches `KeyError` alongside `ffmpeg.Error`), but `get_audio_duration`
+  read `audio_stream["duration"]` unguarded. Now falls back to
+  `probe["format"]["duration"]` and raises the module's usual
+  `AssertionError` only if neither is present.
+
 ## [2.1.4] - 2026-08-21
 
 ### Fixed

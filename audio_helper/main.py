@@ -321,7 +321,8 @@ def get_audio_duration(file_path: str) -> float:
     Raises
     ------
     AssertionError
-        If the file is missing, or if it contains no audio stream.
+        If the file is missing, if it contains no audio stream, or if
+        neither the stream nor the container reports a duration.
     ffmpeg.Error
         If ``ffmpeg.probe`` itself fails on the file.
     """
@@ -331,7 +332,16 @@ def get_audio_duration(file_path: str) -> float:
         (stream for stream in probe["streams"] if stream["codec_type"] == "audio"), None
     )
     assert audio_stream is not None, f"No audio stream found in the file: {file_path}"
-    return float(audio_stream["duration"])
+    # Some containers (raw/headerless formats among audio_extensions, certain
+    # ADTS/MP3 streams) omit "duration" on the audio stream itself and only
+    # report it at the container ("format") level — is_valid_audio_file above
+    # already treats a missing key here as an expected ffprobe outcome (its
+    # except clause catches KeyError), so fall back the same way here instead
+    # of letting a raw KeyError escape from the one function that actually
+    # needs this value.
+    duration = audio_stream.get("duration") or probe.get("format", {}).get("duration")
+    assert duration is not None, f"No duration reported for the file: {file_path}"
+    return float(duration)
 
 
 def load_audio(
