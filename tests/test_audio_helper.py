@@ -1,7 +1,7 @@
 """
 End-to-end integration tests for audio-helper.
 
-These tests download a small JFK speech clip from ``harchaoui.org`` and
+These tests download a small JFK speech clip from ``deraison.ai`` and
 exercise every public entry point (load / convert / split / concatenate /
 silence / room-tone / MFCC similarity / Demucs source separation). They
 require network access and ffmpeg on PATH, so they are marked
@@ -37,7 +37,7 @@ from audio_helper import (
     split_audio_regularly,
 )
 
-audio_url = "https://harchaoui.org/warith/example.mp3"
+audio_url = "https://deraison.ai/example.mp3"
 audio_filename = "example.mp3"
 
 osh.verbosity(0)

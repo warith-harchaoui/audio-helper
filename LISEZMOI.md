@@ -6,9 +6,9 @@
 
 `Audio Helper` fait partie d'une collection de bibliothèques appelée `AI Helpers`, développée pour bâtir des applications d'intelligence artificielle.
 
-[🌍 AI Helpers](https://harchaoui.org/warith/ai-helpers)
+[🌍 AI Helpers](https://deraison.ai/ai-helpers)
 
-[![logo](https://raw.githubusercontent.com/warith-harchaoui/audio-helper/main/assets/logo.png)](https://harchaoui.org/warith/ai-helpers)
+[![logo](https://raw.githubusercontent.com/warith-harchaoui/audio-helper/main/assets/logo.png)](https://deraison.ai/ai-helpers)
 
 Audio Helper est une bibliothèque Python qui fournit des fonctions utilitaires pour le traitement de fichiers audio. Elle inclut le chargement audio, la conversion de formats, la séparation de sources et le découpage / la concaténation de fichiers audio.
 
@@ -34,7 +34,7 @@ Audio Helper est **local-first** par conception. Trois cas, en toute honnêteté
 
 ## Documentation
 
-[💻 Documentation](https://harchaoui.org/warith/ai-helpers/docs/audio-helper-doc/)
+[💻 Documentation](https://deraison.ai/ai-helpers/docs/audio-helper-doc/)
 
 [🗺️ Paysage](https://github.com/warith-harchaoui/audio-helper/blob/main/PAYSAGE.md)
 
@@ -87,7 +87,7 @@ Pour le catalogue exhaustif, voir [TRIGGERS.md](https://github.com/warith-harcha
 - 🐧 **Ubuntu/Debian** : `sudo apt update && sudo apt install -y python3 python3-pip git ffmpeg`
 - 🪟 **Windows** (PowerShell) : `winget install Python.Python.3.12 Git.Git Gyan.FFmpeg`
 
-On recommande de travailler dans un environnement Python. Si vous ne savez pas comment en créer un : [🥸 Conseils techniques](https://harchaoui.org/warith/4ml/#install).
+On recommande de travailler dans un environnement Python. Si vous ne savez pas comment en créer un : [🥸 Conseils techniques](https://deraison.ai/4ml/#install).
 
 ### Depuis PyPI (recommandé)
 
@@ -126,7 +126,7 @@ Pour le catalogue complet d'exemples, voir [📋 EXEMPLES.md](https://github.com
 
 Exemple : charger, convertir et découper un fichier audio.
 
-(à télécharger : [example.mp3](https://harchaoui.org/warith/example.mp3))
+(à télécharger : [example.mp3](https://deraison.ai/example.mp3))
 
 C'est un extrait d'un discours de JFK, très mal enregistré.
 
