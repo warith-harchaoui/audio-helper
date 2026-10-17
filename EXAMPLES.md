@@ -75,11 +75,11 @@ preserve stereo, and `target_sample_rate` to resample on the fly.
 ```python
 audio, sr = ah.load_audio(
     "recording.wav",
-    target_sample_rate=16000,   # resample to 16 kHz
-    to_mono=True,               # downmix
-    to_numpy=True,              # return numpy.ndarray (default for non-torch installs)
+    target_sample_rate=16000,  # resample to 16 kHz
+    to_mono=True,  # downmix
+    to_numpy=True,  # return numpy.ndarray (default for non-torch installs)
 )
-print(audio.shape, sr)          # (n_samples,) 16000
+print(audio.shape, sr)  # (n_samples,) 16000
 ```
 
 `save_audio` writes a numpy array (or torch tensor) to disk; the
@@ -87,6 +87,7 @@ extension dictates the container/codec.
 
 ```python
 import numpy as np
+
 sr = 16000
 signal = (0.1 * np.random.randn(sr)).astype(np.float32)  # 1 s of noise
 ah.save_audio(signal, "noise.wav", sample_rate=sr)
@@ -175,7 +176,7 @@ ah.mix_room_tone(
     "narration.wav",
     "narration-rt.wav",
     noise_db=-42.0,
-    color="pink",              # white / pink / brown / blue / violet / velvet
+    color="pink",  # white / pink / brown / blue / violet / velvet
     overwrite=True,
 )
 ```
@@ -192,8 +193,8 @@ stems. Requires the `[demucs]` extra (Torch + torchaudio).
 sources = ah.separate_sources(
     "song.mp3",
     output_folder="stems",
-    device="cuda",        # or "cpu"; pass None to let it decide
-    nb_workers=4,         # ignored when device != "cpu"
+    device="cuda",  # or "cpu"; pass None to let it decide
+    nb_workers=4,  # ignored when device != "cpu"
     output_format="mp3",
     overwrite=True,
 )
@@ -233,10 +234,10 @@ print(hz_to_mel(440.0), mel_to_hz(549.6))
 
 # Mel filter bank
 sample_rate = 16000
-fb = mel_filter_banks(num_filters=26, n_fft=512,
-                      sample_rate=sample_rate, low_freq=0,
-                      high_freq=sample_rate // 2)
-print(fb.shape)   # (26, 257)
+fb = mel_filter_banks(
+    num_filters=26, n_fft=512, sample_rate=sample_rate, low_freq=0, high_freq=sample_rate // 2
+)
+print(fb.shape)  # (26, 257)
 
 # MFCCs from a raw 1-D signal
 signal = np.random.randn(sample_rate).astype(np.float32)

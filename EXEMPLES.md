@@ -77,11 +77,11 @@ volée.
 ```python
 audio, sr = ah.load_audio(
     "recording.wav",
-    target_sample_rate=16000,   # rééchantillonne à 16 kHz
-    to_mono=True,               # ramène en mono
-    to_numpy=True,              # renvoie un numpy.ndarray (par défaut sans torch installé)
+    target_sample_rate=16000,  # rééchantillonne à 16 kHz
+    to_mono=True,  # ramène en mono
+    to_numpy=True,  # renvoie un numpy.ndarray (par défaut sans torch installé)
 )
-print(audio.shape, sr)          # (n_samples,) 16000
+print(audio.shape, sr)  # (n_samples,) 16000
 ```
 
 `save_audio` écrit un tableau numpy (ou un tenseur torch) sur le disque ;
@@ -89,6 +89,7 @@ l'extension détermine le conteneur et le codec.
 
 ```python
 import numpy as np
+
 sr = 16000
 signal = (0.1 * np.random.randn(sr)).astype(np.float32)  # 1 s de bruit
 ah.save_audio(signal, "noise.wav", sample_rate=sr)
@@ -179,7 +180,7 @@ ah.mix_room_tone(
     "narration.wav",
     "narration-rt.wav",
     noise_db=-42.0,
-    color="pink",              # white / pink / brown / blue / violet / velvet
+    color="pink",  # white / pink / brown / blue / violet / velvet
     overwrite=True,
 )
 ```
@@ -196,8 +197,8 @@ basse et autres. Nécessite l'extra `[demucs]` (Torch et torchaudio).
 sources = ah.separate_sources(
     "song.mp3",
     output_folder="stems",
-    device="cuda",        # ou "cpu" ; passer None laisse le choix se faire automatiquement
-    nb_workers=4,         # ignoré si device != "cpu"
+    device="cuda",  # ou "cpu" ; passer None laisse le choix se faire automatiquement
+    nb_workers=4,  # ignoré si device != "cpu"
     output_format="mp3",
     overwrite=True,
 )
@@ -239,10 +240,10 @@ print(hz_to_mel(440.0), mel_to_hz(549.6))
 
 # Banc de filtres Mel
 sample_rate = 16000
-fb = mel_filter_banks(num_filters=26, n_fft=512,
-                      sample_rate=sample_rate, low_freq=0,
-                      high_freq=sample_rate // 2)
-print(fb.shape)   # (26, 257)
+fb = mel_filter_banks(
+    num_filters=26, n_fft=512, sample_rate=sample_rate, low_freq=0, high_freq=sample_rate // 2
+)
+print(fb.shape)  # (26, 257)
 
 # MFCC à partir d'un signal 1D brut
 signal = np.random.randn(sample_rate).astype(np.float32)

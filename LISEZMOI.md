@@ -142,10 +142,12 @@ output_audio = "audio_tests/example.wav"
 ah.sound_converter(audio_file, output_audio)
 
 # Découper le fichier audio en morceaux de 30 secondes
-chunks = ah.split_audio_regularly(audio_file, "audio_tests/chunks_folder", split_time=30.0, overwrite = True)
+chunks = ah.split_audio_regularly(
+    audio_file, "audio_tests/chunks_folder", split_time=30.0, overwrite=True
+)
 # Reconcaténer les morceaux
 new_concatenated_audio = "audio_tests/concatenated.wav"
-concatenated_audio = ah.audio_concatenation(chunks, output_audio_filename = new_concatenated_audio)
+concatenated_audio = ah.audio_concatenation(chunks, output_audio_filename=new_concatenated_audio)
 ```
 
 Autre exemple : la séparation de sources (Demucs, de Meta), qui découpe une piste audio en 4 pistes :
@@ -164,9 +166,9 @@ audio_path = "input_audio.m4a"
 sources = ah.separate_sources(
     audio_path,
     output_folder="audio_tests",
-    device = "cpu", # ou "cuda" si GPU disponible ou rien pour laisser décider
-    nb_workers = 4, # ignoré si pas en mode cpu
-    output_format = "mp3",
+    device="cpu",  # ou "cuda" si GPU disponible ou rien pour laisser décider
+    nb_workers=4,  # ignoré si pas en mode cpu
+    output_format="mp3",
 )
 
 print(sources)
