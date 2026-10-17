@@ -225,6 +225,17 @@ déposer, vue par grappes MFCC) reste, lui, sur la feuille de route. Voir
 [GUI.md](https://github.com/warith-harchaoui/audio-helper/blob/main/GUI.md)
 pour la répartition complète entre ce qui est livré et ce qui est prévu.
 
+### En tant que skill d'agent
+
+`skills/audio-helper/` empaquette audio-helper comme **skill Claude** *et* skill
+**OpenCode**, pour qu'un agent puisse s'en saisir à votre place. Voir
+[`skills/README.md`](https://github.com/warith-harchaoui/audio-helper/blob/main/skills/README.md) pour l'installer (liens
+symboliques vers `~/.claude/skills/` et `~/.opencode/skills/`) et
+[`TRIGGERS.md`](https://github.com/warith-harchaoui/audio-helper/blob/main/TRIGGERS.md) pour le catalogue exhaustif des
+déclencheurs — `scripts/check_triggers.py` maintient la description du skill
+alignée dessus ; la suite de tests échoue si une capacité cesse d'être
+nommée.
+
 ## Version Rust
 
 Un crate compagnon, [`audio-helper-rs`](https://github.com/warith-harchaoui/audio-helper-rs),
