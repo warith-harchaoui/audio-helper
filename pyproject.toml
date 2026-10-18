@@ -63,7 +63,7 @@ mcp = [
 # integration suite (which exercises Demucs), install with
 # `pip install -e .[dev,demucs]`.
 dev = [
-    "pytest>=8",
+    "pytest>=8", "pytest-timeout>=2.3",
     "httpx>=0.27",
     "click>=8.1,<9",
     "fastapi>=0.111,<1",
