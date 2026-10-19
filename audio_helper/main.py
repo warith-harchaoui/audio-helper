@@ -1444,6 +1444,23 @@ def mel_filter_banks(
         A 2D array where each row is a filter in the Mel-filter bank.
     """
 
+    # Guard the band before any arithmetic. Without this, a high_freq above the
+    # Nyquist frequency maps to an FFT bin past the end of ``fbank`` and the
+    # function died on a raw ``IndexError`` thrown from inside the inner loop
+    # ("index 257 is out of bounds for axis 1 with size 257") -- a message naming
+    # neither the offending argument nor the constraint it broke. Every other
+    # guard in this module states the problem in the caller's terms; this one
+    # was simply missing.
+    nyquist = sample_rate / 2
+    assert num_filters >= 1, f"num_filters must be >= 1, got {num_filters}"
+    assert low_freq >= 0, f"low_freq must be >= 0, got {low_freq}"
+    assert low_freq < high_freq, f"low_freq ({low_freq}) must be below high_freq ({high_freq})"
+    assert high_freq <= nyquist, (
+        f"high_freq ({high_freq} Hz) exceeds the Nyquist frequency ({nyquist:g} Hz) "
+        f"for sample_rate={sample_rate}. A filter bank cannot describe energy above "
+        f"Nyquist because the FFT does not represent it."
+    )
+
     # Convert frequencies to the Mel scale
     low_mel = hz_to_mel(low_freq)
     high_mel = hz_to_mel(high_freq)
@@ -1467,6 +1484,20 @@ def mel_filter_banks(
             fbank[i - 1, j] = (j - f_m_minus) / (f_m - f_m_minus)
         for j in range(f_m, f_m_plus):
             fbank[i - 1, j] = (f_m_plus - j) / (f_m_plus - f_m)
+
+    # Warn when the requested resolution exceeds what the FFT grid can carry.
+    # ``bin_points`` is floored to integers, so with many filters over a narrow
+    # band neighbouring edges collapse onto the same bin, both inner loops run
+    # over an empty range, and the filter comes out entirely zero. It then
+    # contributes nothing to the MFCCs -- the caller silently gets fewer
+    # effective filters than requested, with no error and no clue.
+    empty = int((fbank.sum(axis=1) == 0).sum())
+    if empty:
+        osh.warning(
+            f"{empty} of {num_filters} mel filters are empty: the {num_filters}-filter "
+            f"grid is finer than n_fft={n_fft} can resolve between {low_freq} and "
+            f"{high_freq} Hz. Lower num_filters or raise n_fft."
+        )
 
     return fbank
 

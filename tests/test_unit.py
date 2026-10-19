@@ -72,3 +72,43 @@ def test_sound_resemblance_bounded(tmp_path):
     _write_tone(f_b, 1760.0)
     score = sound_resemblance(str(f_a), str(f_b))
     assert 0.0 <= score <= 1.0
+
+
+# --- band guards ------------------------------------------------------------
+# A filter bank cannot describe energy the FFT does not represent. Asking for a
+# band above Nyquist used to walk off the end of the fbank array and die on a
+# raw IndexError raised inside the inner loop, naming neither the argument at
+# fault nor the constraint it broke.
+
+
+def test_mel_filter_banks_rejects_a_band_above_nyquist():
+    import pytest
+
+    with pytest.raises(AssertionError, match="Nyquist"):
+        mel_filter_banks(26, 512, 16000, 0, 16000)
+
+
+def test_mel_filter_banks_rejects_an_inverted_band():
+    import pytest
+
+    with pytest.raises(AssertionError, match="below high_freq"):
+        mel_filter_banks(26, 512, 16000, 4000, 1000)
+
+
+def test_mel_filter_banks_accepts_exactly_nyquist():
+    """The boundary itself is legal -- it is what mfcc() defaults to."""
+    fbank = mel_filter_banks(26, 512, 16000, 0, 8000)
+    assert fbank.shape == (26, 257)
+    assert np.isfinite(fbank).all()
+
+
+def test_mel_filter_banks_warns_when_filters_collapse(caplog):
+    """Floored bin edges can collapse, leaving filters that contribute nothing.
+
+    The caller then gets fewer effective filters than requested. Silently
+    returning a bank with dead rows is the failure mode worth catching.
+    """
+    fbank = mel_filter_banks(80, 256, 8000, 0, 4000)
+    empty = int((fbank.sum(axis=1) == 0).sum())
+    assert empty > 0, "fixture no longer reproduces collapsed bins"
+    assert "empty" in caplog.text.lower()
