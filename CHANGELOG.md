@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-10-19
+
+### Fixed
+
+- **`mel_filter_banks` walked off the end of its own array on a band above
+  Nyquist.** Bin edges are `floor((n_fft + 1) * hz / sample_rate)` and nothing
+  checked `high_freq` against `sample_rate / 2`, so asking for the "full band" —
+  `mel_filter_banks(26, 512, 16000, 0, 16000)`, a natural enough mistake —
+  indexed `fbank[i-1, 257]` in an array of width 257 and died on:
+
+      IndexError: index 257 is out of bounds for axis 1 with size 257
+
+  That names neither the argument at fault nor the rule it broke, and the
+  traceback points at an inner loop rather than at the caller's band. It was also
+  out of character: every other precondition in this module is stated in the
+  caller's terms.
+
+  Four guards now cover it (`num_filters >= 1`, `low_freq >= 0`,
+  `low_freq < high_freq`, `high_freq <= nyquist`), the Nyquist one explaining
+  *why* such a band cannot exist rather than only that it is refused. Exactly
+  Nyquist stays legal — that is what `mfcc` passes. `mfcc` itself was never
+  exposed, since it defaults `high_freq` to `sample_rate / 2`.
+
+### Added
+
+- **`mel_filter_banks` now warns when filters collapse to nothing.** Because bin
+  edges are floored, a grid finer than the FFT can resolve makes neighbouring
+  edges land on the same bin; both inner loops then run over an empty range and
+  the filter comes out entirely zero. `mel_filter_banks(80, 256, 8000, 0, 4000)`
+  returns **7 of 80 filters empty**.
+
+  Nothing raised and nothing warned, so the caller received MFCCs computed from
+  73 effective filters while believing they had asked for 80 — a quiet loss of
+  resolution that is very hard to trace back from a degraded downstream model.
+  The empty rows are now counted and reported through `osh.warning`, naming the
+  remedy (lower `num_filters` or raise `n_fft`).
+
+  Deliberately a warning rather than an error: a few dead filters at the band
+  edges is a legitimate operating point, just not one to discover by accident.
+
 ## [2.1.5] - 2026-09-03
 
 ### Fixed
