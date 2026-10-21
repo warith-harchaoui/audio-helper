@@ -236,3 +236,12 @@ nomoreclaude.sh
 # Runtime working directory bind-mounted by docker-compose.yml. Whatever the
 # container writes lands here on the host; none of it belongs in the repo.
 data/
+
+# This package's own compiled catalogues ARE shipped data, so they are
+# exempt from the blanket `*.mo` above. That rule comes from the stock
+# Python .gitignore, where a `.mo` is a build artifact. Here it is the file
+# the GUI reads at run time: left ignored it is absent from the repository,
+# therefore from the sdist, therefore from the wheel, and every string
+# renders as English on an installed copy — while looking perfect locally,
+# where the file is on disk either way. Held by a "tracked by git" test.
+!audio_helper/locales/*/LC_MESSAGES/*.mo

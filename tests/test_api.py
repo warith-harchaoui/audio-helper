@@ -73,19 +73,24 @@ def test_docs_endpoint_is_served(client):
     assert "swagger" in r.text.lower() or "openapi" in r.text.lower()
 
 
-def _copy(key: str) -> str:
+def _copy(source: str) -> str:
     """One of the GUI's own strings, in whatever language it renders by default.
+
+    Asked of the catalogue by its **English source string**, which is the msgid
+    under the gettext shape — so these assertions name a piece of copy rather
+    than a key, and stay readable.
 
     Escaped the way the page escapes it, and lower-cased for the `in body`
     comparisons below: a French string can carry an apostrophe, which
     `render_gui` writes as `&#x27;` — correct HTML that a browser renders as an
-    apostrophe, and not the literal the locale file holds.
+    apostrophe, and not the literal the catalogue holds.
     """
     import html
 
     from audio_helper import gui
 
-    return html.escape(gui._locales().text("gui", key), quote=True).lower()
+    translated = gui._catalog().gettext(gui.default_language(), source)
+    return html.escape(translated, quote=True).lower()
 
 
 def test_gui_returns_200_html(client):
@@ -101,7 +106,7 @@ def test_gui_returns_200_html(client):
     # Ask the locale file what the page is called rather than hard-coding one
     # language's wording: the page renders in French by default, so asserting
     # the English copy would be testing the default locale, not the page.
-    assert _copy("hero_title") in body
+    assert _copy("Audio Helper — Recipe Canvas") in body
     assert 'value="convert"' in r.text and 'value="separate"' in r.text
 
 
@@ -110,7 +115,7 @@ def test_root_redirects_to_gui(client):
     # follow_redirects defaults True in the TestClient; assert we land on HTML.
     r = client.get("/")
     assert r.status_code == 200
-    assert _copy("hero_title") in r.text.lower()
+    assert _copy("Audio Helper — Recipe Canvas") in r.text.lower()
 
 
 def test_gui_ships_recipe_canvas_features(client):
@@ -131,15 +136,15 @@ def test_gui_ships_recipe_canvas_features(client):
     # on the locale file's own wording: the bare word "bypass" also appears in
     # the script's `step.bypass` field, so the old assertion passed on code
     # rather than on anything a user can see.
-    assert _copy("js_bypass") in lower
+    assert _copy("Bypass") in lower
 
     # Ear-first comparator: before/after selectors + Space-bar A/B toggle.
     assert 'id="cmp-a"' in body and 'id="cmp-b"' in body
     assert "cmp-toggle" in body
 
     # recipe.yaml export/import so a pipeline is a committable artifact.
-    assert _copy("export_button") in lower
-    assert _copy("import_label") in lower
+    assert _copy("Export recipe.yaml") in lower
+    assert _copy("Import recipe.yaml") in lower
 
     # CDN libraries are wired via <script> tags (no build step, house style).
     assert "wavesurfer.js" in lower  # waveforms
@@ -147,7 +152,12 @@ def test_gui_ships_recipe_canvas_features(client):
     assert "fflate" in lower  # in-browser unzip for split/separate chaining
 
     # Local-first honesty is surfaced in the header copy.
-    assert _copy("local_note") in lower
+    assert (
+        _copy(
+            "Local-first: audio is processed by your local API (ffmpeg + local Demucs). Nothing is uploaded to a third party; no telemetry."
+        )
+        in lower
+    )
 
     # All eight verbs remain reachable from the "add step" selector.
     for verb in (

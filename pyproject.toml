@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "audio-helper"
-version = "2.3.0"
+version = "2.4.0"
 description = "Audio Helper — utility functions for processing audio files exposed as library, argparse CLI, click CLI and FastAPI HTTP surface. Load audio, convert formats, separate audio sources (Demucs), split and concatenate audio. Shannon-correct resampling via ffmpeg/libswresample."
 readme = "README.md"
 requires-python = ">=3.10,<3.14"
@@ -27,7 +27,7 @@ classifiers = [
     "Topic :: Multimedia :: Sound/Audio :: Conversion",
 ]
 dependencies = [
-    "os-helper>=2.4.0,<3",
+    "os-helper>=2.6.0,<3",
     "ffmpeg-python>=0.2.0,<0.3",
     "tqdm>=4.67.1,<5",
     "scipy>=1.15.1,<2",
@@ -93,7 +93,7 @@ exclude = ["tests*", "assets*"]
 # root. best-engine declared five data files beside its package and published
 # wheels that contained none of them.
 [tool.setuptools.package-data]
-"audio_helper" = ["locales/*.yaml"]
+"audio_helper" = ["locales/*/LC_MESSAGES/*.po", "locales/*/LC_MESSAGES/*.mo"]
 
 [tool.pytest.ini_options]
 markers = [

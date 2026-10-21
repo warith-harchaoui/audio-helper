@@ -9,11 +9,18 @@ static asset the API returns verbatim.
 
 Where the words live
 --------------------
-Not here. Every human-readable string comes from ``locales/i18n.yaml``
-through :class:`os_helper.Locales`, the loader shared across the suite
-(``CODING.md`` 21.3). The markup below is tokenised — ``{{TOKEN}}`` in HTML,
-and a ``T`` object injected for the script — so one template serves every
-language and a translator never touches Python.
+In the markup, in English. Each one is wrapped as ``{{_("…")}}`` in the HTML,
+or listed in :data:`_JS_NAME_TO_SOURCE` for the script, and
+:class:`os_helper.Catalog` translates it through the compiled ``gettext``
+catalogues under ``locales/`` (``CODING.md`` 21.3).
+
+English is the msgid, so it needs no catalogue and cannot fall out of sync with
+one; a string the French catalogue has not caught up with renders as readable
+English instead of as a key. The cost is the mirror image: rewording the
+English here orphans its French entry, and gettext would quietly serve the
+English. ``tests/test_gui_i18n.py`` exists to catch that — it hands every source
+string to :meth:`os_helper.Catalog.problems`, so an orphaned translation is a
+red build rather than a half-reverted page.
 
 Two families of string stay out of the catalogue on purpose, and the locale
 file says why: the per-verb parameter labels in ``OPS``, which name the form
@@ -76,6 +83,7 @@ from __future__ import annotations
 import functools
 import html
 import json
+import re
 from pathlib import Path
 
 import os_helper as osh
@@ -83,124 +91,104 @@ import os_helper as osh
 # Inside the package, not beside it: a file one level up is not package data
 # and does not travel in the wheel. best-engine shipped exactly that bug —
 # `pip install` gave a package whose every GUI string raised FileNotFoundError.
-_LOCALES_PATH = Path(__file__).resolve().parent / "locales" / "i18n.yaml"
+_LOCALES_DIR = Path(__file__).resolve().parent / "locales"
 
-#: The section of the locale file this module reads.
-_GUI_SECTION = "gui"
+#: The gettext domain, and therefore each ``.mo`` file's stem.
+_DOMAIN = "audio_helper"
+
+#: The language served when the request names one we cannot render.
+_DEFAULT_LANGUAGE = "fr"
 
 
 @functools.lru_cache(maxsize=1)
-def _locales() -> osh.Locales:
-    """Parse ``locales/i18n.yaml`` once, through the suite's shared loader."""
-    return osh.Locales.from_path(_LOCALES_PATH)
+def _catalog() -> osh.Catalog:
+    """Resolve the catalogue directory once, through the suite's shared loader."""
+    return osh.Catalog.from_package(_LOCALES_DIR, _DOMAIN, default_language=_DEFAULT_LANGUAGE)
 
 
 def supported_languages() -> tuple[str, ...]:
-    """Language codes the GUI can render, as declared by the locale file."""
-    return tuple(_locales().supported_locales)
+    """Language codes the GUI can render: English plus every compiled catalogue."""
+    return _catalog().languages
 
 
 def default_language() -> str:
     """The language an unknown or absent ``?lang=`` falls back to."""
-    return _locales().default_locale
+    return _catalog().default_language
 
 
-# Two vocabularies meet here: the template's tokens and the locale file's
-# semantic keys. These maps bridge them. `_HTML_TOKEN_TO_KEY` fills {{TOKEN}}
-# placeholders; `_JS_NAME_TO_KEY` builds the `const T = {...}` the script reads.
-_HTML_TOKEN_TO_KEY: dict[str, str] = {
-    "PAGE_TITLE": "page_title",
-    "HERO_TITLE": "hero_title",
-    "HERO_P_LEAD": "hero_subtitle_lead",
-    "HERO_P_TAIL": "hero_subtitle_tail",
-    "LOCAL_NOTE": "local_note",
-    "EXPORT_BUTTON": "export_button",
-    "IMPORT_LABEL": "import_label",
-    "SOURCE_LABEL": "source_label",
-    "DROP_HINT": "drop_hint",
-    "SOURCE_WAVE_H2": "source_wave_heading",
-    "ADD_STEP_LABEL": "add_step_label",
-    "OP_CONVERT": "op_convert",
-    "OP_CHUNK": "op_chunk",
-    "OP_SILENCE": "op_silence",
-    "OP_CONCAT": "op_concat",
-    "OP_ROOMTONE": "op_roomtone",
-    "OP_SPLIT": "op_split",
-    "OP_SEPARATE": "op_separate",
-    "OP_RESEMBLANCE": "op_resemblance",
-    "ADD_STEP_BUTTON": "add_step_button",
-    "RUN_BUTTON": "run_button",
-    "CLEAR_BUTTON": "clear_button",
-    "RECIPE_ARIA": "recipe_aria",
-    "CMP_H2": "comparator_heading",
-    "CMP_HELP_LEAD": "comparator_help_lead",
-    "KBD_SPACE": "kbd_space",
-    "CMP_HELP_TAIL": "comparator_help_tail",
-    "CMP_BEFORE_LABEL": "cmp_before_label",
-    "CMP_AFTER_LABEL": "cmp_after_label",
-    "CMP_PLAY_BUTTON": "cmp_play_button",
-    "CMP_TOGGLE_BUTTON": "cmp_toggle_button",
-    "CMP_DIFF_CHECKBOX": "cmp_diff_checkbox",
-    "CMP_DIFF_H3": "cmp_diff_heading",
-    "LANG_HREF": "lang_toggle_href",
-    "LANG_FLAG": "lang_toggle_flag",
-    "LANG_ARIA": "lang_toggle_aria",
-}
+# The language toggle is computed, not translated. Its three parts all mean
+# "the other language", which is data rather than copy: a msgid of
+# ``/gui?lang=fr`` whose translation is ``/gui?lang=en`` would be nonsense, and
+# `Catalog.problems` would rightly treat it as prose that had drifted.
+#
+#: Flag shown for a language — the flag of that language, not of the page.
+_FLAGS: dict[str, str] = {"fr": "🇫🇷", "en": "🇬🇧"}
 
-_JS_NAME_TO_KEY: dict[str, str] = {
-    "hearing": "js_hearing",
-    "beforeLabel": "cmp_before_label",
-    "afterLabel": "cmp_after_label",
-    "emptyRecipe": "js_empty_recipe",
-    "moveUp": "js_move_up",
-    "moveDown": "js_move_down",
-    "bypass": "js_bypass",
-    "removeStep": "js_remove_step",
-    "terminalScore": "js_terminal_score",
-    "multiFileZip": "js_multi_file_zip",
-    "concatHint": "js_concat_hint",
-    "resemblanceHint": "js_resemblance_hint",
-    "scoreLine": "js_score_line",
-    "outputHeading": "js_output_heading",
-    "download": "js_download",
-    "spectrogram": "js_spectrogram",
-    "notRun": "js_not_run",
-    "zipPick": "js_zip_pick",
-    "needStep": "js_need_step",
-    "running": "js_running",
-    "stepProgress": "js_step_progress",
-    "noInput": "js_no_input",
-    "stoppedNoInput": "js_stopped_no_input",
-    "resemblanceNeedsB": "js_resemblance_needs_b",
-    "stopped": "js_stopped",
-    "httpError": "js_http_error",
-    "stoppedAtStep": "js_stopped_at_step",
-    "emptyArchive": "js_empty_archive",
-    "recipeComplete": "js_recipe_complete",
-    "recipeFailed": "js_recipe_failed",
-    "nothingToExport": "js_nothing_to_export",
-    "exported": "js_exported",
-    "imported": "js_imported",
-    "importFailed": "js_import_failed",
-    "computingSpectrogram": "js_computing_spectrogram",
-    "spectrogramUnavailable": "js_spectrogram_unavailable",
-    "clipSource": "js_clip_source",
-    "clipStep": "js_clip_step",
-    "diffUnavailable": "js_diff_unavailable",
+#: How each language names itself. Deliberately NOT translated: a French page
+#: offering English says "English version" in English, which is what a reader
+#: scanning for their own language actually looks for.
+_ENDONYMS: dict[str, str] = {"fr": "Version française", "en": "English version"}
+
+
+# The inline script's strings. The JS names are the contract between this
+# module and the script below; the English beside each one is the msgid, so
+# the script's copy lives in the same place as the markup's and is checked
+# by the same test. Injected as JSON, which is the one encoding an
+# apostrophe cannot break out of — and French copy is full of them.
+_JS_NAME_TO_SOURCE: dict[str, str] = {
+    "hearing": "Hearing: {side}",
+    "beforeLabel": "Before",
+    "afterLabel": "After",
+    "emptyRecipe": "No steps yet. Pick a verb above and press “+ Add step”.",
+    "moveUp": "Move step up",
+    "moveDown": "Move step down",
+    "bypass": "Bypass",
+    "removeStep": "Remove step",
+    "terminalScore": " · terminal (score)",
+    "multiFileZip": " · multi-file (zip)",
+    "concatHint": "extra file(s) to append after the piped input",
+    "resemblanceHint": "second file (B) to compare the piped input (A) against",
+    "scoreLine": "MFCC similarity score: {score} (terminal step)",
+    "outputHeading": "Output — {name}",
+    "download": "Download",
+    "spectrogram": "Spectrogram",
+    "notRun": "Not run yet.",
+    "zipPick": "{count} files produced — pick which one chains downstream:",
+    "needStep": "Add at least one step first.",
+    "running": "Running recipe…",
+    "stepProgress": "Step {index}/{total}: {op}…",
+    "noInput": "No input available — the previous step produced nothing chainable.",
+    "stoppedNoInput": "Recipe stopped: a step had no input.",
+    "resemblanceNeedsB": "resemblance needs a second file (B).",
+    "stopped": "Recipe stopped.",
+    "httpError": "HTTP {status}: {body}",
+    "stoppedAtStep": "Recipe stopped at step {index}.",
+    "emptyArchive": "The step produced an empty archive.",
+    "recipeComplete": "Recipe complete.",
+    "recipeFailed": "Recipe failed: {error}",
+    "nothingToExport": "Nothing to export — the recipe is empty.",
+    "exported": "Exported recipe.yaml.",
+    "imported": "Imported {count} step(s) from {name}.",
+    "importFailed": "Could not import recipe: {error}",
+    "computingSpectrogram": "Computing spectrogram…",
+    "spectrogramUnavailable": "Spectrogram unavailable: {error}",
+    "clipSource": "Source",
+    "clipStep": "Step {index}: {op} ({name})",
+    "diffUnavailable": "Difference unavailable: {error}",
 }
 
 
-# One template, every language. Human-facing text is tokenised as {{TOKEN}}
-# (HTML) or read from the injected `T` object (JavaScript); `render_gui` fills
-# both. Every library is pulled from a CDN so there is no build step; the
-# JavaScript is a single inline ES module talking to the existing API
-# endpoints (client-orchestrated recipe runner).
+#: One ``{{_("…")}}`` site in the template. Non-greedy and newline-free, so a
+#: run of them on one line stays separate and an unterminated one is left
+#: alone rather than swallowing the rest of the page.
+_SOURCE_RE = re.compile(r'\{\{_\("(.*?)"\)\}\}')
+
 _GUI_TEMPLATE: str = r"""<!doctype html>
 <html lang="{{LANG}}" class="h-full">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{{PAGE_TITLE}}</title>
+  <title>{{_("Audio Helper — Recipe Canvas")}}</title>
   <!-- Tailwind via CDN: keeps the page a single self-contained file, no build. -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- WaveSurfer.js: per-step waveforms + scrubbing for the ear-first comparator. -->
@@ -220,12 +208,12 @@ _GUI_TEMPLATE: str = r"""<!doctype html>
   <div class="mx-auto max-w-5xl px-4 py-8">
     <header class="mb-6 flex flex-wrap items-start justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-semibold tracking-tight">{{HERO_TITLE}}</h1>
+        <h1 class="text-2xl font-semibold tracking-tight">{{_("Audio Helper — Recipe Canvas")}}</h1>
         <p class="mt-1 text-sm text-slate-600">
-          {{HERO_P_LEAD}} <code>recipe.yaml</code> {{HERO_P_TAIL}}
+          {{_("Chain the eight verbs into a sequential pipeline. Each step runs on the local API and feeds its output into the next — hear every intermediate step, bypass any step for instant A/B, and export the whole thing as a committable")}} <code>recipe.yaml</code> {{_("file.")}}
         </p>
         <p class="mt-1 text-xs text-slate-500">
-          {{LOCAL_NOTE}}
+          {{_("Local-first: audio is processed by your local API (ffmpeg + local Demucs). Nothing is uploaded to a third party; no telemetry.")}}
         </p>
       </div>
       <!-- Recipe-level actions: export / import a recipe.yaml artifact,
@@ -236,11 +224,11 @@ _GUI_TEMPLATE: str = r"""<!doctype html>
         <button id="export-yaml"
                 class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium
                        hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
-          {{EXPORT_BUTTON}}
+          {{_("Export recipe.yaml")}}
         </button>
         <label class="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
                       font-medium hover:bg-slate-100 focus-within:ring-2 focus-within:ring-blue-500">
-          {{IMPORT_LABEL}}
+          {{_("Import recipe.yaml")}}
           <input id="import-yaml" type="file" accept=".yaml,.yml,text/yaml" class="hidden" />
         </label>
       </div>
@@ -248,19 +236,19 @@ _GUI_TEMPLATE: str = r"""<!doctype html>
 
     <!-- 1) Source file: drag-and-drop zone doubling as a file picker. -->
     <section class="mb-5">
-      <label for="file" class="block text-sm font-medium mb-1">{{SOURCE_LABEL}}</label>
+      <label for="file" class="block text-sm font-medium mb-1">{{_("Source audio file")}}</label>
       <div id="drop" tabindex="0"
            class="flex flex-col items-center justify-center rounded-xl border-2 border-dashed
                   border-slate-300 bg-white px-4 py-6 text-center cursor-pointer
                   focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-blue-400">
-        <p class="text-sm text-slate-500">{{DROP_HINT}}</p>
+        <p class="text-sm text-slate-500">{{_("Drop a file here, or click to choose")}}</p>
         <p id="filename" class="mt-2 text-sm font-medium text-slate-800"></p>
         <input id="file" type="file" accept="audio/*,video/*" class="hidden" />
       </div>
       <!-- Source waveform: the recipe's "step 0" that every first step reads from. -->
       <div class="mt-3 rounded-xl border border-slate-200 bg-white p-3">
         <div class="mb-1 flex items-center justify-between">
-          <h2 class="text-xs font-medium text-slate-600">{{SOURCE_WAVE_H2}}</h2>
+          <h2 class="text-xs font-medium text-slate-600">{{_("Source waveform")}}</h2>
           <audio id="src-audio" controls class="h-8"></audio>
         </div>
         <div id="src-wave" class="min-h-[48px]"></div>
@@ -270,58 +258,58 @@ _GUI_TEMPLATE: str = r"""<!doctype html>
     <!-- 2) Add-a-step controls: pick a verb, append it to the recipe. -->
     <section class="mb-4 flex flex-wrap items-end gap-3">
       <div>
-        <label for="add-op" class="block text-sm font-medium mb-1">{{ADD_STEP_LABEL}}</label>
+        <label for="add-op" class="block text-sm font-medium mb-1">{{_("Add a step")}}</label>
         <select id="add-op"
                 class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
                        focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option value="convert">{{OP_CONVERT}}</option>
-          <option value="chunk">{{OP_CHUNK}}</option>
-          <option value="silence">{{OP_SILENCE}}</option>
-          <option value="concat">{{OP_CONCAT}}</option>
-          <option value="roomtone">{{OP_ROOMTONE}}</option>
-          <option value="split">{{OP_SPLIT}}</option>
-          <option value="separate">{{OP_SEPARATE}}</option>
-          <option value="resemblance">{{OP_RESEMBLANCE}}</option>
+          <option value="convert">{{_("convert — re-encode (freq / channels / codec)")}}</option>
+          <option value="chunk">{{_("chunk — extract a [start, end] slice")}}</option>
+          <option value="silence">{{_("silence — generate N seconds of silence")}}</option>
+          <option value="concat">{{_("concat — append extra file(s) head-to-tail")}}</option>
+          <option value="roomtone">{{_("roomtone — mix low-level ambient noise")}}</option>
+          <option value="split">{{_("split — fixed-duration chunks (zip)")}}</option>
+          <option value="separate">{{_("separate — Demucs stems (zip)")}}</option>
+          <option value="resemblance">{{_("resemblance — MFCC similarity score")}}</option>
         </select>
       </div>
       <button id="add-step"
               class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white
                      hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-        {{ADD_STEP_BUTTON}}
+        {{_("+ Add step")}}
       </button>
       <button id="run-recipe"
               class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white
                      hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500
                      disabled:opacity-50">
-        {{RUN_BUTTON}}
+        {{_("▶ Run recipe")}}
       </button>
       <button id="clear-recipe"
               class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium
                      hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
-        {{CLEAR_BUTTON}}
+        {{_("Clear")}}
       </button>
       <span id="status" class="text-sm text-slate-600" role="status" aria-live="polite"></span>
     </section>
 
     <!-- 3) The recipe: an ordered list of step cards, rendered by JS. -->
-    <section id="recipe" class="mb-8 space-y-4" aria-label="{{RECIPE_ARIA}}"></section>
+    <section id="recipe" class="mb-8 space-y-4" aria-label="{{_("Recipe steps")}}"></section>
 
     <!-- 4) Ear-first comparator: align two produced clips and toggle before/after. -->
     <section class="mb-8 rounded-xl border border-slate-200 bg-white p-4">
-      <h2 class="mb-2 text-sm font-semibold">{{CMP_H2}}</h2>
+      <h2 class="mb-2 text-sm font-semibold">{{_("Ear-first comparator")}}</h2>
       <p class="mb-3 text-xs text-slate-600">
-        {{CMP_HELP_LEAD}} <kbd class="rounded border px-1">{{KBD_SPACE}}</kbd>
-        {{CMP_HELP_TAIL}}
+        {{_("Pick a before clip and an after clip (the source, or any step's output). Press")}} <kbd class="rounded border px-1">{{_("Space")}}</kbd>
+        {{_("to toggle which one you hear at the same playhead — the mixer-style A/B producers use.")}}
       </p>
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
-          <label for="cmp-a" class="block text-xs font-medium mb-1">{{CMP_BEFORE_LABEL}}</label>
+          <label for="cmp-a" class="block text-xs font-medium mb-1">{{_("Before")}}</label>
           <select id="cmp-a"
                   class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
                          focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
         </div>
         <div>
-          <label for="cmp-b" class="block text-xs font-medium mb-1">{{CMP_AFTER_LABEL}}</label>
+          <label for="cmp-b" class="block text-xs font-medium mb-1">{{_("After")}}</label>
           <select id="cmp-b"
                   class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
                          focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
@@ -332,12 +320,12 @@ _GUI_TEMPLATE: str = r"""<!doctype html>
         <button id="cmp-play"
                 class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white
                        hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-          {{CMP_PLAY_BUTTON}}
+          {{_("Play / Pause")}}
         </button>
         <button id="cmp-toggle"
                 class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium
                        hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
-          {{CMP_TOGGLE_BUTTON}}
+          {{_("Toggle A/B (Space)")}}
         </button>
         <!-- Pre-rendered server-side from the same template the script uses,
              so the badge is already a sentence before the first toggle. -->
@@ -347,12 +335,12 @@ _GUI_TEMPLATE: str = r"""<!doctype html>
         </span>
         <label class="ml-auto flex items-center gap-2 text-xs text-slate-600">
           <input id="cmp-diff" type="checkbox" class="h-4 w-4" />
-          {{CMP_DIFF_CHECKBOX}}
+          {{_("Show difference view")}}
         </label>
       </div>
       <!-- Difference view: rendered on demand, colorblind-safe (shape + label, not color alone). -->
       <div id="cmp-diff-wrap" hidden class="mt-3">
-        <p class="mb-1 text-xs font-medium text-slate-600">{{CMP_DIFF_H3}}</p>
+        <p class="mb-1 text-xs font-medium text-slate-600">{{_("Difference (after − before)")}}</p>
         <canvas id="cmp-diff-canvas" class="w-full rounded border border-slate-200" height="80"></canvas>
       </div>
     </section>
@@ -1114,8 +1102,8 @@ def render_gui(lang: str = "") -> str:
     ----------
     lang : str
         Two-letter language code. Anything outside the locale file's
-        ``meta.supported_locales`` — including the empty string — falls back
-        to ``meta.default_locale``, so an unknown ``?lang=`` never 500s.
+        a compiled catalogue — including the empty string — falls back to
+        :data:`_DEFAULT_LANGUAGE`, so an unknown ``?lang=`` never 500s.
 
     Returns
     -------
@@ -1129,32 +1117,43 @@ def render_gui(lang: str = "") -> str:
     >>> render_gui("tlh") == render_gui(default_language())
     True
     """
-    resolved = lang if lang in supported_languages() else default_language()
-    loc = _locales()
+    cat = _catalog()
+    resolved = cat.resolve(lang)
+    translate = cat.translator_for(resolved).gettext
 
-    page = _GUI_TEMPLATE.replace("{{LANG}}", html.escape(resolved, quote=True))
-    for token, key in _HTML_TOKEN_TO_KEY.items():
-        # Escape every value: these land in attributes (aria, href) as readily
-        # as in text nodes, and a stray quote would break out of the attribute
-        # it sits in.
-        value = html.escape(loc.text(_GUI_SECTION, key, resolved), quote=True)
-        page = page.replace("{{" + token + "}}", value)
+    # The other language, for the toggle. With two languages this is "the one
+    # that is not current"; with more it is the next one round, which keeps the
+    # flag a cycle rather than a dead end.
+    languages = cat.languages
+    other = languages[(languages.index(resolved) + 1) % len(languages)]
 
-    # The comparator badge starts out already saying something, filled from the
-    # very template the script will reuse on every toggle — one sentence, one
-    # key, rather than a second string that could drift from the first.
-    initial_badge = loc.render(
-        _GUI_SECTION,
-        "js_hearing",
-        resolved,
-        side=loc.text(_GUI_SECTION, "cmp_before_label", resolved),
-    )
+    def _render_source(match: re.Match[str]) -> str:
+        """Translate one ``{{_("…")}}`` site and escape it for HTML.
+
+        Escaping is not optional: these land in attributes (placeholder, alt,
+        aria, title) as readily as in text nodes, and a French apostrophe in an
+        attribute would close it early.
+        """
+        return html.escape(translate(match.group(1)), quote=True)
+
+    page = _SOURCE_RE.sub(_render_source, _GUI_TEMPLATE)
+    page = page.replace("{{LANG}}", html.escape(resolved, quote=True))
+    page = page.replace("{{LANG_HREF}}", html.escape(f"/gui?lang={other}", quote=True))
+    page = page.replace("{{LANG_FLAG}}", _FLAGS.get(other, other.upper()))
+    page = page.replace("{{LANG_ARIA}}", html.escape(_ENDONYMS.get(other, other), quote=True))
+
+    # The comparator badge starts out already saying something, built from the
+    # very source string the script reuses on every toggle — one sentence, one
+    # catalogue entry, rather than a second string that could drift from the
+    # first. The `{side}` placeholder is filled after translation, because an
+    # already-interpolated sentence matches no catalogue entry.
+    initial_badge = translate("Hearing: {side}").format(side=translate("Before"))
     page = page.replace("{{CMP_HEARING_INIT}}", html.escape(initial_badge, quote=True))
 
     # The script's strings go in as JSON rather than as substituted text: it is
     # the encoding that cannot be broken out of by an apostrophe, and French
     # copy is full of them.
-    table = {name: loc.text(_GUI_SECTION, key, resolved) for name, key in _JS_NAME_TO_KEY.items()}
+    table = {name: translate(source) for name, source in _JS_NAME_TO_SOURCE.items()}
     return page.replace("{{T_JSON}}", json.dumps(table, ensure_ascii=False))
 
 

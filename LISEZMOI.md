@@ -231,8 +231,9 @@ La page parle **français et anglais**. `GET /gui?lang=fr|en` choisit la langue,
 un drapeau dans l'en-tête bascule de l'une à l'autre, et un code que le fichier
 de locales ne porte pas retombe sur la langue par défaut au lieu d'échouer.
 Toutes les chaînes vivent dans
-[`audio_helper/locales/i18n.yaml`](https://github.com/warith-harchaoui/audio-helper/blob/main/audio_helper/locales/i18n.yaml),
-lu par `os_helper.Locales` — le chargeur partagé par la suite — si bien que
+[`audio_helper/locales/fr/LC_MESSAGES/audio_helper.po`](https://github.com/warith-harchaoui/audio-helper/blob/main/audio_helper/locales/fr/LC_MESSAGES/audio_helper.po),
+un catalogue `gettext` standard lu par `os_helper.Catalog` — le chargeur
+partagé par la suite — si bien que
 traduire la page n'oblige jamais à ouvrir un fichier Python. Deux choses
 restent volontairement dans une seule langue, et le fichier dit pourquoi : les
 libellés de paramètres de chaque verbe nomment les champs que la requête porte

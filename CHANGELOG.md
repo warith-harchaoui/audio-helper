@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2026-10-21
+
+### Changed
+
+- **The GUI's strings moved from `locales/i18n.yaml` to a `gettext`
+  catalogue**, the suite-wide mechanism as of os-helper 2.6.0. The English is
+  now the source, written in the markup itself as `{{_("…")}}`; the French
+  lives in `audio_helper/locales/fr/LC_MESSAGES/audio_helper.po` and is read
+  through `os_helper.Catalog`. At 69 entries this is the largest catalogue in
+  the suite.
+
+  A string the French catalogue has not caught up with renders as **readable
+  English** instead of as a key. The cost is the mirror image — rewording the
+  English orphans its French entry, and gettext would quietly serve the
+  English — so `tests/test_gui_i18n.py` hands every source string to
+  `Catalog.problems`, which names both halves of that fault.
+
+- **The comparator badge is translated before it is interpolated.**
+  `Hearing: {side}` is the one string here carrying a placeholder, and the
+  order matters: fill it first and the interpolated sentence matches no
+  catalogue entry, so the badge silently falls back to English. Two tests now
+  cover it — one that the rendered badge names its side in each language, and
+  one that no translation has dropped the `{side}` placeholder, which would
+  otherwise fail only at render time. Both proven by breaking them.
+
+  The language toggle is computed rather than translated: its three parts all
+  mean "the other language", which is data, not copy.
+
+### Fixed
+
+- **The compiled catalogue would never have shipped.** The stock Python
+  `.gitignore` carries a blanket `*.mo`, where a `.mo` is a build artifact;
+  here it is the file the GUI reads at run time. Left ignored it would have
+  been absent from the repository, therefore from the wheel, and every string
+  would have rendered as English on an installed copy while looking perfect
+  locally. Negated and held by a "tracked by git" test.
+
+- `tests/test_api.py` asked the locale file for six strings by semantic key.
+  It now asks the catalogue by English source, so those assertions name the
+  copy rather than a key.
+
 ## [2.3.0] - 2026-10-21
 
 ### Added
