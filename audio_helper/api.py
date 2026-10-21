@@ -220,7 +220,7 @@ def root() -> RedirectResponse:
 
 
 @app.get("/gui", response_class=HTMLResponse, tags=["meta"])
-def gui() -> HTMLResponse:
+def gui(lang: str = "") -> HTMLResponse:
     """Serve the self-contained single-page 'Recipe Canvas' GUI.
 
     The page (defined in :mod:`audio_helper.gui`) is a build-step-free
@@ -228,16 +228,23 @@ def gui() -> HTMLResponse:
     ``/convert`` / ``/chunk`` / … endpoints defined below. It adds no
     server-side logic — it is purely a friendlier front door to the API.
 
+    Parameters
+    ----------
+    lang : str, optional
+        Wanted page language, e.g. ``fr`` or ``en``. An unknown or absent
+        value falls back to the locale file's default rather than failing, so
+        a mistyped ``?lang=`` returns a page instead of a 500.
+
     Returns
     -------
     HTMLResponse
         The complete HTML document (status 200, ``text/html``).
     """
-    # Import here so the (large) HTML string is only loaded when the route is
-    # actually hit, and so importing the API module stays cheap.
-    from .gui import GUI_HTML
+    # Import here so the (large) template and its locale file are only read
+    # when the route is actually hit, and importing the API module stays cheap.
+    from .gui import render_gui
 
-    return HTMLResponse(content=GUI_HTML)
+    return HTMLResponse(content=render_gui(lang))
 
 
 # ---------------------------------------------------------------------------

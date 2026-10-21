@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "audio-helper"
-version = "2.2.0"
+version = "2.3.0"
 description = "Audio Helper — utility functions for processing audio files exposed as library, argparse CLI, click CLI and FastAPI HTTP surface. Load audio, convert formats, separate audio sources (Demucs), split and concatenate audio. Shannon-correct resampling via ffmpeg/libswresample."
 readme = "README.md"
 requires-python = ">=3.10,<3.14"
@@ -27,7 +27,7 @@ classifiers = [
     "Topic :: Multimedia :: Sound/Audio :: Conversion",
 ]
 dependencies = [
-    "os-helper>=2.0.0,<3",
+    "os-helper>=2.4.0,<3",
     "ffmpeg-python>=0.2.0,<0.3",
     "tqdm>=4.67.1,<5",
     "scipy>=1.15.1,<2",
@@ -88,6 +88,13 @@ Issues = "https://github.com/warith-harchaoui/audio-helper/issues"
 include = ["audio_helper*"]
 exclude = ["tests*", "assets*"]
 
+# setuptools ships `.py` files on its own; anything else needs declaring here,
+# and the patterns resolve relative to a PACKAGE directory, never to the repo
+# root. best-engine declared five data files beside its package and published
+# wheels that contained none of them.
+[tool.setuptools.package-data]
+"audio_helper" = ["locales/*.yaml"]
+
 [tool.pytest.ini_options]
 markers = [
     "integration: tests that hit the network, ffmpeg, or load Demucs (skipped by default)",
@@ -97,7 +104,11 @@ addopts = "-m 'not integration'"
 [tool.ruff]
 line-length = 100
 target-version = "py310"
-extend-exclude = ["assets", "tests"]
+# `tests` is NOT excluded: CI lints it, so excluding it here would make
+# `ruff check .` — what the pre-push hook and developers run — greener
+# than the gate. podcast-helper carried exactly that skew and sat on a
+# red CI for two days over a finding no local check could reproduce.
+extend-exclude = ["assets"]
 
 [tool.ruff.lint]
 # Conservative starter set: pyflakes (F), pycodestyle errors (E), warnings (W),

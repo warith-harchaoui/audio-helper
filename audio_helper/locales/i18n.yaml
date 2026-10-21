@@ -1,0 +1,290 @@
+# Human-language source of truth for audio-helper.
+#
+# `gui:` holds every string the Recipe Canvas page shows. Code refers to these
+# keys; this file owns the wording. Read by `os_helper.Locales`, the loader
+# shared across the suite (CODING.md 21.3).
+#
+# There is no `prompts:` section: this package talks to ffmpeg and a local
+# Demucs, not to a model.
+#
+# Two families of string stay deliberately OUT of this file:
+#
+#   - The per-verb parameter labels in `OPS` (`output_format`, `freq (Hz)`,
+#     `db`, `color`, …). Each one names the form field the request actually
+#     carries, so leaving it in the wire's own spelling is what makes the card
+#     legible against the API documentation. Translating them would hide what
+#     is being sent.
+#   - The comment header `recipeToYaml` writes into `recipe.yaml`. That file is
+#     a committable artifact meant to be replayed and shared; a comment that
+#     changed language with the browser would make the same recipe diff
+#     against itself.
+
+meta:
+  default_locale: fr
+  supported_locales:
+  - fr
+  - en
+
+gui:
+  # --- head / header -------------------------------------------------------
+  page_title:
+    fr: Audio Helper — Plan de travail
+    en: Audio Helper — Recipe Canvas
+  hero_title:
+    fr: Audio Helper — Plan de travail
+    en: Audio Helper — Recipe Canvas
+  # Split in two because the sentence ends on a <code> element: a locale file
+  # holds copy, never markup, so the markup stays in the template and the copy
+  # comes in on either side of it.
+  hero_subtitle_lead:
+    fr: >-
+      Enchaînez les huit verbes en une chaîne séquentielle. Chaque étape
+      tourne sur l'API locale et passe sa sortie à la suivante — écoutez
+      chaque étape intermédiaire, court-circuitez n'importe laquelle pour un
+      A/B instantané, puis exportez le tout en un
+    en: >-
+      Chain the eight verbs into a sequential pipeline. Each step runs on the
+      local API and feeds its output into the next — hear every intermediate
+      step, bypass any step for instant A/B, and export the whole thing as a
+      committable
+  hero_subtitle_tail:
+    fr: versionnable.
+    en: file.
+  local_note:
+    fr: >-
+      Tout en local : l'audio est traité par votre API locale (ffmpeg +
+      Demucs local). Rien n'est envoyé à un tiers, aucune télémétrie.
+    en: >-
+      Local-first: audio is processed by your local API (ffmpeg + local
+      Demucs). Nothing is uploaded to a third party; no telemetry.
+  export_button:
+    fr: Exporter recipe.yaml
+    en: Export recipe.yaml
+  import_label:
+    fr: Importer recipe.yaml
+    en: Import recipe.yaml
+
+  # --- source file ---------------------------------------------------------
+  source_label:
+    fr: Fichier audio source
+    en: Source audio file
+  drop_hint:
+    fr: Déposez un fichier ici ou cliquez pour en choisir un
+    en: Drop a file here, or click to choose
+  source_wave_heading:
+    fr: Forme d'onde de la source
+    en: Source waveform
+
+  # --- add a step ----------------------------------------------------------
+  # The verb itself is the API's own name and stays; what follows the dash is
+  # the description, and that is what gets translated.
+  add_step_label:
+    fr: Ajouter une étape
+    en: Add a step
+  op_convert:
+    fr: convert — ré-encoder (fréquence / canaux / codec)
+    en: convert — re-encode (freq / channels / codec)
+  op_chunk:
+    fr: chunk — extraire une tranche [début, fin]
+    en: chunk — extract a [start, end] slice
+  op_silence:
+    fr: silence — générer N secondes de silence
+    en: silence — generate N seconds of silence
+  op_concat:
+    fr: concat — ajouter d'autres fichiers bout à bout
+    en: concat — append extra file(s) head-to-tail
+  op_roomtone:
+    fr: roomtone — mélanger un bruit d'ambiance de faible niveau
+    en: roomtone — mix low-level ambient noise
+  op_split:
+    fr: split — morceaux de durée fixe (zip)
+    en: split — fixed-duration chunks (zip)
+  op_separate:
+    fr: separate — stems Demucs (zip)
+    en: separate — Demucs stems (zip)
+  op_resemblance:
+    fr: resemblance — score de similarité MFCC
+    en: resemblance — MFCC similarity score
+  add_step_button:
+    fr: + Ajouter l'étape
+    en: + Add step
+  run_button:
+    fr: ▶ Lancer la chaîne
+    en: ▶ Run recipe
+  clear_button:
+    fr: Vider
+    en: Clear
+  recipe_aria:
+    fr: Étapes de la chaîne
+    en: Recipe steps
+
+  # --- ear-first comparator ------------------------------------------------
+  comparator_heading:
+    fr: Comparateur à l'oreille
+    en: Ear-first comparator
+  # One key per clause rather than one per emphasised word: a sentence cut
+  # into six fragments cannot be reordered by a translator, which is the whole
+  # point of keeping it here. The <kbd> stays in the template because it is a
+  # keyboard affordance, not emphasis; the before/after distinction is already
+  # carried by the two labelled selects right below.
+  comparator_help_lead:
+    fr: >-
+      Choisissez un extrait avant et un extrait après (la source ou la sortie
+      de n'importe quelle étape). Appuyez sur
+    en: >-
+      Pick a before clip and an after clip (the source, or any step's output).
+      Press
+  kbd_space:
+    fr: Espace
+    en: Space
+  comparator_help_tail:
+    fr: >-
+      pour basculer celui que vous entendez au même point de lecture — l'A/B
+      de table de mixage dont les producteurs se servent.
+    en: >-
+      to toggle which one you hear at the same playhead — the mixer-style A/B
+      producers use.
+  cmp_before_label:
+    fr: Avant
+    en: Before
+  cmp_after_label:
+    fr: Après
+    en: After
+  cmp_play_button:
+    fr: Lecture / Pause
+    en: Play / Pause
+  cmp_toggle_button:
+    fr: Basculer A/B (Espace)
+    en: Toggle A/B (Space)
+  cmp_diff_checkbox:
+    fr: Afficher la vue différentielle
+    en: Show difference view
+  cmp_diff_heading:
+    fr: Différence (après − avant)
+    en: Difference (after − before)
+
+  # --- language toggle -----------------------------------------------------
+  lang_toggle_href:
+    fr: /gui?lang=en
+    en: /gui?lang=fr
+  lang_toggle_flag:
+    fr: 🇬🇧
+    en: 🇫🇷
+  lang_toggle_aria:
+    fr: English version
+    en: Version française
+
+  # --- strings written by the page's script --------------------------------
+  # Templates carry named fields rather than being glued together in
+  # JavaScript, so a translator can reorder the sentence (section 21.3.5).
+  js_hearing:
+    fr: 'À l''écoute : {side}'
+    en: 'Hearing: {side}'
+  js_empty_recipe:
+    fr: Aucune étape. Choisissez un verbe ci-dessus et appuyez sur « + Ajouter l'étape ».
+    en: No steps yet. Pick a verb above and press “+ Add step”.
+  js_move_up:
+    fr: Monter l'étape
+    en: Move step up
+  js_move_down:
+    fr: Descendre l'étape
+    en: Move step down
+  js_bypass:
+    fr: Court-circuiter
+    en: Bypass
+  js_remove_step:
+    fr: Retirer l'étape
+    en: Remove step
+  js_terminal_score:
+    fr: ' · terminal (score)'
+    en: ' · terminal (score)'
+  js_multi_file_zip:
+    fr: ' · multi-fichiers (zip)'
+    en: ' · multi-file (zip)'
+  js_concat_hint:
+    fr: fichier(s) à ajouter après l'entrée transmise
+    en: extra file(s) to append after the piped input
+  js_resemblance_hint:
+    fr: second fichier (B) auquel comparer l'entrée transmise (A)
+    en: second file (B) to compare the piped input (A) against
+  js_score_line:
+    fr: 'Score de similarité MFCC : {score} (étape terminale)'
+    en: 'MFCC similarity score: {score} (terminal step)'
+  js_output_heading:
+    fr: Sortie — {name}
+    en: Output — {name}
+  js_download:
+    fr: Télécharger
+    en: Download
+  js_spectrogram:
+    fr: Spectrogramme
+    en: Spectrogram
+  js_not_run:
+    fr: Pas encore lancée.
+    en: Not run yet.
+  js_zip_pick:
+    fr: '{count} fichiers produits — choisissez celui qui continue en aval :'
+    en: '{count} files produced — pick which one chains downstream:'
+  js_need_step:
+    fr: Ajoutez d'abord au moins une étape.
+    en: Add at least one step first.
+  js_running:
+    fr: Chaîne en cours…
+    en: Running recipe…
+  js_step_progress:
+    fr: 'Étape {index}/{total} : {op}…'
+    en: 'Step {index}/{total}: {op}…'
+  js_no_input:
+    fr: Aucune entrée disponible — l'étape précédente n'a rien produit de chaînable.
+    en: No input available — the previous step produced nothing chainable.
+  js_stopped_no_input:
+    fr: 'Chaîne arrêtée : une étape n''avait pas d''entrée.'
+    en: 'Recipe stopped: a step had no input.'
+  js_resemblance_needs_b:
+    fr: resemblance a besoin d'un second fichier (B).
+    en: resemblance needs a second file (B).
+  js_stopped:
+    fr: Chaîne arrêtée.
+    en: Recipe stopped.
+  js_http_error:
+    fr: 'HTTP {status} : {body}'
+    en: 'HTTP {status}: {body}'
+  js_stopped_at_step:
+    fr: Chaîne arrêtée à l'étape {index}.
+    en: Recipe stopped at step {index}.
+  js_empty_archive:
+    fr: L'étape a produit une archive vide.
+    en: The step produced an empty archive.
+  js_recipe_complete:
+    fr: Chaîne terminée.
+    en: Recipe complete.
+  js_recipe_failed:
+    fr: 'Échec de la chaîne : {error}'
+    en: 'Recipe failed: {error}'
+  js_nothing_to_export:
+    fr: Rien à exporter — la chaîne est vide.
+    en: Nothing to export — the recipe is empty.
+  js_exported:
+    fr: recipe.yaml exporté.
+    en: Exported recipe.yaml.
+  js_imported:
+    fr: '{count} étape(s) importée(s) depuis {name}.'
+    en: Imported {count} step(s) from {name}.
+  js_import_failed:
+    fr: 'Impossible d''importer la chaîne : {error}'
+    en: 'Could not import recipe: {error}'
+  js_computing_spectrogram:
+    fr: Calcul du spectrogramme…
+    en: Computing spectrogram…
+  js_spectrogram_unavailable:
+    fr: 'Spectrogramme indisponible : {error}'
+    en: 'Spectrogram unavailable: {error}'
+  js_clip_source:
+    fr: Source
+    en: Source
+  js_clip_step:
+    fr: 'Étape {index} : {op} ({name})'
+    en: 'Step {index}: {op} ({name})'
+  js_diff_unavailable:
+    fr: 'Différence indisponible : {error}'
+    en: 'Difference unavailable: {error}'

@@ -73,6 +73,21 @@ def test_docs_endpoint_is_served(client):
     assert "swagger" in r.text.lower() or "openapi" in r.text.lower()
 
 
+def _copy(key: str) -> str:
+    """One of the GUI's own strings, in whatever language it renders by default.
+
+    Escaped the way the page escapes it, and lower-cased for the `in body`
+    comparisons below: a French string can carry an apostrophe, which
+    `render_gui` writes as `&#x27;` — correct HTML that a browser renders as an
+    apostrophe, and not the literal the locale file holds.
+    """
+    import html
+
+    from audio_helper import gui
+
+    return html.escape(gui._locales().text("gui", key), quote=True).lower()
+
+
 def test_gui_returns_200_html(client):
     """``GET /gui`` should return 200 with a self-contained HTML page."""
     r = client.get("/gui")
@@ -83,7 +98,10 @@ def test_gui_returns_200_html(client):
     assert "<!doctype html>" in body
     # Sanity-check it is the Recipe Canvas and offers the real operations
     # (the JS builds endpoint URLs from OPS, so we assert on the op names).
-    assert "recipe canvas" in body
+    # Ask the locale file what the page is called rather than hard-coding one
+    # language's wording: the page renders in French by default, so asserting
+    # the English copy would be testing the default locale, not the page.
+    assert _copy("hero_title") in body
     assert 'value="convert"' in r.text and 'value="separate"' in r.text
 
 
@@ -92,7 +110,7 @@ def test_root_redirects_to_gui(client):
     # follow_redirects defaults True in the TestClient; assert we land on HTML.
     r = client.get("/")
     assert r.status_code == 200
-    assert "recipe canvas" in r.text.lower()
+    assert _copy("hero_title") in r.text.lower()
 
 
 def test_gui_ships_recipe_canvas_features(client):
@@ -109,16 +127,19 @@ def test_gui_ships_recipe_canvas_features(client):
     assert 'id="recipe"' in body
     assert "run-recipe" in body
 
-    # Per-step bypass toggle (instant A/B) and reorder controls exist.
-    assert "bypass" in lower
+    # Per-step bypass toggle (instant A/B) and reorder controls exist. Asserted
+    # on the locale file's own wording: the bare word "bypass" also appears in
+    # the script's `step.bypass` field, so the old assertion passed on code
+    # rather than on anything a user can see.
+    assert _copy("js_bypass") in lower
 
     # Ear-first comparator: before/after selectors + Space-bar A/B toggle.
     assert 'id="cmp-a"' in body and 'id="cmp-b"' in body
     assert "cmp-toggle" in body
 
     # recipe.yaml export/import so a pipeline is a committable artifact.
-    assert "export recipe.yaml" in lower
-    assert "import recipe.yaml" in lower
+    assert _copy("export_button") in lower
+    assert _copy("import_label") in lower
 
     # CDN libraries are wired via <script> tags (no build step, house style).
     assert "wavesurfer.js" in lower  # waveforms
@@ -126,7 +147,7 @@ def test_gui_ships_recipe_canvas_features(client):
     assert "fflate" in lower  # in-browser unzip for split/separate chaining
 
     # Local-first honesty is surfaced in the header copy.
-    assert "local-first" in lower
+    assert _copy("local_note") in lower
 
     # All eight verbs remain reachable from the "add step" selector.
     for verb in (

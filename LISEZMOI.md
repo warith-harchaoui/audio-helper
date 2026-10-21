@@ -227,6 +227,18 @@ déposer, vue par grappes MFCC) reste, lui, sur la feuille de route. Voir
 [GUI.md](https://github.com/warith-harchaoui/audio-helper/blob/main/GUI.md)
 pour la répartition complète entre ce qui est livré et ce qui est prévu.
 
+La page parle **français et anglais**. `GET /gui?lang=fr|en` choisit la langue,
+un drapeau dans l'en-tête bascule de l'une à l'autre, et un code que le fichier
+de locales ne porte pas retombe sur la langue par défaut au lieu d'échouer.
+Toutes les chaînes vivent dans
+[`audio_helper/locales/i18n.yaml`](https://github.com/warith-harchaoui/audio-helper/blob/main/audio_helper/locales/i18n.yaml),
+lu par `os_helper.Locales` — le chargeur partagé par la suite — si bien que
+traduire la page n'oblige jamais à ouvrir un fichier Python. Deux choses
+restent volontairement dans une seule langue, et le fichier dit pourquoi : les
+libellés de paramètres de chaque verbe nomment les champs que la requête porte
+vraiment, et l'en-tête de commentaire d'un `recipe.yaml` exporté appartient à
+un artefact versionnable, pas à l'interface.
+
 ### En tant que skill d'agent
 
 `skills/audio-helper/` empaquette audio-helper comme **skill Claude** *et* skill

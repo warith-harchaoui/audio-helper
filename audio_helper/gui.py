@@ -7,6 +7,21 @@ build-step-free: one string of HTML + Tailwind (via CDN) + vanilla ES-module
 JavaScript. There is no bundler, no framework, no npm — the whole page is a
 static asset the API returns verbatim.
 
+Where the words live
+--------------------
+Not here. Every human-readable string comes from ``locales/i18n.yaml``
+through :class:`os_helper.Locales`, the loader shared across the suite
+(``CODING.md`` 21.3). The markup below is tokenised — ``{{TOKEN}}`` in HTML,
+and a ``T`` object injected for the script — so one template serves every
+language and a translator never touches Python.
+
+Two families of string stay out of the catalogue on purpose, and the locale
+file says why: the per-verb parameter labels in ``OPS``, which name the form
+fields the request actually carries, and the comment header written into an
+exported ``recipe.yaml``, which is a committable artifact rather than UI.
+
+:func:`render_gui` resolves a language and returns the finished page.
+
 From bench to canvas
 --------------------
 The first shipped GUI was a minimal "audition bench": one file, one operation,
@@ -58,16 +73,134 @@ Warith Harchaoui, Ph.D. — https://linkedin.com/in/warith-harchaoui/
 
 from __future__ import annotations
 
-# The entire GUI is this one HTML string. It is returned as-is by the
-# ``/gui`` route. Every library is pulled from a CDN so there is no build
-# step; the JavaScript is a single inline ES module talking to the existing
-# API endpoints (client-orchestrated recipe runner).
-GUI_HTML: str = r"""<!doctype html>
-<html lang="en" class="h-full">
+import functools
+import html
+import json
+from pathlib import Path
+
+import os_helper as osh
+
+# Inside the package, not beside it: a file one level up is not package data
+# and does not travel in the wheel. best-engine shipped exactly that bug —
+# `pip install` gave a package whose every GUI string raised FileNotFoundError.
+_LOCALES_PATH = Path(__file__).resolve().parent / "locales" / "i18n.yaml"
+
+#: The section of the locale file this module reads.
+_GUI_SECTION = "gui"
+
+
+@functools.lru_cache(maxsize=1)
+def _locales() -> osh.Locales:
+    """Parse ``locales/i18n.yaml`` once, through the suite's shared loader."""
+    return osh.Locales.from_path(_LOCALES_PATH)
+
+
+def supported_languages() -> tuple[str, ...]:
+    """Language codes the GUI can render, as declared by the locale file."""
+    return tuple(_locales().supported_locales)
+
+
+def default_language() -> str:
+    """The language an unknown or absent ``?lang=`` falls back to."""
+    return _locales().default_locale
+
+
+# Two vocabularies meet here: the template's tokens and the locale file's
+# semantic keys. These maps bridge them. `_HTML_TOKEN_TO_KEY` fills {{TOKEN}}
+# placeholders; `_JS_NAME_TO_KEY` builds the `const T = {...}` the script reads.
+_HTML_TOKEN_TO_KEY: dict[str, str] = {
+    "PAGE_TITLE": "page_title",
+    "HERO_TITLE": "hero_title",
+    "HERO_P_LEAD": "hero_subtitle_lead",
+    "HERO_P_TAIL": "hero_subtitle_tail",
+    "LOCAL_NOTE": "local_note",
+    "EXPORT_BUTTON": "export_button",
+    "IMPORT_LABEL": "import_label",
+    "SOURCE_LABEL": "source_label",
+    "DROP_HINT": "drop_hint",
+    "SOURCE_WAVE_H2": "source_wave_heading",
+    "ADD_STEP_LABEL": "add_step_label",
+    "OP_CONVERT": "op_convert",
+    "OP_CHUNK": "op_chunk",
+    "OP_SILENCE": "op_silence",
+    "OP_CONCAT": "op_concat",
+    "OP_ROOMTONE": "op_roomtone",
+    "OP_SPLIT": "op_split",
+    "OP_SEPARATE": "op_separate",
+    "OP_RESEMBLANCE": "op_resemblance",
+    "ADD_STEP_BUTTON": "add_step_button",
+    "RUN_BUTTON": "run_button",
+    "CLEAR_BUTTON": "clear_button",
+    "RECIPE_ARIA": "recipe_aria",
+    "CMP_H2": "comparator_heading",
+    "CMP_HELP_LEAD": "comparator_help_lead",
+    "KBD_SPACE": "kbd_space",
+    "CMP_HELP_TAIL": "comparator_help_tail",
+    "CMP_BEFORE_LABEL": "cmp_before_label",
+    "CMP_AFTER_LABEL": "cmp_after_label",
+    "CMP_PLAY_BUTTON": "cmp_play_button",
+    "CMP_TOGGLE_BUTTON": "cmp_toggle_button",
+    "CMP_DIFF_CHECKBOX": "cmp_diff_checkbox",
+    "CMP_DIFF_H3": "cmp_diff_heading",
+    "LANG_HREF": "lang_toggle_href",
+    "LANG_FLAG": "lang_toggle_flag",
+    "LANG_ARIA": "lang_toggle_aria",
+}
+
+_JS_NAME_TO_KEY: dict[str, str] = {
+    "hearing": "js_hearing",
+    "beforeLabel": "cmp_before_label",
+    "afterLabel": "cmp_after_label",
+    "emptyRecipe": "js_empty_recipe",
+    "moveUp": "js_move_up",
+    "moveDown": "js_move_down",
+    "bypass": "js_bypass",
+    "removeStep": "js_remove_step",
+    "terminalScore": "js_terminal_score",
+    "multiFileZip": "js_multi_file_zip",
+    "concatHint": "js_concat_hint",
+    "resemblanceHint": "js_resemblance_hint",
+    "scoreLine": "js_score_line",
+    "outputHeading": "js_output_heading",
+    "download": "js_download",
+    "spectrogram": "js_spectrogram",
+    "notRun": "js_not_run",
+    "zipPick": "js_zip_pick",
+    "needStep": "js_need_step",
+    "running": "js_running",
+    "stepProgress": "js_step_progress",
+    "noInput": "js_no_input",
+    "stoppedNoInput": "js_stopped_no_input",
+    "resemblanceNeedsB": "js_resemblance_needs_b",
+    "stopped": "js_stopped",
+    "httpError": "js_http_error",
+    "stoppedAtStep": "js_stopped_at_step",
+    "emptyArchive": "js_empty_archive",
+    "recipeComplete": "js_recipe_complete",
+    "recipeFailed": "js_recipe_failed",
+    "nothingToExport": "js_nothing_to_export",
+    "exported": "js_exported",
+    "imported": "js_imported",
+    "importFailed": "js_import_failed",
+    "computingSpectrogram": "js_computing_spectrogram",
+    "spectrogramUnavailable": "js_spectrogram_unavailable",
+    "clipSource": "js_clip_source",
+    "clipStep": "js_clip_step",
+    "diffUnavailable": "js_diff_unavailable",
+}
+
+
+# One template, every language. Human-facing text is tokenised as {{TOKEN}}
+# (HTML) or read from the injected `T` object (JavaScript); `render_gui` fills
+# both. Every library is pulled from a CDN so there is no build step; the
+# JavaScript is a single inline ES module talking to the existing API
+# endpoints (client-orchestrated recipe runner).
+_GUI_TEMPLATE: str = r"""<!doctype html>
+<html lang="{{LANG}}" class="h-full">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Audio Helper — Recipe Canvas</title>
+  <title>{{PAGE_TITLE}}</title>
   <!-- Tailwind via CDN: keeps the page a single self-contained file, no build. -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- WaveSurfer.js: per-step waveforms + scrubbing for the ear-first comparator. -->
@@ -87,28 +220,27 @@ GUI_HTML: str = r"""<!doctype html>
   <div class="mx-auto max-w-5xl px-4 py-8">
     <header class="mb-6 flex flex-wrap items-start justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-semibold tracking-tight">Audio Helper — Recipe Canvas</h1>
+        <h1 class="text-2xl font-semibold tracking-tight">{{HERO_TITLE}}</h1>
         <p class="mt-1 text-sm text-slate-600">
-          Chain the eight verbs into a sequential pipeline. Each step runs on the
-          local API and feeds its output into the next — hear every intermediate
-          step, bypass any step for instant A/B, and export the whole thing as a
-          committable <code>recipe.yaml</code>.
+          {{HERO_P_LEAD}} <code>recipe.yaml</code> {{HERO_P_TAIL}}
         </p>
         <p class="mt-1 text-xs text-slate-500">
-          Local-first: audio is processed by your local API (ffmpeg + local
-          Demucs). Nothing is uploaded to a third party; no telemetry.
+          {{LOCAL_NOTE}}
         </p>
       </div>
-      <!-- Recipe-level actions: export / import a recipe.yaml artifact. -->
-      <div class="flex flex-wrap gap-2">
+      <!-- Recipe-level actions: export / import a recipe.yaml artifact,
+           plus the flag that links to the other locale of this page. -->
+      <div class="flex flex-wrap items-center gap-2">
+        <a href="{{LANG_HREF}}" aria-label="{{LANG_ARIA}}"
+           class="text-xl hover:opacity-70">{{LANG_FLAG}}</a>
         <button id="export-yaml"
                 class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium
                        hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
-          Export recipe.yaml
+          {{EXPORT_BUTTON}}
         </button>
         <label class="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
                       font-medium hover:bg-slate-100 focus-within:ring-2 focus-within:ring-blue-500">
-          Import recipe.yaml
+          {{IMPORT_LABEL}}
           <input id="import-yaml" type="file" accept=".yaml,.yml,text/yaml" class="hidden" />
         </label>
       </div>
@@ -116,19 +248,19 @@ GUI_HTML: str = r"""<!doctype html>
 
     <!-- 1) Source file: drag-and-drop zone doubling as a file picker. -->
     <section class="mb-5">
-      <label for="file" class="block text-sm font-medium mb-1">Source audio file</label>
+      <label for="file" class="block text-sm font-medium mb-1">{{SOURCE_LABEL}}</label>
       <div id="drop" tabindex="0"
            class="flex flex-col items-center justify-center rounded-xl border-2 border-dashed
                   border-slate-300 bg-white px-4 py-6 text-center cursor-pointer
                   focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-blue-400">
-        <p class="text-sm text-slate-500">Drop a file here, or click to choose</p>
+        <p class="text-sm text-slate-500">{{DROP_HINT}}</p>
         <p id="filename" class="mt-2 text-sm font-medium text-slate-800"></p>
         <input id="file" type="file" accept="audio/*,video/*" class="hidden" />
       </div>
       <!-- Source waveform: the recipe's "step 0" that every first step reads from. -->
       <div class="mt-3 rounded-xl border border-slate-200 bg-white p-3">
         <div class="mb-1 flex items-center justify-between">
-          <h2 class="text-xs font-medium text-slate-600">Source waveform</h2>
+          <h2 class="text-xs font-medium text-slate-600">{{SOURCE_WAVE_H2}}</h2>
           <audio id="src-audio" controls class="h-8"></audio>
         </div>
         <div id="src-wave" class="min-h-[48px]"></div>
@@ -138,59 +270,58 @@ GUI_HTML: str = r"""<!doctype html>
     <!-- 2) Add-a-step controls: pick a verb, append it to the recipe. -->
     <section class="mb-4 flex flex-wrap items-end gap-3">
       <div>
-        <label for="add-op" class="block text-sm font-medium mb-1">Add a step</label>
+        <label for="add-op" class="block text-sm font-medium mb-1">{{ADD_STEP_LABEL}}</label>
         <select id="add-op"
                 class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
                        focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option value="convert">convert — re-encode (freq / channels / codec)</option>
-          <option value="chunk">chunk — extract a [start, end] slice</option>
-          <option value="silence">silence — generate N seconds of silence</option>
-          <option value="concat">concat — append extra file(s) head-to-tail</option>
-          <option value="roomtone">roomtone — mix low-level ambient noise</option>
-          <option value="split">split — fixed-duration chunks (zip)</option>
-          <option value="separate">separate — Demucs stems (zip)</option>
-          <option value="resemblance">resemblance — MFCC similarity score</option>
+          <option value="convert">{{OP_CONVERT}}</option>
+          <option value="chunk">{{OP_CHUNK}}</option>
+          <option value="silence">{{OP_SILENCE}}</option>
+          <option value="concat">{{OP_CONCAT}}</option>
+          <option value="roomtone">{{OP_ROOMTONE}}</option>
+          <option value="split">{{OP_SPLIT}}</option>
+          <option value="separate">{{OP_SEPARATE}}</option>
+          <option value="resemblance">{{OP_RESEMBLANCE}}</option>
         </select>
       </div>
       <button id="add-step"
               class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white
                      hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-        + Add step
+        {{ADD_STEP_BUTTON}}
       </button>
       <button id="run-recipe"
               class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white
                      hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500
                      disabled:opacity-50">
-        ▶ Run recipe
+        {{RUN_BUTTON}}
       </button>
       <button id="clear-recipe"
               class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium
                      hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
-        Clear
+        {{CLEAR_BUTTON}}
       </button>
       <span id="status" class="text-sm text-slate-600" role="status" aria-live="polite"></span>
     </section>
 
     <!-- 3) The recipe: an ordered list of step cards, rendered by JS. -->
-    <section id="recipe" class="mb-8 space-y-4" aria-label="Recipe steps"></section>
+    <section id="recipe" class="mb-8 space-y-4" aria-label="{{RECIPE_ARIA}}"></section>
 
     <!-- 4) Ear-first comparator: align two produced clips and toggle before/after. -->
     <section class="mb-8 rounded-xl border border-slate-200 bg-white p-4">
-      <h2 class="mb-2 text-sm font-semibold">Ear-first comparator</h2>
+      <h2 class="mb-2 text-sm font-semibold">{{CMP_H2}}</h2>
       <p class="mb-3 text-xs text-slate-600">
-        Pick a <strong>before</strong> and an <strong>after</strong> clip (source or any
-        step output). Press <kbd class="rounded border px-1">Space</kbd> to toggle
-        which one you hear at the <em>same</em> playhead — the mixer-style A/B producers use.
+        {{CMP_HELP_LEAD}} <kbd class="rounded border px-1">{{KBD_SPACE}}</kbd>
+        {{CMP_HELP_TAIL}}
       </p>
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
-          <label for="cmp-a" class="block text-xs font-medium mb-1">Before</label>
+          <label for="cmp-a" class="block text-xs font-medium mb-1">{{CMP_BEFORE_LABEL}}</label>
           <select id="cmp-a"
                   class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
                          focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
         </div>
         <div>
-          <label for="cmp-b" class="block text-xs font-medium mb-1">After</label>
+          <label for="cmp-b" class="block text-xs font-medium mb-1">{{CMP_AFTER_LABEL}}</label>
           <select id="cmp-b"
                   class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
                          focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
@@ -201,25 +332,27 @@ GUI_HTML: str = r"""<!doctype html>
         <button id="cmp-play"
                 class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white
                        hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-          Play / Pause
+          {{CMP_PLAY_BUTTON}}
         </button>
         <button id="cmp-toggle"
                 class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium
                        hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
-          Toggle A/B (Space)
+          {{CMP_TOGGLE_BUTTON}}
         </button>
+        <!-- Pre-rendered server-side from the same template the script uses,
+             so the badge is already a sentence before the first toggle. -->
         <span id="cmp-which"
               class="rounded-full bg-slate-800 px-3 py-1 text-xs font-semibold text-white">
-          Hearing: Before
+          {{CMP_HEARING_INIT}}
         </span>
         <label class="ml-auto flex items-center gap-2 text-xs text-slate-600">
           <input id="cmp-diff" type="checkbox" class="h-4 w-4" />
-          Show difference view
+          {{CMP_DIFF_CHECKBOX}}
         </label>
       </div>
       <!-- Difference view: rendered on demand, colorblind-safe (shape + label, not color alone). -->
       <div id="cmp-diff-wrap" hidden class="mt-3">
-        <p class="mb-1 text-xs font-medium text-slate-600">Difference (after − before)</p>
+        <p class="mb-1 text-xs font-medium text-slate-600">{{CMP_DIFF_H3}}</p>
         <canvas id="cmp-diff-canvas" class="w-full rounded border border-slate-200" height="80"></canvas>
       </div>
     </section>
@@ -233,6 +366,11 @@ GUI_HTML: str = r"""<!doctype html>
     // endpoint the CLI uses, and the returned blob becomes the next
     // step's input file. No new server logic is needed to run a recipe.
     // ===================================================================
+
+    // Every human-readable string the script writes comes from the locale
+    // file, injected as JSON — the one encoding an apostrophe cannot break
+    // out of, and French copy is full of them.
+    const T = {{T_JSON}};
 
     // --- tiny DOM helpers -------------------------------------------------
     const $ = (id) => document.getElementById(id);
@@ -386,7 +524,7 @@ GUI_HTML: str = r"""<!doctype html>
       if (recipe.length === 0) {
         const empty = document.createElement("p");
         empty.className = "rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500";
-        empty.textContent = "No steps yet. Pick a verb above and press “+ Add step”.";
+        empty.textContent = T.emptyRecipe;
         host.appendChild(empty);
         refreshComparatorChoices();
         return;
@@ -404,25 +542,25 @@ GUI_HTML: str = r"""<!doctype html>
         header.innerHTML = `
           <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-white">${index + 1}</span>
           <span class="font-mono text-sm font-semibold">${step.op}</span>
-          <span class="text-xs text-slate-500">${spec.endpoint}${spec.kind === "score" ? " · terminal (score)" : spec.kind === "zip" ? " · multi-file (zip)" : ""}</span>
+          <span class="text-xs text-slate-500">${spec.endpoint}${spec.kind === "score" ? T.terminalScore : spec.kind === "zip" ? T.multiFileZip : ""}</span>
         `;
         // Reorder up.
-        const up = mkBtn("↑", "Move step up");
+        const up = mkBtn("↑", T.moveUp);
         up.disabled = index === 0;
         up.addEventListener("click", () => { swap(index, index - 1); });
         // Reorder down.
-        const down = mkBtn("↓", "Move step down");
+        const down = mkBtn("↓", T.moveDown);
         down.disabled = index === recipe.length - 1;
         down.addEventListener("click", () => { swap(index, index + 1); });
         // Bypass toggle: route input straight to output for instant A/B.
         const bypass = document.createElement("label");
         bypass.className = "ml-auto flex items-center gap-2 text-xs font-medium";
-        bypass.innerHTML = `<input type="checkbox" class="h-4 w-4" ${step.bypass ? "checked" : ""} /> Bypass`;
+        bypass.innerHTML = `<input type="checkbox" class="h-4 w-4" ${step.bypass ? "checked" : ""} /> ${T.bypass}`;
         bypass.querySelector("input").addEventListener("change", (e) => {
           step.bypass = e.target.checked;
         });
         // Remove this step.
-        const del = mkBtn("✕", "Remove step");
+        const del = mkBtn("✕", T.removeStep);
         del.classList.add("text-red-600");
         del.addEventListener("click", () => { recipe.splice(index, 1); renderRecipe(); });
         header.append(up, down, bypass, del);
@@ -455,9 +593,7 @@ GUI_HTML: str = r"""<!doctype html>
           const wrap = document.createElement("div");
           wrap.className = "mb-3";
           const inputId = `step-${step.id}-extra`;
-          const hint = step.op === "concat"
-            ? "extra file(s) to append after the piped input"
-            : "second file (B) to compare the piped input (A) against";
+          const hint = step.op === "concat" ? T.concatHint : T.resemblanceHint;
           wrap.innerHTML = `
             <label for="${inputId}" class="block text-xs font-medium mb-1">${hint}</label>
             <input id="${inputId}" type="file" accept="audio/*,video/*" ${spec.single_extra ? "" : "multiple"}
@@ -476,15 +612,17 @@ GUI_HTML: str = r"""<!doctype html>
           // Show a clear, colorblind-safe error (icon + text, not color alone).
           out.innerHTML = `<p class="text-sm text-red-700">⚠ ${step.error}</p>`;
         } else if (step.op === "resemblance" && step.score != null) {
-          out.innerHTML = `<p class="text-sm">MFCC similarity score: <strong>${step.score.toFixed(4)}</strong> (terminal step)</p>`;
+          // The score is a field in the sentence, so a translation can place
+          // it where that language puts it.
+          out.innerHTML = `<p class="text-sm">${T.scoreLine.replace("{score}", step.score.toFixed(4))}</p>`;
         } else if (step.outUrl) {
           // Single-file (or chosen zip member) output: inline player + waveform.
           out.innerHTML = `
             <div class="mb-1 flex items-center justify-between">
-              <h3 class="text-xs font-medium text-slate-600">Output — ${step.outName}</h3>
+              <h3 class="text-xs font-medium text-slate-600">${T.outputHeading.replace("{name}", step.outName)}</h3>
               <div class="flex items-center gap-2">
-                <a class="text-xs font-medium text-blue-600 hover:underline" href="${step.outUrl}" download="${step.outName}">Download</a>
-                <button data-spec class="text-xs font-medium text-slate-600 hover:underline">Spectrogram</button>
+                <a class="text-xs font-medium text-blue-600 hover:underline" href="${step.outUrl}" download="${step.outName}">${T.download}</a>
+                <button data-spec class="text-xs font-medium text-slate-600 hover:underline">${T.spectrogram}</button>
               </div>
             </div>
             <audio controls class="mb-2 h-8 w-full" src="${step.outUrl}"></audio>
@@ -503,7 +641,7 @@ GUI_HTML: str = r"""<!doctype html>
             renderSpectrogram(out.querySelector(".step-spec"), step.outBlob);
           });
         } else {
-          out.innerHTML = `<p class="text-xs text-slate-500">Not run yet.</p>`;
+          out.innerHTML = `<p class="text-xs text-slate-500">${T.notRun}</p>`;
         }
 
         // Zip member picker: split/separate produce many files; the user picks
@@ -511,7 +649,7 @@ GUI_HTML: str = r"""<!doctype html>
         if (spec.kind === "zip" && step.zipMembers.length) {
           const picker = document.createElement("div");
           picker.className = "mt-3 border-t border-slate-200 pt-3";
-          picker.innerHTML = `<p class="mb-1 text-xs font-medium text-slate-600">${step.zipMembers.length} files produced — pick which one chains downstream:</p>`;
+          picker.innerHTML = `<p class="mb-1 text-xs font-medium text-slate-600">${T.zipPick.replace("{count}", step.zipMembers.length)}</p>`;
           const sel = document.createElement("select");
           sel.className = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm";
           step.zipMembers.forEach((m, i) => {
@@ -566,7 +704,7 @@ GUI_HTML: str = r"""<!doctype html>
     $("run-recipe").addEventListener("click", runRecipe);
 
     async function runRecipe() {
-      if (recipe.length === 0) { status("Add at least one step first."); return; }
+      if (recipe.length === 0) { status(T.needStep); return; }
       // Reset any prior outputs so a re-run starts clean.
       for (const s of recipe) {
         s.outBlob = s.outUrl = null; s.outName = ""; s.score = null;
@@ -574,7 +712,7 @@ GUI_HTML: str = r"""<!doctype html>
       }
 
       $("run-recipe").disabled = true;
-      status("Running recipe…");
+      status(T.running);
       // The "current" file flowing through the pipeline. Starts as the source.
       let current = sourceFile;
 
@@ -582,7 +720,10 @@ GUI_HTML: str = r"""<!doctype html>
         for (let i = 0; i < recipe.length; i++) {
           const step = recipe[i];
           const spec = OPS[step.op];
-          status(`Step ${i + 1}/${recipe.length}: ${step.op}…`);
+          status(T.stepProgress
+            .replace("{index}", i + 1)
+            .replace("{total}", recipe.length)
+            .replace("{op}", step.op));
 
           // Bypass: skip the API entirely, pass the input straight through.
           if (step.bypass) {
@@ -596,9 +737,9 @@ GUI_HTML: str = r"""<!doctype html>
 
           // silence takes no input; every other verb needs one.
           if (!spec.noInput && !current) {
-            step.error = "No input available — the previous step produced nothing chainable.";
+            step.error = T.noInput;
             renderRecipe();
-            status("Recipe stopped: a step had no input.");
+            status(T.stoppedNoInput);
             return;
           }
 
@@ -611,7 +752,7 @@ GUI_HTML: str = r"""<!doctype html>
           } else if (step.op === "resemblance") {
             // resemblance compares the piped input (A) against one extra (B).
             const b = step.extraFiles[0];
-            if (!b) { step.error = "resemblance needs a second file (B)."; renderRecipe(); status("Recipe stopped."); return; }
+            if (!b) { step.error = T.resemblanceNeedsB; renderRecipe(); status(T.stopped); return; }
             fd.append("a", current, current.name || "a.wav");
             fd.append("b", b);
           } else if (!spec.noInput) {
@@ -624,9 +765,11 @@ GUI_HTML: str = r"""<!doctype html>
           const res = await fetch(spec.endpoint, { method: "POST", body: fd });
           if (!res.ok) {
             const txt = await res.text();
-            step.error = `HTTP ${res.status}: ${txt.slice(0, 200)}`;
+            step.error = T.httpError
+              .replace("{status}", res.status)
+              .replace("{body}", txt.slice(0, 200));
             renderRecipe();
-            status(`Recipe stopped at step ${i + 1}.`);
+            status(T.stoppedAtStep.replace("{index}", i + 1));
             return;
           }
 
@@ -645,8 +788,8 @@ GUI_HTML: str = r"""<!doctype html>
               return { name, blob, url: URL.createObjectURL(blob) };
             });
             if (step.zipMembers.length === 0) {
-              step.error = "The step produced an empty archive.";
-              renderRecipe(); status("Recipe stopped."); return;
+              step.error = T.emptyArchive;
+              renderRecipe(); status(T.stopped); return;
             }
             // Default to the first member for chaining (user can repick later).
             const m = step.zipMembers[step.chosenMember] || step.zipMembers[0];
@@ -662,9 +805,9 @@ GUI_HTML: str = r"""<!doctype html>
             current = new File([blob], name);
           }
         }
-        status("Recipe complete.");
+        status(T.recipeComplete);
       } catch (err) {
-        status("Recipe failed: " + err);
+        status(T.recipeFailed.replace("{error}", err));
       } finally {
         $("run-recipe").disabled = false;
         renderRecipe();
@@ -704,13 +847,13 @@ GUI_HTML: str = r"""<!doctype html>
 
     // Export: download the current recipe as recipe.yaml.
     $("export-yaml").addEventListener("click", () => {
-      if (recipe.length === 0) { status("Nothing to export — the recipe is empty."); return; }
+      if (recipe.length === 0) { status(T.nothingToExport); return; }
       const blob = new Blob([recipeToYaml()], { type: "text/yaml" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = "recipe.yaml";
       a.click();
-      status("Exported recipe.yaml.");
+      status(T.exported);
     });
 
     // Parse a recipe.yaml back into recipe state. This is a deliberately small
@@ -756,9 +899,11 @@ GUI_HTML: str = r"""<!doctype html>
       try {
         recipe = yamlToRecipe(await f.text());
         renderRecipe();
-        status(`Imported ${recipe.length} step(s) from ${f.name}.`);
+        status(T.imported
+          .replace("{count}", recipe.length)
+          .replace("{name}", f.name));
       } catch (err) {
-        status("Could not import recipe: " + err);
+        status(T.importFailed.replace("{error}", err));
       }
       // Reset the input so importing the same file twice still fires change.
       e.target.value = "";
@@ -772,7 +917,7 @@ GUI_HTML: str = r"""<!doctype html>
     // it as a Vega-Lite heatmap. Rendered only when the user clicks — the
     // "spectrogram on every keystroke" idea stays a labelled roadmap item.
     async function renderSpectrogram(container, blob) {
-      container.innerHTML = `<p class="text-xs text-slate-500">Computing spectrogram…</p>`;
+      container.innerHTML = `<p class="text-xs text-slate-500">${T.computingSpectrogram}</p>`;
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const audio = await ctx.decodeAudioData(await blob.arrayBuffer());
@@ -805,7 +950,7 @@ GUI_HTML: str = r"""<!doctype html>
           },
         }, { actions: false });
       } catch (err) {
-        container.innerHTML = `<p class="text-xs text-red-700">Spectrogram unavailable: ${err}</p>`;
+        container.innerHTML = `<p class="text-xs text-red-700">${T.spectrogramUnavailable.replace("{error}", err)}</p>`;
       }
     }
 
@@ -820,9 +965,15 @@ GUI_HTML: str = r"""<!doctype html>
     // the comparator dropdowns can offer them.
     function comparatorClips() {
       const clips = [];
-      if (sourceFile && $("src-audio").src) clips.push({ label: "Source", url: $("src-audio").src, blob: sourceFile });
+      if (sourceFile && $("src-audio").src) clips.push({ label: T.clipSource, url: $("src-audio").src, blob: sourceFile });
       recipe.forEach((s, i) => {
-        if (s.outUrl) clips.push({ label: `Step ${i + 1}: ${s.op} (${s.outName})`, url: s.outUrl, blob: s.outBlob });
+        if (s.outUrl) clips.push({
+          label: T.clipStep
+            .replace("{index}", i + 1)
+            .replace("{op}", s.op)
+            .replace("{name}", s.outName),
+          url: s.outUrl, blob: s.outBlob,
+        });
       });
       return clips;
     }
@@ -867,7 +1018,8 @@ GUI_HTML: str = r"""<!doctype html>
       if (!cmpA || !cmpB) return;
       cmpA.setVolume(cmpHearing === "a" ? 1 : 0);
       cmpB.setVolume(cmpHearing === "b" ? 1 : 0);
-      $("cmp-which").textContent = "Hearing: " + (cmpHearing === "a" ? "Before" : "After");
+      $("cmp-which").textContent = T.hearing
+        .replace("{side}", cmpHearing === "a" ? T.beforeLabel : T.afterLabel);
     }
 
     // Reload the comparator when either selection changes.
@@ -943,7 +1095,7 @@ GUI_HTML: str = r"""<!doctype html>
         g.stroke();
       } catch (err) {
         g.fillStyle = "#334155"; g.font = "12px sans-serif";
-        g.fillText("Difference unavailable: " + err, 8, mid);
+        g.fillText(T.diffUnavailable.replace("{error}", err), 8, mid);
       }
     }
 
@@ -953,3 +1105,69 @@ GUI_HTML: str = r"""<!doctype html>
 </body>
 </html>
 """
+
+
+def render_gui(lang: str = "") -> str:
+    """Render the single-page GUI in the requested language.
+
+    Parameters
+    ----------
+    lang : str
+        Two-letter language code. Anything outside the locale file's
+        ``meta.supported_locales`` — including the empty string — falls back
+        to ``meta.default_locale``, so an unknown ``?lang=`` never 500s.
+
+    Returns
+    -------
+    str
+        The complete HTML document for that language.
+
+    Examples
+    --------
+    >>> "<!doctype html>" in render_gui("en")
+    True
+    >>> render_gui("tlh") == render_gui(default_language())
+    True
+    """
+    resolved = lang if lang in supported_languages() else default_language()
+    loc = _locales()
+
+    page = _GUI_TEMPLATE.replace("{{LANG}}", html.escape(resolved, quote=True))
+    for token, key in _HTML_TOKEN_TO_KEY.items():
+        # Escape every value: these land in attributes (aria, href) as readily
+        # as in text nodes, and a stray quote would break out of the attribute
+        # it sits in.
+        value = html.escape(loc.text(_GUI_SECTION, key, resolved), quote=True)
+        page = page.replace("{{" + token + "}}", value)
+
+    # The comparator badge starts out already saying something, filled from the
+    # very template the script will reuse on every toggle — one sentence, one
+    # key, rather than a second string that could drift from the first.
+    initial_badge = loc.render(
+        _GUI_SECTION,
+        "js_hearing",
+        resolved,
+        side=loc.text(_GUI_SECTION, "cmp_before_label", resolved),
+    )
+    page = page.replace("{{CMP_HEARING_INIT}}", html.escape(initial_badge, quote=True))
+
+    # The script's strings go in as JSON rather than as substituted text: it is
+    # the encoding that cannot be broken out of by an apostrophe, and French
+    # copy is full of them.
+    table = {name: loc.text(_GUI_SECTION, key, resolved) for name, key in _JS_NAME_TO_KEY.items()}
+    return page.replace("{{T_JSON}}", json.dumps(table, ensure_ascii=False))
+
+
+def __getattr__(name: str) -> str:
+    """Serve ``GUI_HTML`` on first access rather than building it at import.
+
+    The module-level constant used to BE the page, and importers still reach
+    for it. Assigning it eagerly would read and parse the locale file on every
+    import of this module, including in callers that never serve the GUI — and
+    a module-level ``__getattr__`` only fires for names that are NOT otherwise
+    defined, so the name is deliberately left unbound rather than set to a
+    placeholder.
+    """
+    if name == "GUI_HTML":
+        return render_gui()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

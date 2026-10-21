@@ -5,6 +5,87 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2026-10-21
+
+### Added
+
+- **The Recipe Canvas GUI speaks French and English.** Every string it shows
+  now comes from `audio_helper/locales/i18n.yaml` through
+  `os_helper.Locales`, the loader shared across the suite (CODING.md 21.3),
+  instead of being written into the markup. `GET /gui?lang=fr|en` picks the
+  language; anything the file does not carry — including a mistyped code and
+  the empty default — falls back to the declared default locale, so a bad
+  `?lang=` returns a page rather than a 500. A flag in the header toggles
+  between the two.
+
+  The template is tokenised (`{{TOKEN}}` in HTML, a `T` object for the
+  script), so one piece of markup serves both languages and a translator never
+  opens a Python file. The script's strings are injected as JSON rather than
+  substituted as text: it is the encoding an apostrophe cannot break out of,
+  and French copy is full of them. Sixteen of them carry named fields
+  (`{index}`, `{total}`, `{op}`, `{count}`, `{name}`, `{score}`, `{status}`,
+  `{error}`, `{side}`) rather than being glued together in JavaScript, so a
+  translator can reorder the sentence.
+
+  The comparator badge is pre-rendered server-side from the very template the
+  script reuses on each toggle — one sentence, one key, rather than a second
+  string that could drift from the first. This is the first use of
+  `Locales.render()` outside its own tests.
+
+  `GUI_HTML` still resolves, via a module-level `__getattr__` that renders on
+  access — importers that predate this keep working, and the locale file is
+  not read by callers that never serve the GUI.
+
+  **Two families of string stay out of the catalogue on purpose**, and the
+  locale file records the reasoning. The per-verb parameter labels in `OPS`
+  (`output_format`, `freq (Hz)`, `db`, `color`, …) each name the form field
+  the request actually carries, so the wire's own spelling is what makes a
+  step card checkable against the API docs. And the comment header
+  `recipeToYaml` writes into `recipe.yaml` belongs to a committable artifact:
+  a comment that changed language with the browser would make the same recipe
+  diff against itself.
+
+  One deliberate simplification: the comparator's help paragraph lost its
+  `<strong>` / `<em>` emphasis. Keeping it would have cut one sentence into
+  six fragments, which a translator cannot reorder — the exact failure
+  localisation exists to prevent. The before/after distinction is already
+  carried by the two labelled selects directly below it.
+
+### Changed
+
+- **The declared `os-helper` floor rises to 2.4.0**, the version that
+  introduced `Locales`. It was `>=2.0.0`, which the GUI can no longer honour:
+  a user installing against os-helper 2.0.x would get an `AttributeError` out
+  of the `/gui` route. Nothing would have caught it — pip resolves the newest
+  os-helper, never the floor. `tests/test_gui_i18n.py` now asserts the floor
+  against the feature it needs.
+
+### Fixed
+
+- **Four GUI assertions passed on code rather than on anything a user can
+  see.** `test_gui_ships_recipe_canvas_features` looked for `"bypass"` and
+  `"recipe canvas"` in the served HTML — both of which also appear in the
+  script's own identifiers and comment banners, so the assertions would have
+  survived the entire user-facing header being deleted. They now ask the
+  locale file for the strings the page is supposed to show, which also makes
+  them language-independent.
+
+- **A CI/local skew in the ruff scope, latent here and active in
+  podcast-helper.** `pyproject.toml` excluded `tests` while the workflow lint
+  step named `tests` explicitly — and an explicitly-passed path overrides the
+  exclusion, so CI was stricter than the `ruff check .` of the pre-push hook
+  and of every developer. podcast-helper sat on a red CI for two days over
+  exactly this. The workflow now runs `ruff check .` and `tests` is no longer
+  excluded, so there is one definition of clean; it costs zero findings here,
+  measured rather than assumed.
+
+### Notes
+
+- `[tool.setuptools.package-data]` did not exist in this project; the locale
+  file is the first non-`.py` file the package ships, and it is declared there
+  now. Verified the way the sibling defect was found: the built wheel was
+  opened and the file found inside it.
+
 ## [2.2.0] - 2026-10-19
 
 ### Fixed

@@ -61,10 +61,13 @@ jobs:
         # formatting the default, silently breaking format-check on doc examples.
         # Bump this deliberately, not by surprise.
         run: pip install "ruff==0.15.21"
-      # Lint the library package and the test suite. The repo's ruff config
-      # in pyproject.toml is the single source of truth for the rule set.
+      # `.` rather than a hand-written file list, so this gate and the
+      # `ruff check .` of the pre-push hook read the SAME scope out of
+      # pyproject.toml. Naming `tests` here while pyproject excluded it made
+      # CI stricter than every local check — the skew that kept
+      # podcast-helper's CI red on a finding no developer could reproduce.
       - name: Run ruff check
-        run: ruff check audio_helper tests
+        run: ruff check .
       # Enforce formatting too so style never drifts between contributors.
       - name: Run ruff format check
-        run: ruff format --check audio_helper tests
+        run: ruff format --check .

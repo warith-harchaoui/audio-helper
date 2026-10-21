@@ -223,6 +223,16 @@ comparator, and `recipe.yaml` export/import. Batch triage across many files
 roadmap. See [GUI.md](https://github.com/warith-harchaoui/audio-helper/blob/main/GUI.md)
 for the full split between what ships and what is planned.
 
+The page speaks **French and English**. `GET /gui?lang=fr|en` picks one, a flag
+in the header toggles between them, and a code the locale file does not carry
+falls back to the default rather than failing. Every string lives in
+[`audio_helper/locales/i18n.yaml`](https://github.com/warith-harchaoui/audio-helper/blob/main/audio_helper/locales/i18n.yaml),
+read through `os_helper.Locales` — the loader shared across the suite — so
+translating the page never means opening a Python file. Two things stay in one
+language on purpose, and the file says why: the per-verb parameter labels name
+the form fields the request carries, and the comment header of an exported
+`recipe.yaml` belongs to a committable artifact rather than to the UI.
+
 ### Use it as an agent skill
 
 `skills/audio-helper/` packages audio-helper as a **Claude Skill** *and* an **OpenCode
