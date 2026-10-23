@@ -181,6 +181,58 @@ video_extensions: list[str] = [
 audio_extensions += video_extensions
 
 
+def _refuse_output_over_input(output_audio_filename: str, inputs: list[str]) -> None:
+    """Refuse a destination that is also one of the sources.
+
+    Every writer here settles its destination and then calls
+    :func:`_overwrite_audio_file`, which with ``overwrite=True`` **deletes** the
+    existing file so it can be rewritten. When the destination is one of the
+    sources, that deletes the source before ffmpeg ever opens it: the caller
+    loses the input and gets an exception instead of a result. Measured on four
+    of this module's five writers -- ``sound_converter``,
+    ``extract_audio_chunk``, ``mix_room_tone`` and ``audio_concatenation`` -- a
+    one-second input was gone from disk afterwards.
+
+    With ``overwrite=False`` the same confusion is quieter and worse:
+    ``_overwrite_audio_file`` finds a valid audio file at the destination,
+    returns it as "already done", and the caller receives the *first input*
+    believing it is the result. Concatenating a 1 s file with a 2 s file
+    returned the 1 s file and raised nothing at all.
+
+    The check therefore belongs *before* the overwrite decision rather than
+    inside it: once that function has run, the safe answer is already gone.
+
+    Paths are compared through :func:`os_helper.relative2absolute_path`, so
+    ``a.wav``, ``./a.wav`` and ``../here/a.wav`` are recognised as one file.
+
+    Parameters
+    ----------
+    output_audio_filename : str
+        The destination about to be written.
+    inputs : list of str
+        Every path this operation reads.
+
+    Raises
+    ------
+    ValueError
+        When the destination resolves to one of the inputs.
+
+    Examples
+    --------
+    >>> _refuse_output_over_input("out.wav", ["a.wav", "b.wav"]) is None
+    True
+    >>> _refuse_output_over_input("a.wav", ["a.wav"])
+    Traceback (most recent call last):
+    ValueError: a.wav is both an input and the output; refusing to overwrite a source file
+    """
+    target = osh.relative2absolute_path(output_audio_filename)
+    for source in inputs:
+        if osh.relative2absolute_path(source) == target:
+            raise ValueError(
+                f"{source} is both an input and the output; refusing to overwrite a source file"
+            )
+
+
 def _overwrite_audio_file(output_audio_filename: str, overwrite: bool = True) -> str | None:
     """
     Decide what to do with an existing output audio file before (re)writing it.
@@ -494,6 +546,7 @@ def sound_converter(
     # Check if the input audio file is valid
     assert is_valid_audio_file(input_audio), f"Invalid audio file: {input_audio}"
 
+    _refuse_output_over_input(output_audio, [input_audio])
     o = _overwrite_audio_file(output_audio, overwrite)
     if o is not None:
         return o
@@ -966,6 +1019,7 @@ def extract_audio_chunk(
         e = round(end_time * 1000)
         output_audio_filename = osh.join([f, f"{b}_chunk-{s}-{e}.{ext}"])
 
+    _refuse_output_over_input(output_audio_filename, [audio_file])
     o = _overwrite_audio_file(output_audio_filename, overwrite)
     if o is not None:
         return o
@@ -1155,6 +1209,7 @@ def audio_concatenation(
         output_audio_filename = osh.join([folder, f"{b}-concatenated.{ext}"])
 
     # Check if the file already exists and handle based on the overwrite flag
+    _refuse_output_over_input(output_audio_filename, audio_files)
     if _overwrite_audio_file(output_audio_filename, overwrite) is not None:
         return output_audio_filename
 
@@ -1256,6 +1311,7 @@ def mix_room_tone(
         folder, base, ext = osh.folder_name_ext(input_audio)
         output_audio = osh.join([folder, f"{base}-roomtone.{ext}"])
 
+    _refuse_output_over_input(output_audio, [input_audio])
     if _overwrite_audio_file(output_audio, overwrite) is not None:
         return output_audio
 

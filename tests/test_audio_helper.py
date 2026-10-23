@@ -225,3 +225,54 @@ def test_separation():
     assert resemblance > 0.75, (
         f"Resemblance between original and reconstructed signals should be high, got {round(100 * resemblance)}% audio_file: {audio_file} vs reconstructed: {mp3_audio_file}"
     )
+
+
+def test_no_writer_destroys_a_file_it_was_reading():
+    """The failure this guard exists for, measured on disk.
+
+    Each of these writers settles its destination and then calls
+    `_overwrite_audio_file`, which under `overwrite=True` deletes the existing
+    file so it can be rewritten. Point the destination at a source and the
+    source is deleted before ffmpeg opens it: the caller loses the input and
+    gets an exception instead of a result. Measured before the guard: a
+    one-second input was gone from disk after `sound_converter`,
+    `extract_audio_chunk`, `mix_room_tone` and `audio_concatenation` alike.
+
+    `audio_concatenation` with the default `overwrite=False` was quieter and
+    worse. `_overwrite_audio_file` found a valid audio file at the destination,
+    returned it as "already done", and the caller got the *first input* back
+    believing it was the join — a 1 s file returned as the concatenation of 1 s
+    and 2 s, with nothing raised.
+
+    So the assertion is on the bytes, not only on the exception: a guard that
+    raised *after* the deletion would pass an exception-only test.
+    """
+    from audio_helper import mix_room_tone
+
+    folder, _, _ = osh.folder_name_ext(get_audio())
+    first = osh.join([folder, "guard-first.wav"])
+    second = osh.join([folder, "guard-second.wav"])
+    generate_silent_audio(1.0, first, overwrite=True)
+    generate_silent_audio(2.0, second, overwrite=True)
+    untouched = osh.hashfile(first)
+    # The same file by another name. Built from the folder rather than by
+    # prefixing "./" to `first`, which is absolute: ".//Users/..." is a
+    # different path and would have let ffmpeg run.
+    dotted = osh.join([folder, ".", "guard-first.wav"])
+
+    cases = [
+        ("sound_converter", lambda: sound_converter(first, first, overwrite=True)),
+        (
+            "extract_audio_chunk",
+            lambda: extract_audio_chunk(first, 0.1, 0.5, first, overwrite=True),
+        ),
+        ("mix_room_tone", lambda: mix_room_tone(first, first, overwrite=True)),
+        ("concat, overwrite", lambda: audio_concatenation([first, second], first, overwrite=True)),
+        ("concat, skip", lambda: audio_concatenation([first, second], first)),
+        ("concat, dotted spelling", lambda: audio_concatenation([first, second], dotted)),
+    ]
+    for label, call in cases:
+        with pytest.raises(ValueError, match="both an input and the output"):
+            call()
+        assert osh.file_exists(first), f"{label} deleted the file it was reading"
+        assert osh.hashfile(first) == untouched, f"{label} modified the file it was reading"

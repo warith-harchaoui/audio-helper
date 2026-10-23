@@ -112,3 +112,44 @@ def test_mel_filter_banks_warns_when_filters_collapse(caplog):
     empty = int((fbank.sum(axis=1) == 0).sum())
     assert empty > 0, "fixture no longer reproduces collapsed bins"
     assert "empty" in caplog.text.lower()
+
+
+# ── a destination that is also a source ───────────────────────────────────
+
+
+def test_an_output_that_is_one_of_the_inputs_is_refused() -> None:
+    """The guard behind four writers, tested where it actually decides.
+
+    `_refuse_output_over_input` is pure path arithmetic and runs before ffmpeg
+    is reached, so it needs no audio and no ffmpeg to test — which is why it
+    lives in the suite that runs by default rather than behind the integration
+    marker.
+    """
+    import pytest
+
+    from audio_helper.main import _refuse_output_over_input
+
+    # The ordinary case stays silent.
+    assert _refuse_output_over_input("out.wav", ["a.wav", "b.wav"]) is None
+
+    with pytest.raises(ValueError, match="both an input and the output"):
+        _refuse_output_over_input("a.wav", ["a.wav", "b.wav"])
+
+    # Last in the list, not just first.
+    with pytest.raises(ValueError, match="both an input and the output"):
+        _refuse_output_over_input("b.wav", ["a.wav", "b.wav"])
+
+
+def test_the_same_file_spelled_differently_is_still_refused() -> None:
+    """`a.wav` and `./a.wav` are one file, and a plain string compare misses it.
+
+    Without this, the guard is walked around by accident rather than on
+    purpose: `./` in front of a path is how plenty of shell pipelines spell it.
+    """
+    import pytest
+
+    from audio_helper.main import _refuse_output_over_input
+
+    for spelling in ("./a.wav", "sub/../a.wav"):
+        with pytest.raises(ValueError, match="both an input and the output"):
+            _refuse_output_over_input(spelling, ["a.wav"])
