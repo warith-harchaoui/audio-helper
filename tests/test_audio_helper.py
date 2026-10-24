@@ -276,3 +276,40 @@ def test_no_writer_destroys_a_file_it_was_reading():
             call()
         assert osh.file_exists(first), f"{label} deleted the file it was reading"
         assert osh.hashfile(first) == untouched, f"{label} modified the file it was reading"
+
+
+def test_a_changed_input_is_not_served_from_cache():
+    """The failure the staleness check exists for, end to end on real audio.
+
+    `audio_concatenation` defaults to `overwrite=False`, so this is the path a
+    caller gets without asking for it. Both halves are asserted, because the
+    fix is only right if it keeps the other one: a legitimate cache hit must
+    still skip, or every pipeline re-encodes everything on every run and the
+    option loses its purpose.
+    """
+    import os
+    import time
+
+    folder, _, _ = osh.folder_name_ext(get_audio())
+    first = osh.join([folder, "stale-first.wav"])
+    second = osh.join([folder, "stale-second.wav"])
+    joined = osh.join([folder, "stale-joined.wav"])
+    generate_silent_audio(1.0, first, overwrite=True)
+    generate_silent_audio(2.0, second, overwrite=True)
+    osh.remove_files([joined])
+
+    audio_concatenation([first, second], joined)
+    assert abs(get_audio_duration(joined) - 3.0) < 0.1
+
+    # Nothing moved: the cache must be kept, byte for byte.
+    stamp = os.path.getmtime(joined)
+    audio_concatenation([first, second], joined)
+    assert os.path.getmtime(joined) == stamp, "a legitimate cache hit was re-encoded"
+
+    # One input is replaced. The old join cannot be its result.
+    time.sleep(1.1)  # coarse filesystem timestamps need a full second
+    generate_silent_audio(5.0, second, overwrite=True)
+    audio_concatenation([first, second], joined)
+    assert abs(get_audio_duration(joined) - 6.0) < 0.1, (
+        "a stale join was served from cache after its input changed"
+    )

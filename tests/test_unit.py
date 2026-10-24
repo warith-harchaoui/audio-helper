@@ -153,3 +153,53 @@ def test_the_same_file_spelled_differently_is_still_refused() -> None:
     for spelling in ("./a.wav", "sub/../a.wav"):
         with pytest.raises(ValueError, match="both an input and the output"):
             _refuse_output_over_input(spelling, ["a.wav"])
+
+
+# ── skip means skip if up to date ─────────────────────────────────────────
+
+
+def test_an_output_older_than_its_input_counts_as_stale(tmp_path) -> None:
+    """Pure timestamp arithmetic, so it needs no ffmpeg and runs by default.
+
+    `mix_room_tone`, `audio_concatenation` and `split_audio_regularly` all
+    default to `overwrite=False`, so the caching path is the one a caller gets
+    without asking. Before this check, concatenating a 1 s and a 2 s file gave a
+    3 s join; replacing the 2 s input with a 5 s one and re-running gave the old
+    3 s join back, with nothing raised and nothing printed at the default
+    verbosity. Editing an input and running again is the ordinary way to use
+    these functions.
+    """
+    import os
+
+    from audio_helper.main import _output_is_stale
+
+    older = tmp_path / "older"
+    newer = tmp_path / "newer"
+    older.write_text("x")
+    newer.write_text("y")
+    os.utime(older, (1_000, 1_000))
+    os.utime(newer, (2_000, 2_000))
+
+    assert _output_is_stale(str(older), [str(newer)]) is True
+    assert _output_is_stale(str(newer), [str(older)]) is False
+    # Any input newer than the output is enough; it need not be the first.
+    assert _output_is_stale(str(older), [str(older), str(newer)]) is True
+
+
+def test_staleness_is_not_claimed_without_something_to_compare(tmp_path) -> None:
+    """Three ways there is no comparison to make, none of them stale.
+
+    A generator like `generate_silent_audio` reads nothing, so it passes no
+    inputs and must keep its cache. A missing input is the caller's own
+    validation to report, with a better message than this could give. And a
+    `stat` that fails is a filesystem quirk: treating it as stale would turn it
+    into endless re-encoding.
+    """
+    from audio_helper.main import _output_is_stale
+
+    out = tmp_path / "out"
+    out.write_text("x")
+    assert _output_is_stale(str(out), None) is False
+    assert _output_is_stale(str(out), []) is False
+    assert _output_is_stale(str(out), [str(tmp_path / "absent")]) is False
+    assert _output_is_stale(str(tmp_path / "absent"), [str(out)]) is False

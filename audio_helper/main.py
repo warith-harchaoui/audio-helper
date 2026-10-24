@@ -36,6 +36,7 @@ from __future__ import annotations
 
 # Standard library first (PEP 8 import grouping): concurrency.
 import concurrent.futures
+import os
 from typing import TYPE_CHECKING
 
 # Third-party: ffmpeg wrapper, numpy, scipy signal/IO helpers, progress bar.
@@ -233,9 +234,56 @@ def _refuse_output_over_input(output_audio_filename: str, inputs: list[str]) -> 
             )
 
 
-def _overwrite_audio_file(output_audio_filename: str, overwrite: bool = True) -> str | None:
+def _output_is_stale(output_audio_filename: str, inputs: list[str] | None) -> bool:
+    """True when *output* predates any of *inputs*, so it cannot be their result.
+
+    A missing input is not staleness -- the caller's own validation reports
+    that, with a better message than this function could. An unreadable
+    timestamp is treated as fresh: refusing to reuse a cache because `stat`
+    failed would turn a filesystem quirk into repeated re-encoding.
+    """
+    if not inputs:
+        return False
+    try:
+        produced = os.path.getmtime(output_audio_filename)
+    except OSError:
+        return False
+    for source in inputs:
+        try:
+            if os.path.getmtime(source) > produced:
+                return True
+        except OSError:
+            continue
+    return False
+
+
+def _overwrite_audio_file(
+    output_audio_filename: str,
+    overwrite: bool = True,
+    inputs: list[str] | None = None,
+) -> str | None:
     """
     Decide what to do with an existing output audio file before (re)writing it.
+
+    "Skip" means **skip if up to date**, not merely "skip if a file is there".
+    When *inputs* is given and the existing output is older than any of them,
+    it cannot be their result, so it is deleted and the caller regenerates.
+
+    That distinction is not pedantry. `mix_room_tone`, `audio_concatenation`
+    and `split_audio_regularly` all default to ``overwrite=False``, so the
+    caching path is the one a caller gets without asking for it. Measured
+    before this check existed: concatenating a 1 s and a 2 s file gave a 3 s
+    join, replacing the 2 s input with a 5 s one and re-running gave **the old
+    3 s join back**, with nothing raised and nothing printed at the default
+    verbosity. That is the ordinary way to use these functions -- edit an
+    input, run the pipeline again -- and it returned stale audio in silence.
+
+    Comparing modification times is what every build system means by "already
+    done", it needs no provenance sidecar, and it stays silent on a legitimate
+    cache hit. It is deliberately not a promise that the output *matches* the
+    inputs: two different inputs written to one destination, the output being
+    newer than both, is indistinguishable without recording a hash, and
+    warning on every cache hit to cover it would make the warning worthless.
 
     Parameters
     ----------
@@ -243,8 +291,13 @@ def _overwrite_audio_file(output_audio_filename: str, overwrite: bool = True) ->
         Path to the output audio file.
     overwrite : bool, optional
         If True (the default), an existing file is deleted so it can be
-        rewritten. If False, an existing **valid** audio file is returned
-        as-is (signalling "skip"); an existing invalid file is deleted.
+        rewritten. If False, an existing **valid and up-to-date** audio file is
+        returned as-is (signalling "skip"); an existing invalid or stale file is
+        deleted.
+    inputs : list of str, optional
+        The paths this operation reads. Used for the staleness comparison only;
+        omitted means no comparison, which is right for a generator like
+        :func:`generate_silent_audio` that reads nothing.
 
     Returns
     -------
@@ -256,7 +309,14 @@ def _overwrite_audio_file(output_audio_filename: str, overwrite: bool = True) ->
     if not (overwrite) and osh.file_exists(output_audio_filename):
         osh.info(f"Output audio file already exists:\n\t{output_audio_filename}")
         if is_valid_audio_file(output_audio_filename):
-            return output_audio_filename
+            if not _output_is_stale(output_audio_filename, inputs):
+                return output_audio_filename
+            osh.remove_files([output_audio_filename])
+            osh.info(
+                f"Output audio file is older than its input, regenerating:"
+                f"\n\t{output_audio_filename}"
+            )
+            return None
         else:
             osh.remove_files([output_audio_filename])
             osh.info(f"Deleting invalid output audio file:\n\t{output_audio_filename}")
@@ -547,7 +607,7 @@ def sound_converter(
     assert is_valid_audio_file(input_audio), f"Invalid audio file: {input_audio}"
 
     _refuse_output_over_input(output_audio, [input_audio])
-    o = _overwrite_audio_file(output_audio, overwrite)
+    o = _overwrite_audio_file(output_audio, overwrite, [input_audio])
     if o is not None:
         return o
 
@@ -1020,7 +1080,7 @@ def extract_audio_chunk(
         output_audio_filename = osh.join([f, f"{b}_chunk-{s}-{e}.{ext}"])
 
     _refuse_output_over_input(output_audio_filename, [audio_file])
-    o = _overwrite_audio_file(output_audio_filename, overwrite)
+    o = _overwrite_audio_file(output_audio_filename, overwrite, [audio_file])
     if o is not None:
         return o
 
@@ -1210,7 +1270,7 @@ def audio_concatenation(
 
     # Check if the file already exists and handle based on the overwrite flag
     _refuse_output_over_input(output_audio_filename, audio_files)
-    if _overwrite_audio_file(output_audio_filename, overwrite) is not None:
+    if _overwrite_audio_file(output_audio_filename, overwrite, audio_files) is not None:
         return output_audio_filename
 
     input_streams = [ffmpeg.input(f) for f in audio_files]
@@ -1312,7 +1372,7 @@ def mix_room_tone(
         output_audio = osh.join([folder, f"{base}-roomtone.{ext}"])
 
     _refuse_output_over_input(output_audio, [input_audio])
-    if _overwrite_audio_file(output_audio, overwrite) is not None:
+    if _overwrite_audio_file(output_audio, overwrite, [input_audio]) is not None:
         return output_audio
 
     duration = get_audio_duration(input_audio)
