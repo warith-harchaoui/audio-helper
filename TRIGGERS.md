@@ -22,8 +22,7 @@ download audio.
 | Separate stems (Demucs) | `audio-helper separate` | `separate_sources` | `POST /separate` |
 | MFCC similarity score | `audio-helper resemblance` | `sound_resemblance` | `POST /resemblance` |
 
-Every operation is also reachable through the click CLI (`audio-helper-click …`,
-same flags) and the browser GUI at `GET /gui`.
+Every operation is also reachable through the browser GUI at `GET /gui`.
 
 ## Natural-language phrasings that should fire
 

@@ -59,8 +59,8 @@ Audio Helper is **local-first** by design. Three honest cases:
 **Five surfaces, one toolkit.** Every operation above is reachable as:
 
 - **Library**: `import audio_helper as ah`.
-- **CLI ×2**: `audio-helper` (argparse, always installed) and
-  `audio-helper-click` (click twin, `[cli]` extra) with identical flags.
+- **CLI**: `audio-helper` — one command line, built with click, always
+  installed.
 - **HTTP API**: FastAPI app (`[api]` extra), OpenAPI docs at `/docs`.
 - **MCP**: the same FastAPI app exposed through the Model Context Protocol
   (MCP), a standard that lets an AI agent call a program's functions as
@@ -96,7 +96,6 @@ pip install audio-helper
 pip install "audio-helper[demucs]"
 
 # Optional surfaces
-pip install "audio-helper[cli]"       # click-based CLI twin
 pip install "audio-helper[api]"       # FastAPI HTTP surface
 ```
 
@@ -111,7 +110,6 @@ pip install -e .
 pip install -e ".[demucs]"
 
 # Optional surfaces
-pip install -e ".[cli]"
 pip install -e ".[api]"
 ```
 
@@ -181,17 +179,12 @@ as a CLI and a FastAPI HTTP surface:
 # Python library (default)
 import audio_helper as ah
 
-# argparse-based CLI (installed automatically)
+# CLI (installed automatically)
 audio-helper convert --input in.mp3 --output out.wav --freq 44100
 audio-helper split --input in.mp3 --output-dir chunks/ --seconds 30
 audio-helper separate --input mix.mp3 --output-dir stems/
 audio-helper resemblance --a a.mp3 --b b.mp3
 
-# click-based CLI twin (needs the [cli] extra)
-pip install "audio-helper[cli]"
-# or from source:
-pip install "audio-helper[cli]"
-audio-helper-click convert --input in.mp3 --output out.wav --freq 44100
 
 # FastAPI HTTP surface (needs the [api] extra)
 pip install "audio-helper[api]"

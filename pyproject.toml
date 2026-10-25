@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "audio-helper"
-version = "2.4.0"
-description = "Audio Helper — utility functions for processing audio files exposed as library, argparse CLI, click CLI and FastAPI HTTP surface. Load audio, convert formats, separate audio sources (Demucs), split and concatenate audio. Shannon-correct resampling via ffmpeg/libswresample."
+version = "2.5.0"
+description = "Audio Helper — utility functions for processing audio files exposed as library, CLI and FastAPI HTTP surface. Load audio, convert formats, separate audio sources (Demucs), split and concatenate audio. Shannon-correct resampling via ffmpeg/libswresample."
 readme = "README.md"
 requires-python = ">=3.10,<3.14"
 license = {text = "BSD-3-Clause"}
@@ -27,7 +27,10 @@ classifiers = [
     "Topic :: Multimedia :: Sound/Audio :: Conversion",
 ]
 dependencies = [
-    "os-helper>=2.6.0,<3",
+    "os-helper>=2.6.0,<4",
+    # The CLI is not an optional surface any more, so click cannot be an
+    # optional dependency any more. See the 2.5.0 changelog entry.
+    "click>=8.1,<9",
     "ffmpeg-python>=0.2.0,<0.3",
     "tqdm>=4.67.1,<5",
     "scipy>=1.15.1,<2",
@@ -36,9 +39,6 @@ dependencies = [
 
 [project.optional-dependencies]
 demucs = ["torch>=2.5.1,<3", "torchaudio>=2.5.1,<3"]
-# CLI-only-with-click extra. argparse variant needs no runtime dep and
-# is always available.
-cli = ["click>=8.1,<9"]
 # FastAPI HTTP surface (audio_helper.api). uvicorn + python-multipart
 # so multipart file uploads work out of the box.
 api = [
@@ -58,14 +58,13 @@ mcp = [
     "mcp>=1.12,<2",
 ]
 # `dev` keeps the bar low for CI — pytest + httpx (for FastAPI TestClient)
-# + click (so the click CLI import always resolves in tests) + fastapi-mcp
-# (so the MCP surface is actually exercised on every push). To run the
-# integration suite (which exercises Demucs), install with
-# `pip install -e .[dev,demucs]`.
+# + fastapi-mcp (so the MCP surface is actually exercised on every push).
+# click is NOT listed here: it is a core dependency, so naming it again would
+# only let the two pins drift. To run the integration suite (which exercises
+# Demucs), install with `pip install -e .[dev,demucs]`.
 dev = [
     "pytest>=8", "pytest-timeout>=2.3",
     "httpx>=0.27",
-    "click>=8.1,<9",
     "fastapi>=0.111,<1",
     "python-multipart>=0.0.9,<1",
     "fastapi-mcp>=0.3,<1",
@@ -73,10 +72,8 @@ dev = [
 ]
 
 [project.scripts]
-# argparse-based CLI — no runtime dep beyond stdlib + core package.
-audio-helper = "audio_helper.cli_argparse:main"
-# click-based twin — install with [cli] extra.
-audio-helper-click = "audio_helper.cli_click:console_entry"
+# The command line. One implementation, in click.
+audio-helper = "audio_helper.cli:main"
 # MCP server — install with [mcp] extra.
 audio-helper-mcp = "audio_helper.mcp:main"
 

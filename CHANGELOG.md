@@ -5,6 +5,85 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-10-25
+
+### Changed
+
+- **One command line, built with click.** `audio-helper` now runs the click
+  implementation; the `audio-helper-click` twin and the argparse CLI are gone,
+  together with the `[cli]` extra. A flag naming the parsing library described
+  the implementation, not the interface, and two CLIs over the same nine
+  operations only gave drift somewhere to hide.
+
+  `cli_click.py` is now `cli.py`; `cli_argparse.py` is deleted. Nothing
+  crossed the module boundary between them — both imported the library
+  functions directly and nothing else — so the deletion took no helper with
+  it. `console_entry()` is renamed `main()`, matching every other member's
+  console entry point.
+
+- `click` moved from the `[cli]` extra into the core `dependencies`: the CLI
+  is not an optional surface any more, so its dependency cannot be optional
+  either. It is also dropped from `[dev]`, where naming it a second time would
+  only let the two pins drift.
+
+- `os-helper` cap widened to `<4` (os-helper 3.0.0 dropped its own CLI).
+
+### Fixed
+
+- **`concat --inputs a.mp3 b.mp3 c.mp3` would have stopped working.** That
+  spelling is the one `EXAMPLES.md` has always shown, and it is what the
+  argparse CLI accepted (`nargs="+"`); a click `multiple=True` option binds
+  exactly one value per occurrence, so the surviving CLI would have kept only
+  `a.mp3` and rejected the rest as "unexpected extra arguments". The trailing
+  files are now collected as variadic arguments and appended, so both the
+  listed form and the repeated `--inputs a --inputs b` form work and produce
+  the same ordered list. Found by running the command, not by reading it, and
+  held by a test proven to fail without the fix.
+
+- `--help` offered no `-h`, and `--version` no `-V`.
+
+- **Two subcommands rendered RST markup in their own help text.** click prints
+  the docstring verbatim, so `chunk` and `separate` advertised
+  ``Extract a ``[start, end]`` slice`` and ``needs the ``[demucs]`` extra``,
+  double backticks included. They are plain prose now. (No `\f` truncation is
+  needed here: no command docstring carries a numpydoc `Parameters` block.)
+
+- The dead `try: import click / except ImportError` guard — which pointed at
+  the `[cli]` extra that no longer exists — is removed, as is the
+  `pytest.importorskip("click")` at the top of `tests/test_cli.py`.
+
+- **The skill's CLI reference documented a CLI that never existed.**
+  `skills/audio-helper/references/cli-reference.md` showed positional
+  arguments (`audio-helper convert IN OUT`) and four invented flags —
+  `--sample-rate` for `convert` (it is `--freq`), `--duration` for `split`
+  (`--seconds`), `--level` for `roomtone` (`--db`), and a `--stems` selector
+  that exists on neither door — so an agent following it produced failing
+  commands. Rewritten from each subcommand's own `--help` output.
+
+### Migration
+
+- `audio-helper-click <cmd>` → `audio-helper <cmd>`. Same subcommands, same
+  flags; the only behavioural difference from the old argparse door is that a
+  non-existent `--input` is now a parser-level usage error (exit 2, usage line,
+  the bad value named) instead of a library error (exit 1, `Error: …`). A
+  library failure still prints one `Error: …` line and exits 1.
+- `pip install "audio-helper[cli]"` now fails on an unknown extra — drop the
+  `[cli]`, `click` comes with the package.
+- `python -m audio_helper.cli_click` / `cli_argparse` → `python -m
+  audio_helper.cli`.
+
+### Tests
+
+`tests/test_cli.py` is rewritten against the single CLI: 19 cases, down from
+24. The duplicated per-door scenarios collapse onto one door, and the one that
+lived only on the argparse side — a library exception surfacing as a single
+`Error: …` line and exit 1 — is carried over rather than deleted. It had to
+change trigger: a missing path is a usage error under click and no longer
+reaches the wrapper, so the exception is injected instead, which also moves
+the guarantee out of the `integration` marker and into the default suite. The
+real-ffmpeg version of it stays, as `integration`. New: `-h` and `-V` beside
+their long forms, both `concat` arities, and the usage-error exit code.
+
 ## [2.4.0] - 2026-10-21
 
 ### Changed

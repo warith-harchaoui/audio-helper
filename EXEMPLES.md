@@ -257,7 +257,7 @@ print(coefs.shape)  # (n_frames, 13)
 
 Les mêmes opérations sont accessibles sans écrire une ligne de Python.
 
-**CLI argparse (toujours installée) :**
+**CLI (toujours installée) :**
 
 ```bash
 audio-helper convert --input in.mp3 --output out.wav --freq 16000 --channels 1
@@ -269,12 +269,9 @@ audio-helper separate --input mix.mp3 --output-dir stems/          # nécessite 
 audio-helper resemblance --a take1.wav --b take2.wav
 ```
 
-**Jumelle CLI click (extra `[cli]`), mêmes options :**
-
-```bash
-pip install "audio-helper[cli]"
-audio-helper-click convert --input in.mp3 --output out.wav --freq 16000
-```
+`-h` / `--help` sur n'importe quelle sous-commande liste ses options ; `-V`
+affiche la version. `concat` accepte aussi le drapeau répété —
+`--inputs a.mp3 --inputs b.mp3` — si vous le préférez à la liste ci-dessus.
 
 **Surface HTTP FastAPI et GUI (extra `[api]`) :**
 

@@ -1,29 +1,46 @@
 """
-Audio Helper — click-based command-line interface.
+Audio Helper — the ``audio-helper`` command line.
 
-Twin of :mod:`audio_helper.cli_argparse`: same public surface (identical
-subcommand names, identical flag semantics), but implemented with
-:mod:`click` so users who already have a click-native shell setup
-(bash / zsh completion via ``click.shell_completion``, colored `--help`,
-nested command groups) can plug it in without friction. Installed as
-the ``audio-helper-click`` entry point in ``pyproject.toml``.
+The single command-line surface of the package: every library operation
+is reachable as a subcommand, implemented with :mod:`click` so shell
+completion (``click.shell_completion``), colored ``--help`` and nested
+groups come for free.
+
+Subcommands
+-----------
+- ``convert``     — re-encode an audio file (sample rate / channels / codec)
+- ``duration``    — print the duration in seconds of an audio file
+- ``chunk``       — extract a ``[start, end]`` slice from an audio file
+- ``silence``     — write a silent audio file of a given duration
+- ``concat``      — concatenate several audio files head-to-tail
+- ``roomtone``    — mix pink/white/brown ambient noise onto a speech track
+- ``split``       — split an audio file into fixed-duration chunks
+- ``separate``    — run Demucs source separation (needs the ``[demucs]`` extra)
+- ``resemblance`` — MFCC-based similarity score between two audio files
 
 Design notes
 ------------
-- Subcommands mirror ``audio-helper`` (the argparse twin) so both CLIs
-  can be introspected identically by higher layers (FastAPI).
-- Flags reuse the argparse names (``--input`` / ``--output`` / …) rather
-  than the more idiomatic click positional style — consistency across
-  the two CLIs beats micro-idiomaticity here.
-- Errors from the library propagate unchanged; click handles the
-  formatting.
+- Flags are named (``--input`` / ``--output`` / …) rather than positional:
+  audio commands take several paths and a bare positional order is easy to
+  get backwards.
+- Every subcommand is a thin dispatch onto :mod:`audio_helper.main`; the
+  result goes to stdout (a plain path for single-file outputs, one path per
+  line for multi-file ones, JSON for structured results) so shell pipelines
+  can chain on it.
+- A library exception is caught by :func:`main` and printed as one clean
+  ``Error: ...`` line + exit 1; click only handles its own exceptions.
 
 Usage Example
 -------------
->>> #   audio-helper-click convert    --input in.mp3 --output out.wav --freq 44100
->>> #   audio-helper-click duration   --input in.mp3
->>> #   audio-helper-click split      --input in.mp3 --output-dir chunks/ --seconds 30
->>> #   audio-helper-click resemblance --a a.mp3 --b b.mp3
+>>> #   audio-helper convert     --input in.mp3 --output out.wav --freq 44100
+>>> #   audio-helper duration    --input in.mp3
+>>> #   audio-helper chunk       --input in.mp3 --start 3.0 --end 8.5 --output cut.mp3
+>>> #   audio-helper silence     --duration 5 --output silence.wav
+>>> #   audio-helper concat      --inputs a.mp3 b.mp3 c.mp3 --output all.mp3
+>>> #   audio-helper roomtone    --input speech.wav --output speech-rt.wav --db -42
+>>> #   audio-helper split       --input in.mp3 --output-dir chunks/ --seconds 30
+>>> #   audio-helper separate    --input mix.mp3 --output-dir stems/
+>>> #   audio-helper resemblance --a a.mp3 --b b.mp3
 
 Author
 ------
@@ -35,14 +52,9 @@ from __future__ import annotations
 import json
 import sys
 
-try:
-    import click
-except ImportError as exc:  # pragma: no cover
-    raise ImportError(
-        "The click CLI requires the [cli] extra. Install with: pip install 'audio-helper[cli]'"
-    ) from exc
+import click
 
-# Same underlying functions as the argparse twin — one source of truth.
+# The library functions — one source of truth, shared with the HTTP surface.
 from . import (
     audio_concatenation,
     extract_audio_chunk,
@@ -67,9 +79,14 @@ from . import (
 @click.group(
     context_settings={"help_option_names": ["-h", "--help"], "max_content_width": 100},
 )
-@click.version_option(package_name="audio-helper", prog_name="audio-helper-click")
+# ``-V`` beside ``--version``: ``-v`` is taken by --verbose elsewhere in the
+# suite, so the version flag is the capital one. The version string comes from
+# the installed distribution metadata — the package exposes no ``__version__``.
+@click.version_option(
+    None, "-V", "--version", package_name="audio-helper", prog_name="audio-helper"
+)
 def cli() -> None:
-    """Audio Helper — click twin of the argparse CLI. Same subcommands."""
+    """Audio Helper — load, convert, cut, join and separate audio from the shell."""
     # Nothing to do at the group level — every subcommand carries its
     # own arguments and side effects.
 
@@ -134,7 +151,7 @@ def duration(input_: str) -> None:
 @click.option("--output", type=click.Path(), default=None, help="Output path (auto if omitted).")
 @click.option("--overwrite/--no-overwrite", default=True, show_default=True)
 def chunk(input_: str, start: float, end: float, output: str | None, overwrite: bool) -> None:
-    """Extract a ``[start, end]`` slice from an audio file."""
+    """Extract a [start, end] slice from an audio file."""
     out = extract_audio_chunk(
         audio_file=input_,
         start_time=start,
@@ -177,14 +194,22 @@ def silence(duration_: float, output: str | None, sample_rate: int, overwrite: b
     required=True,
     multiple=True,
     type=click.Path(exists=True),
-    help="Audio files in order (repeat --inputs for each).",
+    help="Audio files in order: list them all after one --inputs, or repeat the flag.",
 )
+# A click ``multiple=True`` option takes exactly one value per occurrence, so
+# `--inputs a.mp3 b.mp3 c.mp3` would bind only a.mp3 and choke on the rest.
+# That spelling is the documented one, so the trailing files are collected as
+# variadic arguments and appended — both forms work, and mixing them is
+# interpreted left to right within each form.
+@click.argument("more_inputs", nargs=-1, type=click.Path(exists=True))
 @click.option("--output", type=click.Path(), default=None)
 @click.option("--overwrite/--no-overwrite", default=False, show_default=True)
-def concat(inputs: tuple[str, ...], output: str | None, overwrite: bool) -> None:
+def concat(
+    inputs: tuple[str, ...], more_inputs: tuple[str, ...], output: str | None, overwrite: bool
+) -> None:
     """Concatenate several audio files head-to-tail."""
     out = audio_concatenation(
-        audio_files=list(inputs),
+        audio_files=[*inputs, *more_inputs],
         output_audio_filename=output,
         overwrite=overwrite,
     )
@@ -279,7 +304,7 @@ def separate(
     output_format: str,
     overwrite: bool,
 ) -> None:
-    """Run Demucs source separation (needs the ``[demucs]`` extra)."""
+    """Run Demucs source separation (needs the [demucs] extra)."""
     try:
         result = separate_sources(
             input_audio_file=input_,
@@ -309,8 +334,8 @@ def resemblance(a: str, b: str) -> None:
     click.echo(f"{sound_resemblance(a, b):.6f}")
 
 
-def console_entry() -> None:
-    """Console entry point (``audio-helper-click``).
+def main() -> None:
+    """Console entry point (``audio-helper``).
 
     Click's own error handling only special-cases ``ClickException``/
     ``Abort`` (and a broken pipe); a plain library exception (e.g. an
@@ -331,4 +356,4 @@ def console_entry() -> None:
 
 
 if __name__ == "__main__":  # pragma: no cover
-    console_entry()
+    main()

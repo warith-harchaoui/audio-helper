@@ -1,6 +1,6 @@
 """Tests for the audio-helper Claude / OpenCode skill packaging.
 
-The suite ships every helper with five surfaces: a library, two CLIs, a FastAPI
+The suite ships every helper with five surfaces: a library, a CLI, a FastAPI
 HTTP app, MCP mounted on that same app, and an agent skill. These tests cover
 the fifth one: that ``skills/audio-helper/SKILL.md`` exists, is well-formed against
 the published Agent Skills standard, and that ``scripts/check_triggers.py``

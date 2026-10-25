@@ -251,7 +251,7 @@ print(coefs.shape)  # (n_frames, 13)
 
 The same operations are reachable without writing Python.
 
-**argparse CLI (always installed):**
+**CLI (always installed):**
 
 ```bash
 audio-helper convert --input in.mp3 --output out.wav --freq 16000 --channels 1
@@ -263,12 +263,9 @@ audio-helper separate --input mix.mp3 --output-dir stems/          # needs [demu
 audio-helper resemblance --a take1.wav --b take2.wav
 ```
 
-**click CLI twin (`[cli]` extra)**, identical flags:
-
-```bash
-pip install "audio-helper[cli]"
-audio-helper-click convert --input in.mp3 --output out.wav --freq 16000
-```
+`-h` / `--help` on any subcommand lists its flags; `-V` prints the version.
+`concat` also takes a repeated flag — `--inputs a.mp3 --inputs b.mp3` — if you
+prefer it to the list above.
 
 **FastAPI HTTP surface + GUI (`[api]` extra):**
 

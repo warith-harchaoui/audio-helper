@@ -11,8 +11,8 @@ description: >-
   "trim / cut from 3s to 8s", "split into 30-second chunks", "merge these
   files", "generate silence", "add room tone", "isolate the vocals",
   "karaoke / acapella", "remove the music", "how similar are these two takes",
-  "how long is this audio", or names `audio-helper`, `audio-helper-click`,
-  `audio-helper-mcp`, `import audio_helper as ah`. Do NOT use for transcription
+  "how long is this audio", or names `audio-helper`, `audio-helper-mcp`,
+  `import audio_helper as ah`. Do NOT use for transcription
   or subtitles (vocal-helper), text-to-speech, music generation, downloading
   audio (youtube-helper / podcast-helper), or DAW-style mixing.
 license: BSD-3-Clause
@@ -28,12 +28,12 @@ metadata:
 `audio-helper` does one job: **transform audio files**. It never transcribes,
 never synthesizes, never downloads. Everything runs on the machine through
 ffmpeg, with a local Demucs for stem separation. The same nine operations are
-reachable five ways (library, two CLIs, HTTP API, MCP, browser GUI).
+reachable five ways (library, CLI, HTTP API, MCP, browser GUI).
 
 ## Before anything: verify it is installed
 
 ```bash
-audio-helper --help               # argparse CLI (ships with the package)
+audio-helper --help               # the CLI (ships with the package)
 python -c "import audio_helper"   # library import check
 ffmpeg -version                   # hard system dependency
 ```
@@ -43,7 +43,6 @@ Install:
 ```bash
 pip install audio-helper                 # core: the eight ffmpeg operations
 pip install 'audio-helper[demucs]'       # + stem separation (torch, ~2 GB)
-pip install 'audio-helper[cli]'          # + the click twin
 pip install 'audio-helper[api]'          # + FastAPI HTTP surface and GUI
 pip install 'audio-helper[mcp]'          # + MCP tools over the same app
 ```

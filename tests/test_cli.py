@@ -1,11 +1,11 @@
 """
-Smoke tests for the argparse and click CLIs.
+Smoke tests for the ``audio-helper`` command line.
 
-These tests exercise the CLI *parsing* layer and the trivial subcommands
-that do not need ffmpeg (``duration``-like routes are covered by the
-integration suite). The goal here is to prevent regressions in the
-CLI entry points — flag names, subcommand names, dispatch wiring —
-without pulling in the full ffmpeg stack.
+These tests exercise the CLI *parsing* layer and the wiring between
+subcommands and the library (the operations themselves, which need ffmpeg,
+are covered by the integration suite). The goal is to prevent regressions in
+the entry point — subcommand names, flag names, flag arity, error
+translation — without pulling in the full ffmpeg stack.
 
 Usage Example
 -------------
@@ -18,162 +18,176 @@ Warith Harchaoui, Ph.D. — https://linkedin.com/in/warith-harchaoui/
 
 from __future__ import annotations
 
+import sys
+
 import pytest
+from click.testing import CliRunner
 
-# The click CLI needs the ``click`` runtime dep, which lives in the
-# ``[cli]`` optional extra. Skip cleanly if it is not installed.
-click = pytest.importorskip("click")
+from audio_helper.cli import cli, main
 
-from click.testing import CliRunner  # noqa: E402
-
-
-def test_argparse_parser_builds_without_error():
-    """Building the parser should never fail (imports, subcommand wiring)."""
-    from audio_helper.cli_argparse import build_parser
-
-    parser = build_parser()
-    # A parser with at least one subcommand exposes them via _subparsers.
-    # We assert on the expected list of subcommand names to catch drift.
-    subparsers_action = next(
-        a for a in parser._actions if a.__class__.__name__ == "_SubParsersAction"
-    )
-    expected = {
-        "convert",
-        "duration",
-        "chunk",
-        "silence",
-        "concat",
-        "roomtone",
-        "split",
-        "separate",
-        "resemblance",
-    }
-    assert expected.issubset(set(subparsers_action.choices.keys()))
+# The nine operations the CLI exposes. Asserted as a set in several places so
+# a renamed or dropped subcommand fails here rather than in somebody's shell.
+SUBCOMMANDS = [
+    "convert",
+    "duration",
+    "chunk",
+    "silence",
+    "concat",
+    "roomtone",
+    "split",
+    "separate",
+    "resemblance",
+]
 
 
-def test_argparse_help_exits_zero(capsys):
-    """``audio-helper --help`` should exit with code 0 and print usage."""
-    from audio_helper.cli_argparse import main
-
-    with pytest.raises(SystemExit) as exc:
-        main(["--help"])
-    assert exc.value.code == 0
-    captured = capsys.readouterr()
-    assert "audio-helper" in captured.out.lower()
+def test_group_exposes_every_subcommand():
+    """The group must expose all nine operations, under these exact names."""
+    assert set(SUBCOMMANDS).issubset(set(cli.commands.keys()))
 
 
-@pytest.mark.parametrize(
-    "sub",
-    [
-        "convert",
-        "duration",
-        "chunk",
-        "silence",
-        "concat",
-        "roomtone",
-        "split",
-        "separate",
-        "resemblance",
-    ],
-)
-def test_argparse_subcommand_help_exits_zero(sub, capsys):
-    """Every subcommand's ``--help`` should exit 0 (no wiring bug)."""
-    from audio_helper.cli_argparse import main
+@pytest.mark.parametrize("flag", ["--help", "-h"])
+def test_help_exits_zero(flag):
+    """Both spellings of the help flag exit 0 and print the tool's purpose.
 
-    with pytest.raises(SystemExit) as exc:
-        main([sub, "--help"])
-    assert exc.value.code == 0
-
-
-def test_click_group_has_expected_subcommands():
-    """The click group must expose the same subcommands as the argparse CLI."""
-    from audio_helper.cli_click import cli
-
-    expected = {
-        "convert",
-        "duration",
-        "chunk",
-        "silence",
-        "concat",
-        "roomtone",
-        "split",
-        "separate",
-        "resemblance",
-    }
-    assert expected.issubset(set(cli.commands.keys()))
-
-
-def test_click_help_exits_zero():
-    """``audio-helper-click --help`` should exit 0."""
-    from audio_helper.cli_click import cli
-
-    runner = CliRunner()
-    result = runner.invoke(cli, ["--help"])
+    ``-h`` is not free: click only wires it when the group declares
+    ``help_option_names``, and a CLI that answers ``--help`` but not ``-h``
+    is a papercut nobody notices until a user hits it.
+    """
+    result = CliRunner().invoke(cli, [flag])
     assert result.exit_code == 0
     assert "audio helper" in result.output.lower()
 
 
-@pytest.mark.parametrize(
-    "sub",
-    [
-        "convert",
-        "duration",
-        "chunk",
-        "silence",
-        "concat",
-        "roomtone",
-        "split",
-        "separate",
-        "resemblance",
-    ],
-)
-def test_click_subcommand_help_exits_zero(sub):
-    """Every click subcommand's ``--help`` should exit 0."""
-    from audio_helper.cli_click import cli
+@pytest.mark.parametrize("flag", ["--version", "-V"])
+def test_version_exits_zero(flag):
+    """Both spellings of the version flag exit 0 and name the package.
 
-    runner = CliRunner()
-    result = runner.invoke(cli, [sub, "--help"])
+    ``-V`` rather than ``-v``: the short lowercase form is ``--verbose``
+    across the suite, so the version flag is the capital one.
+    """
+    result = CliRunner().invoke(cli, [flag])
+    assert result.exit_code == 0
+    assert "audio-helper" in result.output
+
+
+@pytest.mark.parametrize("sub", SUBCOMMANDS)
+def test_subcommand_help_exits_zero(sub):
+    """Every subcommand's ``--help`` exits 0 — i.e. its wiring is intact."""
+    result = CliRunner().invoke(cli, [sub, "--help"])
     assert result.exit_code == 0
 
 
-def test_argparse_main_prints_clean_error_on_library_exception(capsys):
-    """A library exception (missing input file) must print one clean
-    ``Error: ...`` line and return 1, not propagate as a raw traceback.
+def test_concat_accepts_several_files_after_one_inputs_flag(monkeypatch, tmp_path):
+    """``concat --inputs a b c`` must pass all three files, in order.
 
-    ``--input`` takes a plain string (no argparse-level existence check),
-    so a missing path reaches ``osh.checkfile``'s ``AssertionError``
-    without needing ffmpeg at all.
+    A click ``multiple=True`` option binds exactly one value per occurrence,
+    so this spelling — the one the docs have always shown — would otherwise
+    keep only ``a`` and reject ``b`` as an unexpected argument. The trailing
+    files are collected as variadic arguments and appended, which is what
+    this asserts.
     """
-    from audio_helper.cli_argparse import main
+    files = []
+    for name in ("a.wav", "b.wav", "c.wav"):
+        path = tmp_path / name
+        path.write_bytes(b"")
+        files.append(str(path))
 
-    code = main(["duration", "--input", "/nonexistent/path/definitely-missing.mp3"])
-    assert code == 1
+    seen: list[list[str]] = []
+
+    def fake_concat(audio_files, output_audio_filename, overwrite):
+        seen.append(list(audio_files))
+        return output_audio_filename
+
+    monkeypatch.setattr("audio_helper.cli.audio_concatenation", fake_concat)
+
+    out = str(tmp_path / "all.wav")
+    result = CliRunner().invoke(cli, ["concat", "--inputs", *files, "--output", out])
+    assert result.exit_code == 0, result.output
+    assert seen == [files]
+
+
+def test_concat_accepts_a_repeated_inputs_flag(monkeypatch, tmp_path):
+    """``concat --inputs a --inputs b`` — the click-idiomatic spelling — also
+    works, and yields the same ordered list as the variadic form above."""
+    files = []
+    for name in ("a.wav", "b.wav"):
+        path = tmp_path / name
+        path.write_bytes(b"")
+        files.append(str(path))
+
+    seen: list[list[str]] = []
+
+    def fake_concat(audio_files, output_audio_filename, overwrite):
+        seen.append(list(audio_files))
+        return output_audio_filename
+
+    monkeypatch.setattr("audio_helper.cli.audio_concatenation", fake_concat)
+
+    argv = ["concat"]
+    for path in files:
+        argv += ["--inputs", path]
+    argv += ["--output", str(tmp_path / "all.wav")]
+    result = CliRunner().invoke(cli, argv)
+    assert result.exit_code == 0, result.output
+    assert seen == [files]
+
+
+def test_missing_input_path_is_a_usage_error():
+    """A path that does not exist is rejected by the parser, exit code 2.
+
+    ``--input`` is a ``click.Path(exists=True)``, so a typo never reaches the
+    library: it comes back as a usage error naming the offending value.
+    """
+    result = CliRunner().invoke(cli, ["duration", "--input", "/nonexistent/missing.mp3"])
+    assert result.exit_code == 2
+    assert "does not exist" in result.output
+
+
+def test_main_prints_one_clean_error_line_on_a_library_exception(monkeypatch, tmp_path, capsys):
+    """A library exception must surface as one ``Error: ...`` line + exit 1.
+
+    Click's own handling covers ``ClickException``/``Abort`` only; anything a
+    library function raises (an ``AssertionError`` from a validation helper,
+    an ``ffmpeg.Error`` from a corrupt file) would otherwise reach the user as
+    a raw traceback. :func:`audio_helper.cli.main` is the wrapper that
+    translates it, so this calls that wrapper rather than the group.
+
+    The exception is injected rather than provoked with a real bad file: the
+    guarantee under test belongs to the wrapper, and provoking it for real
+    needs ffmpeg on PATH (see the integration test below).
+    """
+    existing = tmp_path / "input.mp3"
+    existing.write_bytes(b"")
+
+    def boom(*_args, **_kwargs):
+        raise AssertionError("not a valid audio file")
+
+    monkeypatch.setattr("audio_helper.cli.get_audio_duration", boom)
+    monkeypatch.setattr(sys, "argv", ["audio-helper", "duration", "--input", str(existing)])
+
+    with pytest.raises(SystemExit) as exc:
+        main()
+    assert exc.value.code == 1
     captured = capsys.readouterr()
-    assert captured.out.startswith("Error:") or captured.err.startswith("Error:")
+    assert captured.err.startswith("Error: not a valid audio file")
 
 
 @pytest.mark.integration
-def test_click_console_entry_prints_clean_error_on_library_exception(tmp_path, capsys):
-    """Same guarantee as the argparse test above, but for the click twin's
-    ``console_entry()`` wrapper.
+def test_main_prints_clean_error_on_a_real_unreadable_file(tmp_path, capsys):
+    """Same guarantee as above, provoked for real instead of injected.
 
-    Click's own ``click.Path(exists=True)`` validation means a missing path
-    never reaches the library — so this uses an existing-but-not-audio file
-    to reach ``get_audio_duration``'s ``ffmpeg.probe()`` failure instead,
-    which needs a real ffmpeg on PATH (hence ``integration``).
+    An existing-but-not-audio file reaches ``get_audio_duration``'s
+    ``ffmpeg.probe()``, which fails — so this one needs a real ffmpeg on
+    PATH, hence ``integration``.
     """
-    import sys
-
-    from audio_helper.cli_click import console_entry
-
     garbage = tmp_path / "not_audio.mp3"
     garbage.write_text("this is not an audio file")
 
     old_argv = sys.argv
-    sys.argv = ["audio-helper-click", "duration", "--input", str(garbage)]
+    sys.argv = ["audio-helper", "duration", "--input", str(garbage)]
     try:
         with pytest.raises(SystemExit) as exc:
-            console_entry()
+            main()
         assert exc.value.code == 1
     finally:
         sys.argv = old_argv

@@ -18,9 +18,10 @@ let ffmpeg do the work without materialising the signal in Python.
 
 Logging and file management route through `os_helper` — the suite convention.
 
-## 2. CLIs — argparse (core) and click (`[cli]`)
+## 2. CLI — click (core)
 
-`audio-helper` and `audio-helper-click`. See `cli-reference.md`.
+`audio-helper`, the single command line, installed with the core package. See
+`cli-reference.md`.
 
 ## 3. HTTP API — FastAPI (`[api]`)
 
