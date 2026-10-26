@@ -245,3 +245,6 @@ data/
 # renders as English on an installed copy — while looking perfect locally,
 # where the file is on disk either way. Held by a "tracked by git" test.
 !audio_helper/locales/*/LC_MESSAGES/*.mo
+
+# Local agent permission state: machine-specific, never shared.
+.claude/
