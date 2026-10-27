@@ -56,21 +56,39 @@ différenciation face à `torchaudio` (torch obligatoire) et face à
 quotidien).
 
 La nuance derrière chaque note mérite d'être explicitée. L'E/S
-multi-format d'`audio-helper` s'appuie sur un repli ffmpeg, si bien
-qu'elle lit et écrit à peu près tout ce que ffmpeg comprend, là où
-`soundfile` ne couvre que WAV / FLAC / OGG, où `audioread` est en lecture
-seule et où `scipy.io.wavfile` ne gère que le WAV. Côté caractéristiques,
-`librosa` est la référence de niveau MIR et mérite cinq
+multi-format d'`audio-helper` passe par ffmpeg pour chaque décodage, si
+bien qu'elle lit et écrit à peu près tout ce que ffmpeg comprend, là où
+`soundfile` reste borné à la liste de formats de libsndfile (WAV / FLAC /
+OGG / AIFF / CAF et, depuis libsndfile 1.1, MP3), où `audioread` se
+contente de décoder et où `scipy.io.wavfile` ne gère que le WAV. Côté
+caractéristiques, `librosa` est la référence de niveau MIR et mérite cinq
 étoiles : `audio-helper` expose la similarité MFCC pour la comparaison
-A/B, pas une suite d'analyse complète, d'où sa note médiane. Le
-rééchantillonnage correct est une force discrète mais réelle :
-`audio-helper`, `pydub`, `soundfile`, `ffmpeg-python` et `audioread`
-rééchantillonnent proprement, tandis que `torchaudio` et les modèles de
-séparation (`Demucs`, `Spleeter`) en laissent la charge à l'utilisateur.
-Sur la séparation, `Demucs` est à l'état de l'art et `audio-helper`
-l'enveloppe directement ; `torchaudio` atteint une qualité comparable via
-son pipeline HDEMUCS, tandis que `Spleeter` repose sur TensorFlow et
-n'est plus maintenu.
+A/B, pas une suite d'analyse complète, d'où sa note médiane.
+
+Le rééchantillonnage correct partage le terrain en trois groupes, pas en
+deux. Les bibliothèques qui possèdent un vrai rééchantillonneur
+polyphase ou à sinus cardinal fenêtré occupent le haut du tableau :
+`audio-helper` et `ffmpeg-python` via libswresample, `sox` / `pysox` via
+SoX, `librosa` via `soxr`, `torchaudio` via sa propre transformation
+`Resample`. Celles qui ne rééchantillonnent tout simplement pas —
+`soundfile`, `audioread`, `scipy.io.wavfile` — récoltent une étoile,
+parce que le travail revient entièrement à l'appelant. `pydub` se tient
+entre les deux et c'est le cas intéressant :
+`AudioSegment.set_frame_rate` appelle `audioop.ratecv` de la bibliothèque
+standard, qui interpole entre les échantillons au lieu d'appliquer un
+filtre anti-repliement conçu pour cela — un sous-échantillonnage replie
+donc le spectre plutôt que de refuser de le faire.
+
+Sur la séparation, Hybrid Demucs est à l'état de l'art et `audio-helper`
+ne l'atteint pas via le paquet `demucs` : `separate_sources` fait tourner
+le bundle `HDEMUCS_HIGH_MUSDB_PLUS` de torchaudio — même architecture,
+entraînée par Meta, livrée comme pipeline torchaudio. C'est toute la
+raison pour laquelle l'extra `[demucs]` n'installe que `torch` et
+`torchaudio`. `Spleeter` est l'autre option bien connue et elle a vieilli
+autrement : la version 2.4.2 épingle `tensorflow==2.12.1` en même temps
+que `numpy<2.0.0` et déclare `requires-python >=3.8,<3.12` — elle ne
+s'installe donc ni à côté d'un NumPy récent ni sur les versions de Python
+que prend en charge `audio-helper`.
 
 ## Quand choisir quoi
 
@@ -80,14 +98,71 @@ n'est plus maintenu.
   demande.
 - **`librosa`** : travail à forte composante analyse (détection
   d'onsets, suivi de tempo, chroma) qui n'a pas besoin de conversion de
-  format arbitraire.
+  format arbitraire. Attention au plancher : `librosa` 1.0.0 exige
+  Python 3.12 au minimum, si bien que sur 3.10 et 3.11 vous obtenez la
+  lignée 0.11.
 - **`torchaudio`** : quand on est déjà tensor-natif et qu'on veut du
   zéro-copie entre l'E/S audio et son modèle.
 - **`pydub`** : script rapide, montage à la volée, sans MFCC ni
-  séparation.
-- **`soundfile`** : lecture/écriture WAV / FLAC / OGG simple et rapide
-  quand on n'a besoin ni de conversion ni d'analyse.
+  séparation. Aucune version publiée depuis mars 2021 et le module
+  `audioop` sur lequel il repose a quitté la bibliothèque standard en
+  Python 3.13 : sur 3.13, il lui faut le rétroportage `audioop-lts`.
+- **`soundfile`** : lecture/écriture simple et rapide de ce que
+  libsndfile prend en charge, quand on n'a besoin ni de conversion ni
+  d'analyse.
 - **`ffmpeg-python` / `sox` / `pysox`** : conversion de format et
   transcodage lourds, en pilotant soi-même la CLI ffmpeg ou SoX.
 - **`Demucs` / `Spleeter`** : séparation de sources en production avec
-  son propre wrapper autour du modèle sous-jacent.
+  son propre wrapper autour du modèle sous-jacent. Préférez le paquet
+  `demucs` amont à celui-ci dès qu'il vous faut les pistes en stéréo, un
+  autre point de contrôle Demucs ou le modèle à six pistes :
+  `audio-helper` fixe un seul bundle et ramène chaque piste en mono.
+
+## Sources et date de relevé
+
+**Relevé le 2026-10-27.** Les étoiles ci-dessus sont un jugement d'adéquation
+à la tâche d'`audio-helper`, pas un banc d'essai : rien dans le tableau n'a été
+mesuré sur un corpus commun et une bibliothèque conçue pour un autre usage
+n'est pas sanctionnée pour cela. Ce qui est *sourcé*, en revanche, c'est chaque
+affirmation factuelle de la prose.
+
+Versions et dates lues dans les métadonnées PyPI de chaque projet
+(`https://pypi.org/pypi/<nom>/json`), le 2026-10-27 :
+
+| Projet | Dernière version | Publiée le |
+| --- | --- | --- |
+| `pydub` | 0.25.1 | 2021-03-10 |
+| `librosa` | 1.0.0 | 2026-08-11 |
+| `soundfile` | 0.14.0 | 2026-06-06 |
+| `torchaudio` | 2.11.0 | 2026-03-23 |
+| `ffmpeg-python` | 0.2.0 | 2019-07-06 |
+| `sox` (pysox) | 1.5.0 | 2024-03-20 |
+| `audioread` | 3.1.0 | 2025-10-26 |
+| `scipy` | 1.18.1 | 2026-08-21 |
+| `spleeter` | 2.4.2 | 2025-04-03 |
+| `demucs` | 4.1.0 | 2026-07-11 |
+
+D'où viennent les autres affirmations :
+
+- **Épinglages et versions de Python prises en charge**, des mêmes
+  métadonnées : `spleeter` 2.4.2 déclare `tensorflow==2.12.1`,
+  `numpy<2.0.0` ainsi que `requires-python >=3.8,<3.12` ; `librosa` 1.0.0
+  déclare `requires-python >=3.12` et dépend de `soxr>=1.0.0`.
+- **Le rééchantillonnage de `pydub`**, du code installé de
+  `pydub.AudioSegment.set_frame_rate` (0.25.1), qui appelle
+  `audioop.ratecv`. `audioop` a été retiré de la bibliothèque standard en
+  Python 3.13 par la PEP 594 : c'est la raison d'être du rétroportage
+  `audioop-lts`.
+- **La liste de formats de `soundfile`**, de `soundfile.available_formats()`
+  sur soundfile 0.13.1 / libsndfile 1.2.2, où `MP3` figure.
+- **Le modèle de séparation**, de `audio_helper/main.py`
+  (`separate_sources` → `torchaudio.pipelines.HDEMUCS_HIGH_MUSDB_PLUS`) ainsi
+  que de `pipelines/_source_separation_pipeline.py` de torchaudio. Les poids
+  sont récupérés par `torchaudio.utils.download_asset` depuis
+  `https://download.pytorch.org/torchaudio/models/hdemucs_high_trained.pt` ;
+  une requête HEAD sur cette URL répond 334 697 255 octets, soit les ~335 Mo
+  annoncés par le LISEZMOI.
+- **Les notes d'`audio-helper` lui-même**, de ce dépôt en version 2.5.0.
+
+Laissés volontairement à l'état d'opinion plutôt que sourcés : la colonne
+*Ergonomie pipeline d'IA* ainsi que l'ordre des recommandations ci-dessus.

@@ -25,9 +25,12 @@ Audio Helper est **local-first** par conception. Trois cas, en toute honnêteté
    **jamais téléversé** vers un tiers. **Aucune télémétrie, aucun compte,
    aucune dépendance SaaS.**
 2. **La seule réserve : les poids des modèles.** La séparation de sources
-   télécharge les poids du modèle **Demucs** **une seule fois**, au premier
-   lancement (un simple cache Hugging Face / PyTorch). Ensuite, tout fonctionne
-   hors ligne. Rien d'autre n'a besoin du réseau.
+   télécharge les poids d'**Hybrid Demucs** **une seule fois**, au premier
+   lancement : `separate_sources` fait tourner le pipeline
+   `HDEMUCS_HIGH_MUSDB_PLUS` de torchaudio, qui va chercher environ 335 Mo sur
+   `download.pytorch.org` pour les ranger dans le cache PyTorch Hub
+   (`torch.hub.get_dir()`, soit `~/.cache/torch/hub` par défaut). Ensuite, tout
+   fonctionne hors ligne. Rien d'autre n'a besoin du réseau.
 3. **Votre décision.** Rien ici ne force le cloud. Si vous souhaitez un jour
    déployer derrière un proxy ou dans un conteneur, la surface FastAPI le rend
    facile, mais c'est un choix que vous faites, pas un défaut que nous imposons.
@@ -118,60 +121,67 @@ pip install -e ".[api]"
 
 Si vous appelez `separate_sources` sans l'extra `[demucs]`, la fonction lève une `ImportError` qui vous redirige ici.
 
-## Utilisation
+## Prise en main rapide
 
 Pour le catalogue complet d'exemples, voir [📋 EXEMPLES.md](https://github.com/warith-harchaoui/audio-helper/blob/main/EXEMPLES.md).
 
-Exemple : charger, convertir et découper un fichier audio.
-
-(à télécharger : [example.mp3](https://deraison.ai/example.mp3))
-
-C'est un extrait d'un discours de JFK, très mal enregistré.
+Téléchargez le fichier de test — [example.mp3](https://deraison.ai/example.mp3),
+60 secondes d'un discours de JFK très mal enregistré, en MP3 48 kHz stéréo —
+puis chargez-le, réencodez-le, découpez-le en fenêtres avant de le recoller :
 
 ```python
 import audio_helper as ah
+import os_helper as osh
 
-# Charger un fichier audio
-audio_file = "example.mp3"
-audio, sample_rate = ah.load_audio(audio_file)
+# Aucune fonction d'écriture ne crée son dossier de destination : ffmpeg reçoit
+# un chemin qu'il suppose déjà existant. os-helper, le socle de gestion de
+# fichiers de la suite, s'en charge.
+osh.make_directory("out")
 
-# Convertir le fichier audio vers un autre format
-output_audio = "audio_tests/example.wav"
-ah.sound_converter(audio_file, output_audio)
+# Chargement. `to_numpy=True` renvoie un tableau numpy ; par défaut, la
+# fonction renvoie un tenseur torch, ce qui exige l'extra `[demucs]`.
+audio, sample_rate = ah.load_audio("example.mp3", to_numpy=True)
+print(audio.shape, sample_rate)
+# (2880000,) 48000
 
-# Découper le fichier audio en morceaux de 30 secondes
-chunks = ah.split_audio_regularly(
-    audio_file, "audio_tests/chunks_folder", split_time=30.0, overwrite=True
-)
-# Reconcaténer les morceaux
-new_concatenated_audio = "audio_tests/concatenated.wav"
-concatenated_audio = ah.audio_concatenation(chunks, output_audio_filename=new_concatenated_audio)
+# Réencodage : conteneur, fréquence d'échantillonnage et canaux en un appel.
+print(ah.sound_converter("example.mp3", "out/example.wav", freq=16000, channels=1))
+# out/example.wav
+
+# Découpage en fenêtres de 25 secondes, puis recollage bout à bout.
+chunks = ah.split_audio_regularly("example.mp3", "out/windows", split_time=25.0, overwrite=True)
+print(len(chunks))
+# 3
+joined = ah.audio_concatenation(chunks, "out/rejoined.mp3", overwrite=True)
+print(f"{ah.get_audio_duration(joined):.2f}")
+# 60.00
 ```
 
-Autre exemple : la séparation de sources (Demucs, de Meta), qui découpe une piste audio en 4 pistes :
-- voix (vocals)
-- batterie (drums)
-- basse (bass)
-- autres (other)
-
-Cela fonctionne aussi bien avec la parole qu'avec les chansons.
+L'autre opération phare est la séparation de sources : une piste mixée en
+entrée, quatre pistes en sortie (`drums`, `bass`, `other`, `vocals` — l'ordre
+dans lequel le bundle Hybrid Demucs de torchaudio les déclare). Elle fonctionne
+aussi bien sur la parole que sur les chansons. Elle réclame l'extra `[demucs]`
+ainsi que ce téléchargement unique de 335 Mo de poids.
 
 ```python
 import audio_helper as ah
-
-audio_path = "input_audio.m4a"
 
 sources = ah.separate_sources(
-    audio_path,
-    output_folder="audio_tests",
-    device="cpu",  # ou "cuda" si GPU disponible ou rien pour laisser décider
-    nb_workers=4,  # ignoré si pas en mode cpu
+    "song.mp3",
+    output_folder="stems",
+    device="cpu",  # ou "cuda" ; passer None laisse le choix se faire tout seul
+    nb_workers=4,  # ignoré sauf si device == "cpu"
     output_format="mp3",
+    overwrite=True,
 )
 
-print(sources)
-# {'vocals': 'audio_tests/vocals.mp3', 'drums': 'audio_tests/drums.mp3', 'bass': 'audio_tests/bass.mp3', 'other': 'audio_tests/other.mp3'}
+for stem, path in sources.items():
+    print(stem, path)
 ```
+
+Chaque piste est écrite sous `<output_folder>/<stem>.<output_format>` et elle
+est **mono** : le modèle travaille en stéréo, puis `separate_sources` ramène
+chaque piste en mono avant de l'écrire.
 
 ## Exposition multi-surface
 

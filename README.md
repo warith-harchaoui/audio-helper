@@ -25,9 +25,11 @@ Audio Helper is **local-first** by design. Three honest cases:
    to any third party. There is **no telemetry, no account, no SaaS**
    dependency.
 2. **The one caveat: model weights.** Source separation downloads the
-   **Demucs** model weights **once**, on first run (a normal Hugging Face /
-   PyTorch cache fetch). After that it is fully offline. Nothing else needs the
-   network.
+   **Hybrid Demucs** weights **once**, on first run: `separate_sources` runs
+   torchaudio's `HDEMUCS_HIGH_MUSDB_PLUS` pipeline, which fetches about
+   335 MB from `download.pytorch.org` into the PyTorch Hub cache
+   (`torch.hub.get_dir()`, `~/.cache/torch/hub` by default). After that it is
+   fully offline. Nothing else needs the network.
 3. **Your decision.** Nothing here forces the cloud. If you ever want to run
    behind a proxy or in a container, the FastAPI surface makes that easy, but
    that is a choice you make, not a default we impose.
@@ -115,60 +117,65 @@ pip install -e ".[api]"
 
 If you call `separate_sources` without the `[demucs]` extra, the function raises an `ImportError` pointing you back here.
 
-## Usage
+## Quick start
 
 For the full catalog of recipes, see [📋 EXAMPLES.md](https://github.com/warith-harchaoui/audio-helper/blob/main/EXAMPLES.md).
 
-Here's an example of how to use Audio Helper to load, convert, and split an audio file:
-
-(download [example.mp3](https://deraison.ai/example.mp3) )
-
-It is part of a JFK speech that is badly recorded
+Download the test file — [example.mp3](https://deraison.ai/example.mp3), 60
+seconds of a badly recorded JFK speech, MP3 at 48 kHz stereo — then load it,
+re-encode it, cut it into windows and put it back together:
 
 ```python
 import audio_helper as ah
+import os_helper as osh
 
-# Load an audio file
-audio_file = "example.mp3"
-audio, sample_rate = ah.load_audio(audio_file)
+# No writer creates its destination folder: ffmpeg is handed a path it expects
+# to already exist. os-helper, the suite's file-management foundation, makes it.
+osh.make_directory("out")
 
-# Convert the audio file to a different format
-output_audio = "audio_tests/example.wav"
-ah.sound_converter(audio_file, output_audio)
+# Load. `to_numpy=True` returns a numpy array; the default returns a torch
+# tensor and therefore needs the optional `[demucs]` extra.
+audio, sample_rate = ah.load_audio("example.mp3", to_numpy=True)
+print(audio.shape, sample_rate)
+# (2880000,) 48000
 
-# Split the audio file into chunks of 30 seconds
-chunks = ah.split_audio_regularly(
-    audio_file, "audio_tests/chunks_folder", split_time=30.0, overwrite=True
-)
-# Concatenate the chunks back together
-new_concatenated_audio = "audio_tests/concatenated.wav"
-concatenated_audio = ah.audio_concatenation(chunks, output_audio_filename=new_concatenated_audio)
+# Re-encode: container, sample rate and channel count in one call.
+print(ah.sound_converter("example.mp3", "out/example.wav", freq=16000, channels=1))
+# out/example.wav
+
+# Cut into 25-second windows, then put them back head to tail.
+chunks = ah.split_audio_regularly("example.mp3", "out/windows", split_time=25.0, overwrite=True)
+print(len(chunks))
+# 3
+joined = ah.audio_concatenation(chunks, "out/rejoined.mp3", overwrite=True)
+print(f"{ah.get_audio_duration(joined):.2f}")
+# 60.00
 ```
 
-Another cool example is about source separation (DEMUCS from META) with AI separating one audio track into 4 tracks:
-- vocals
-- drums
-- bass
-- other
-
-It works with speech and songs
+The other headline operation is source separation: one mixed track in, four
+stems out (`drums`, `bass`, `other`, `vocals` — the order torchaudio's Hybrid
+Demucs bundle declares them in). It works on speech as well as on songs, and
+it needs the `[demucs]` extra plus that one-time 335 MB weight download.
 
 ```python
 import audio_helper as ah
-
-audio_path = "input_audio.m4a"
 
 sources = ah.separate_sources(
-    audio_path,
-    output_folder="audio_tests",
-    device="cpu",  # or "cuda" if GPU or nothing to let it decide
-    nb_workers=4,  # ignored if not cpu
+    "song.mp3",
+    output_folder="stems",
+    device="cpu",  # or "cuda"; pass None to let it decide
+    nb_workers=4,  # ignored unless device == "cpu"
     output_format="mp3",
+    overwrite=True,
 )
 
-print(sources)
-# {'vocals': 'audio_tests/vocals.mp3', 'drums': 'audio_tests/drums.mp3', 'bass': 'audio_tests/bass.mp3', 'other': 'audio_tests/other.mp3'}
+for stem, path in sources.items():
+    print(stem, path)
 ```
+
+Each stem is written as `<output_folder>/<stem>.<output_format>` and is
+**mono**: the model works in stereo, then `separate_sources` downmixes every
+stem before writing it.
 
 ## Multi-surface exposure
 
