@@ -78,6 +78,10 @@ Audio Helper is **local-first** by design. Three honest cases:
 For the exhaustive trigger catalogue, see
 [TRIGGERS.md](https://github.com/warith-harchaoui/audio-helper/blob/main/TRIGGERS.md).
 
+## How it works
+
+![How audio-helper works: one audio file in, ffmpeg and a local Demucs between, stems and clips out](https://raw.githubusercontent.com/warith-harchaoui/audio-helper/main/assets/diagrams/how-it-works.png)
+
 ## Installation
 
 **Prerequisites**: **Python 3.10–3.13**, **git**, **ffmpeg**, cross-platform:

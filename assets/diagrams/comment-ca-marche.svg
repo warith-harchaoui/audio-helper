@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1268 432" width="1268" height="432" role="img" aria-labelledby="ah-title ah-desc" font-family="Roboto, 'Helvetica Neue', Arial, sans-serif">
+  <title id="ah-title">Comment audio-helper fonctionne : un fichier en entrée, ffmpeg et un Demucs local au milieu, des pistes et des extraits en sortie</title>
+  <desc id="ah-desc">Une plaque de gauche à droite. Entrée : n'importe quel fichier audio ou vidéo, depuis un chemin ou une URL. Le travail, en trois étapes numérotées : ffmpeg décode et normalise au taux d'échantillonnage et au nombre de canaux demandés ; un modèle Demucs local sépare le mélange en voix, batterie, basse et reste ; ffmpeg découpe ou concatène sur des horodatages exacts. Sortie : des pistes séparées et des extraits, écrits à côté de votre fichier. Dessous, l'objet central atteint par les quatre surfaces que chaque membre expose : une API Python, une CLI click, un serveur FastAPI avec ses outils MCP montés sur la même application, et un skill d'agent. La légende note la seule chose qui touche au réseau : les poids de Demucs, environ 335 Mo, téléchargés une fois.</desc>
+  <style>
+    .panel      { fill: #ffffff; stroke: #d6d6d6; stroke-width: 1.5; }
+    .panel-label{ fill: #6b6b6b; font-size: 13px; font-weight: 600; letter-spacing: .08em; }
+    .io         { fill: #F8F8F8; stroke: #9a9a9a; stroke-width: 1.5; }
+    .stage      { fill: #FFF4E0; stroke: #FF9500; stroke-width: 1.5; }
+    .core       { fill: #007AFF; stroke: #0062CC; stroke-width: 1.5; }
+    .surface    { fill: #EAF3FF; stroke: #007AFF; stroke-width: 1.5; }
+    .n-title    { font-size: 15px; font-weight: 600; fill: #111111; }
+    .n-sub      { font-size: 12px; fill: #5a5a5a; }
+    .on-dark    { fill: #ffffff; font-size: 15px; font-weight: 600; }
+    .on-dark-sub{ fill: #d8e8ff; font-size: 12px; }
+    .flow       { fill: none; stroke: #9a9a9a; stroke-width: 2; }
+    .tie        { fill: none; stroke: #007AFF; stroke-width: 1.5; }
+    .caption    { font-size: 12.5px; fill: #5a5a5a; font-style: italic; }
+    .step       { font-size: 11px; font-weight: 700; fill: #B26A00;
+                  font-family: 'Roboto Mono', ui-monospace, monospace; }
+    .surf-label { font-size: 13px; font-weight: 600; fill: #0062CC; }
+
+    @media (prefers-color-scheme: dark) {
+      .panel      { fill: #1b1b1d; stroke: #3a3a3d; }
+      .panel-label{ fill: #a0a0a6; }
+      .io         { fill: #2a2a2e; stroke: #6f6f76; }
+      .stage      { fill: #3a2d12; stroke: #FF9500; }
+      .surface    { fill: #10243d; stroke: #4da2ff; }
+      .n-title    { fill: #f2f2f4; }
+      .n-sub      { fill: #b4b4ba; }
+      .flow       { stroke: #7a7a82; }
+      .tie        { stroke: #4da2ff; }
+      .caption    { fill: #a0a0a6; }
+      .step       { fill: #FFCC00; }
+      .surf-label { fill: #4da2ff; }
+    }
+  </style>
+  <defs><marker id="ah-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#9a9a9a"/></marker></defs>
+  <text class="panel-label" x="28" y="40">ENTRÉE</text>
+  <rect class="io" x="28" y="87" width="155" height="78" rx="10"/>
+  <text class="n-title" x="105" y="120" text-anchor="middle">audio ou vidéo</text>
+  <text class="n-sub" x="105" y="139" text-anchor="middle">chemin ou URL</text>
+  <path class="flow" d="M189 126 H205" marker-end="url(#ah-arrow)"/>
+  <rect class="panel" x="209" y="54" width="814" height="144" rx="12"/>
+  <text class="panel-label" x="229" y="76">CE QU'ELLE FAIT</text>
+  <rect class="stage" x="229" y="94" width="224" height="78" rx="10"/>
+  <text class="n-title" x="341" y="127" text-anchor="middle">décoder + normaliser</text>
+  <text class="n-sub" x="341" y="146" text-anchor="middle">ffmpeg : taux, canaux, format</text>
+  <text class="step" x="240" y="110">1</text>
+  <path class="flow" d="M456 133 H472" marker-end="url(#ah-arrow)"/>
+  <rect class="stage" x="478" y="94" width="283" height="78" rx="10"/>
+  <text class="n-title" x="620" y="127" text-anchor="middle">séparer les sources</text>
+  <text class="n-sub" x="620" y="146" text-anchor="middle">Demucs local : voix / batterie / basse</text>
+  <text class="step" x="489" y="110">2</text>
+  <path class="flow" d="M766 133 H782" marker-end="url(#ah-arrow)"/>
+  <rect class="stage" x="788" y="94" width="215" height="78" rx="10"/>
+  <text class="n-title" x="895" y="127" text-anchor="middle">découper + concaténer</text>
+  <text class="n-sub" x="895" y="146" text-anchor="middle">ffmpeg : horodatages exacts</text>
+  <text class="step" x="799" y="110">3</text>
+  <path class="flow" d="M1029 126 H1045" marker-end="url(#ah-arrow)"/>
+  <text class="panel-label" x="1049" y="40">SORTIE</text>
+  <rect class="io" x="1049" y="87" width="191" height="78" rx="10"/>
+  <text class="n-title" x="1144" y="120" text-anchor="middle">pistes et extraits</text>
+  <text class="n-sub" x="1144" y="139" text-anchor="middle">écrits à côté du fichier</text>
+  <rect class="core" x="424" y="232" width="420" height="54" rx="10"/>
+  <text class="on-dark" x="634" y="253" text-anchor="middle">une bibliothèque, appelée pareil partout</text>
+  <text class="on-dark-sub" x="634" y="272" text-anchor="middle">os-helper dessous pour la journalisation et les fichiers</text>
+  <path class="tie" d="M634 286 V314 H370 V332"/>
+  <path class="tie" d="M634 314 H898 V332"/>
+  <path class="tie" d="M370 314 V332"/>
+  <rect class="surface" x="295" y="332" width="150" height="46" rx="9"/>
+  <text class="surf-label" x="370" y="360" text-anchor="middle">API Python</text>
+  <path class="tie" d="M546 314 V332"/>
+  <rect class="surface" x="471" y="332" width="150" height="46" rx="9"/>
+  <text class="surf-label" x="546" y="360" text-anchor="middle">CLI (click)</text>
+  <path class="tie" d="M722 314 V332"/>
+  <rect class="surface" x="647" y="332" width="150" height="46" rx="9"/>
+  <text class="surf-label" x="722" y="360" text-anchor="middle">FastAPI + MCP</text>
+  <path class="tie" d="M898 314 V332"/>
+  <rect class="surface" x="823" y="332" width="150" height="46" rx="9"/>
+  <text class="surf-label" x="898" y="360" text-anchor="middle">skill d'agent</text>
+  <text class="caption" x="634" y="412" text-anchor="middle">Tout tourne sur votre machine. Le seul appel réseau de la plaque, ce sont les poids de Demucs — environ 335 Mo, une fois, au premier usage.</text>
+</svg>

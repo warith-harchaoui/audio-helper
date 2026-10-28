@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1237 432" width="1237" height="432" role="img" aria-labelledby="ah-title ah-desc" font-family="Roboto, 'Helvetica Neue', Arial, sans-serif">
+  <title id="ah-title">How audio-helper works: one audio file in, ffmpeg and a local Demucs between, stems and clips out</title>
+  <desc id="ah-desc">A left-to-right plate. In: any audio or video file, from a path or a URL. The work, in three numbered stages: ffmpeg decodes and normalises it to the sample rate and channel count you asked for; a local Demucs model splits the mix into vocals, drums, bass and other; and ffmpeg cuts or concatenates on exact timestamps. Out: separated stems and trimmed clips, written beside your file. Underneath, the core object reached through the four surfaces every member of the suite exposes: a Python API, a click CLI, a FastAPI server with its MCP tools mounted on the same app, and an agent skill. The caption records the only thing that ever touches the network: the Demucs weights, about 335 MB, downloaded once on first use.</desc>
+  <style>
+    .panel      { fill: #ffffff; stroke: #d6d6d6; stroke-width: 1.5; }
+    .panel-label{ fill: #6b6b6b; font-size: 13px; font-weight: 600; letter-spacing: .08em; }
+    .io         { fill: #F8F8F8; stroke: #9a9a9a; stroke-width: 1.5; }
+    .stage      { fill: #FFF4E0; stroke: #FF9500; stroke-width: 1.5; }
+    .core       { fill: #007AFF; stroke: #0062CC; stroke-width: 1.5; }
+    .surface    { fill: #EAF3FF; stroke: #007AFF; stroke-width: 1.5; }
+    .n-title    { font-size: 15px; font-weight: 600; fill: #111111; }
+    .n-sub      { font-size: 12px; fill: #5a5a5a; }
+    .on-dark    { fill: #ffffff; font-size: 15px; font-weight: 600; }
+    .on-dark-sub{ fill: #d8e8ff; font-size: 12px; }
+    .flow       { fill: none; stroke: #9a9a9a; stroke-width: 2; }
+    .tie        { fill: none; stroke: #007AFF; stroke-width: 1.5; }
+    .caption    { font-size: 12.5px; fill: #5a5a5a; font-style: italic; }
+    .step       { font-size: 11px; font-weight: 700; fill: #B26A00;
+                  font-family: 'Roboto Mono', ui-monospace, monospace; }
+    .surf-label { font-size: 13px; font-weight: 600; fill: #0062CC; }
+
+    @media (prefers-color-scheme: dark) {
+      .panel      { fill: #1b1b1d; stroke: #3a3a3d; }
+      .panel-label{ fill: #a0a0a6; }
+      .io         { fill: #2a2a2e; stroke: #6f6f76; }
+      .stage      { fill: #3a2d12; stroke: #FF9500; }
+      .surface    { fill: #10243d; stroke: #4da2ff; }
+      .n-title    { fill: #f2f2f4; }
+      .n-sub      { fill: #b4b4ba; }
+      .flow       { stroke: #7a7a82; }
+      .tie        { stroke: #4da2ff; }
+      .caption    { fill: #a0a0a6; }
+      .step       { fill: #FFCC00; }
+      .surf-label { fill: #4da2ff; }
+    }
+  </style>
+  <defs><marker id="ah-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#9a9a9a"/></marker></defs>
+  <text class="panel-label" x="28" y="40">IN</text>
+  <rect class="io" x="28" y="87" width="155" height="78" rx="10"/>
+  <text class="n-title" x="105" y="120" text-anchor="middle">audio or video</text>
+  <text class="n-sub" x="105" y="139" text-anchor="middle">path or URL</text>
+  <path class="flow" d="M189 126 H205" marker-end="url(#ah-arrow)"/>
+  <rect class="panel" x="209" y="54" width="784" height="144" rx="12"/>
+  <text class="panel-label" x="229" y="76">WHAT IT DOES</text>
+  <rect class="stage" x="229" y="94" width="230" height="78" rx="10"/>
+  <text class="n-title" x="344" y="127" text-anchor="middle">decode + normalise</text>
+  <text class="n-sub" x="344" y="146" text-anchor="middle">ffmpeg: rate, channels, format</text>
+  <text class="step" x="240" y="110">1</text>
+  <path class="flow" d="M463 133 H479" marker-end="url(#ah-arrow)"/>
+  <rect class="stage" x="485" y="94" width="264" height="78" rx="10"/>
+  <text class="n-title" x="617" y="127" text-anchor="middle">separate sources</text>
+  <text class="n-sub" x="617" y="146" text-anchor="middle">local Demucs: vocals / drums / bass</text>
+  <text class="step" x="496" y="110">2</text>
+  <path class="flow" d="M753 133 H769" marker-end="url(#ah-arrow)"/>
+  <rect class="stage" x="775" y="94" width="198" height="78" rx="10"/>
+  <text class="n-title" x="874" y="127" text-anchor="middle">split + concatenate</text>
+  <text class="n-sub" x="874" y="146" text-anchor="middle">ffmpeg: exact timestamps</text>
+  <text class="step" x="786" y="110">3</text>
+  <path class="flow" d="M998 126 H1014" marker-end="url(#ah-arrow)"/>
+  <text class="panel-label" x="1018" y="40">OUT</text>
+  <rect class="io" x="1018" y="87" width="191" height="78" rx="10"/>
+  <text class="n-title" x="1114" y="120" text-anchor="middle">stems and clips</text>
+  <text class="n-sub" x="1114" y="139" text-anchor="middle">written beside your file</text>
+  <rect class="core" x="403" y="232" width="431" height="54" rx="10"/>
+  <text class="on-dark" x="619" y="253" text-anchor="middle">one library, called the same way everywhere</text>
+  <text class="on-dark-sub" x="619" y="272" text-anchor="middle">os-helper underneath for logging and file management</text>
+  <path class="tie" d="M619 286 V314 H355 V332"/>
+  <path class="tie" d="M619 314 H883 V332"/>
+  <path class="tie" d="M355 314 V332"/>
+  <rect class="surface" x="280" y="332" width="150" height="46" rx="9"/>
+  <text class="surf-label" x="355" y="360" text-anchor="middle">Python API</text>
+  <path class="tie" d="M531 314 V332"/>
+  <rect class="surface" x="456" y="332" width="150" height="46" rx="9"/>
+  <text class="surf-label" x="531" y="360" text-anchor="middle">CLI (click)</text>
+  <path class="tie" d="M707 314 V332"/>
+  <rect class="surface" x="632" y="332" width="150" height="46" rx="9"/>
+  <text class="surf-label" x="707" y="360" text-anchor="middle">FastAPI + MCP</text>
+  <path class="tie" d="M883 314 V332"/>
+  <rect class="surface" x="808" y="332" width="150" height="46" rx="9"/>
+  <text class="surf-label" x="883" y="360" text-anchor="middle">agent skill</text>
+  <text class="caption" x="619" y="412" text-anchor="middle">Everything runs on your machine. The only network call in the whole plate is the Demucs weights — about 335 MB, once, on first use.</text>
+</svg>

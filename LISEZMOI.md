@@ -82,6 +82,10 @@ accessible via :
 
 Pour le catalogue exhaustif, voir [TRIGGERS.md](https://github.com/warith-harchaoui/audio-helper/blob/main/TRIGGERS.md).
 
+## Comment ça marche
+
+![Comment audio-helper fonctionne : un fichier en entrée, ffmpeg et un Demucs local au milieu, des pistes et des extraits en sortie](https://raw.githubusercontent.com/warith-harchaoui/audio-helper/main/assets/diagrams/comment-ca-marche.png)
+
 ## Installation
 
 **Prérequis** : **Python 3.10–3.13**, **git**, **ffmpeg**, multiplateforme :
