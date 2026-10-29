@@ -155,3 +155,15 @@ Where the other claims come from:
 
 Deliberately left as opinion rather than sourced: the *AI-pipeline
 ergonomics* column, and the order of the recommendations above.
+
+## Ideas worth stealing
+
+Researched rather than guessed: what each neighbour does better, and what this library would have to change to match it. Nothing here is a commitment — it is the reading list the next version starts from.
+
+- **`librosa` — the spectral feature vocabulary** — `sound_resemblance` here computes an MFCC similarity, but librosa's framing — mel filter banks, hop and window as explicit parameters, a documented feature set — is the reference every reader already knows. Naming the parameters the same way costs nothing and removes a translation step.
+
+- **`pydub` — an API that reads like the edit you are describing** — Slicing a segment with `[]` and concatenating with `+` reads better than a function call for ad-hoc work. The function-call surface here is right for pipelines; a thin fluent wrapper over it would serve the notebook case without changing the core.
+
+- **`soundfile` — ask libsndfile what it supports, do not hardcode it** — `available_formats()` reports the formats actually compiled into the installed libsndfile. The equivalent here is asking the installed ffmpeg rather than shipping a list that drifts from whatever the user has.
+
+- **`sox` — effects as a composable chain** — Normalise, compand, dither and fade are separate steps you stack. Room tone is already this shape; the rest of the post-production verbs would compose the same way.
