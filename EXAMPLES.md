@@ -152,6 +152,44 @@ Resampling is the part worth paying attention to: it happens inside ffmpeg's
 `libswresample`, so a downsample is band-limited first and does not alias. That
 is the same path `load_audio(target_sample_rate=...)` takes.
 
+For a lossy container, `bitrate` states the one thing the arguments above
+cannot. It takes bits per second (`64000`) or an ffmpeg-style string
+(`"64k"`).
+
+Left unset, **the input's own bitrate is carried over**: a 96 kb/s episode
+re-containered to `.m4a` stays 96 kb/s, because the caller named a container
+and not a quality. An uncompressed input has no compressed bitrate to carry,
+and `audio-helper` will not invent one, so ffmpeg chooses there, and for a
+24 kHz mono stream it chooses 32 kb/s. That is the case where naming the
+bitrate is worth the keystrokes.
+
+```python
+print(
+    ah.sound_converter(
+        "narration.wav",
+        "narration.mp3",
+        freq=24000,
+        channels=1,
+        bitrate="64k",
+    )
+)
+# narration.mp3
+```
+
+```python
+# Re-containering keeps the quality it was handed.
+print(ah.sound_converter("episode.mp3", "episode.m4a"))
+# episode.m4a
+```
+
+Which stage each setting lands on is worth knowing, because the function
+encodes twice. `freq` and `channels` are applied to the intermediate WAV, so
+the final container inherits them. A lossy `encoding` is applied to the final
+encode instead, with `bitrate` alongside it: naming a lossy codec on the
+intermediate WAV would write compressed payload inside a WAV container, which
+the last stage would then decode and re-encode. A WAV output carries no
+bitrate, so the setting is ignored there with a warning.
+
 ## 4. Cut one highlight out of a long recording
 
 `extract_audio_chunk(audio_file, start_time, end_time, output_audio_filename)`

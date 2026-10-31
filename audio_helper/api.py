@@ -260,8 +260,13 @@ def convert(
     freq: int = Form(44100),
     channels: int = Form(1),
     encoding: str = Form("pcm_s16le"),
+    bitrate: str | None = Form(
+        None,
+        description="Target bitrate for a lossy output (64k, 64000). Unset carries the "
+        "input's own bitrate over.",
+    ),
 ) -> FileResponse:
-    """Re-encode an uploaded file at the requested sample rate / channels / codec."""
+    """Re-encode an uploaded file at the requested sample rate / channels / codec / bitrate."""
     # Every action endpoint follows the same shape: spool the upload to a
     # request-scoped temp dir, run the pure library function on real paths
     # (the library speaks files, not streams), then hand the result back and
@@ -279,6 +284,7 @@ def convert(
             channels=channels,
             encoding=encoding,
             overwrite=True,
+            bitrate=bitrate,
         )
     except Exception:
         # A raised exception means no response (and so no background task)

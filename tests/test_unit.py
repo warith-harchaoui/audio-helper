@@ -18,9 +18,12 @@ Warith Harchaoui, Ph.D. — https://linkedin.com/in/warith-harchaoui/
 """
 
 import numpy as np
+import pytest
 from scipy.io import wavfile
 
 from audio_helper.main import (
+    LOSSLESS_CODECS,
+    _normalise_bitrate,
     hz_to_mel,
     mel_filter_banks,
     mel_to_hz,
@@ -203,3 +206,37 @@ def test_staleness_is_not_claimed_without_something_to_compare(tmp_path) -> None
     assert _output_is_stale(str(out), []) is False
     assert _output_is_stale(str(out), [str(tmp_path / "absent")]) is False
     assert _output_is_stale(str(tmp_path / "absent"), [str(out)]) is False
+
+
+def test_normalise_bitrate_accepts_both_spellings():
+    """Bits per second and ffmpeg-style strings must both reach ffmpeg intact."""
+    assert _normalise_bitrate(64000) == "64000"
+    assert _normalise_bitrate("64k") == "64k"
+    assert _normalise_bitrate("128K") == "128K"
+    assert _normalise_bitrate("1M") == "1M"
+    assert _normalise_bitrate(" 96k ") == "96k"
+
+
+@pytest.mark.parametrize("value", ["", "abc", "-5", "0k", "64kb", "64x", 0, -1, True, False])
+def test_normalise_bitrate_refuses_nonsense(value):
+    """A silently wrong bitrate would reach ffmpeg as a broken flag.
+
+    ``True`` and ``False`` are in the list on purpose: ``bool`` subclasses
+    ``int``, so ``True`` would otherwise pass as the bitrate 1.
+    """
+    with pytest.raises(AssertionError):
+        _normalise_bitrate(value)
+
+
+def test_the_lossless_set_names_the_codecs_with_nothing_to_carry():
+    """A lossless stream's bitrate is arithmetic, not a choice.
+
+    24 kHz 16-bit mono PCM reads 384 kb/s, and carrying that into a lossy
+    encoder would ask for the codec's ceiling rather than for the quality of
+    the source. PCM is matched by prefix, so only the named families are
+    listed here.
+    """
+    assert "flac" in LOSSLESS_CODECS
+    assert "alac" in LOSSLESS_CODECS
+    assert "mp3" not in LOSSLESS_CODECS
+    assert "aac" not in LOSSLESS_CODECS

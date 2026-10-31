@@ -111,10 +111,23 @@ def cli() -> None:
 @click.option(
     "--overwrite/--no-overwrite", default=True, show_default=True, help="Overwrite existing output."
 )
+@click.option(
+    "--bitrate",
+    default=None,
+    help="Target bitrate for a lossy output, e.g. 64k or 64000. Unset carries the "
+    "input's own bitrate over; an uncompressed input has none, and ffmpeg then "
+    "picks 32k for a 24 kHz mono stream. Ignored for a WAV output.",
+)
 def convert(
-    input_: str, output: str, freq: int, channels: int, encoding: str, overwrite: bool
+    input_: str,
+    output: str,
+    freq: int,
+    channels: int,
+    encoding: str,
+    overwrite: bool,
+    bitrate: str | None,
 ) -> None:
-    """Re-encode an audio file (freq / channels / codec)."""
+    """Re-encode an audio file (freq / channels / codec / bitrate)."""
     # Thin dispatch to the library.
     out = sound_converter(
         input_audio=input_,
@@ -123,6 +136,7 @@ def convert(
         channels=channels,
         encoding=encoding,
         overwrite=overwrite,
+        bitrate=bitrate,
     )
     click.echo(out)
 

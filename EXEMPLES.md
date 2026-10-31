@@ -156,6 +156,43 @@ Le rééchantillonnage est le point qui mérite l'attention : il a lieu dans
 bande et ne replie pas le spectre. C'est le même chemin que celui de
 `load_audio(target_sample_rate=...)`.
 
+Pour un conteneur avec perte, `bitrate` dit la seule chose que les arguments
+ci-dessus ne savent pas dire. Il prend des bits par seconde (`64000`) ou une
+chaîne à la façon de ffmpeg (`"64k"`).
+
+Laissé vide, **le débit de l'entrée est repris** : un épisode à 96 kb/s remis
+dans un `.m4a` reste à 96 kb/s, parce que l'appelant a nommé un conteneur et
+non une qualité. Une entrée non compressée n'a aucun débit à reprendre, et
+`audio-helper` n'en invente pas : ffmpeg choisit alors, et pour un flux mono à
+24 kHz il choisit 32 kb/s. C'est le cas où nommer le débit vaut la frappe.
+
+```python
+print(
+    ah.sound_converter(
+        "narration.wav",
+        "narration.mp3",
+        freq=24000,
+        channels=1,
+        bitrate="64k",
+    )
+)
+# narration.mp3
+```
+
+```python
+# Changer de conteneur garde la qualité qu'on nous a donnée.
+print(ah.sound_converter("episode.mp3", "episode.m4a"))
+# episode.m4a
+```
+
+L'étage où tombe chaque réglage mérite d'être connu, parce que la fonction
+encode deux fois. `freq` et `channels` s'appliquent au WAV intermédiaire, donc
+le conteneur final en hérite. Un `encoding` avec perte s'applique en revanche à
+l'encodage final, et `bitrate` l'y accompagne : nommer un codec avec perte sur
+le WAV intermédiaire y écrirait des données compressées dans un conteneur WAV,
+que la dernière étape décoderait puis réencoderait. Une sortie WAV ne porte
+aucun débit, donc le réglage y est ignoré avec un avertissement.
+
 ## 4. Extraire un passage dans un long enregistrement
 
 `extract_audio_chunk(audio_file, start_time, end_time, output_audio_filename)`

@@ -36,6 +36,7 @@ from audio_helper import (
     sound_converter,
     split_audio_regularly,
 )
+from audio_helper.main import _source_bitrate
 
 pytestmark = pytest.mark.integration
 
@@ -112,6 +113,98 @@ def test_sound_converter_wav_to_wav_resample(tmp_path):
     assert is_valid_audio_file(str(dst))
     _, sample_rate = load_audio(str(dst), to_numpy=True, to_mono=True)
     assert sample_rate == 16000
+
+
+def test_sound_converter_mp3_honours_bitrate(tmp_path):
+    """A requested bitrate must land in the file, and must change it.
+
+    The no-bitrate call is measured alongside on purpose: ffmpeg picks
+    32 kb/s for a 24 kHz mono stream, so a test that only asserted
+    "some bitrate is present" would pass without the parameter doing
+    anything.
+    """
+    src = _write_tone(tmp_path / "tone.wav", sample_rate=48000, duration=3.0)
+
+    asked = tmp_path / "asked.mp3"
+    sound_converter(str(src), str(asked), freq=24000, channels=1, bitrate="64k", overwrite=True)
+    default = tmp_path / "default.mp3"
+    sound_converter(str(src), str(default), freq=24000, channels=1, overwrite=True)
+
+    assert is_valid_audio_file(str(asked))
+    # 64 kb/s over three seconds is about 24 KiB; the ffmpeg default for this
+    # stream is half that. Comparing sizes keeps the test free of ffprobe.
+    assert asked.stat().st_size > default.stat().st_size * 1.5
+
+
+def test_sound_converter_carries_the_input_bitrate_over(tmp_path):
+    """Asked for no bitrate, a lossy input must keep its own.
+
+    The caller named a container, not a quality. Before this, ffmpeg chose,
+    and for a mono stream it chooses 32 kb/s: re-containering a 96 kb/s
+    episode silently cost two thirds of it.
+    """
+    src = _write_tone(tmp_path / "tone.wav", sample_rate=44100, duration=4.0)
+    source = tmp_path / "source.mp3"
+    sound_converter(str(src), str(source), freq=44100, channels=1, bitrate="96k")
+
+    inherited = tmp_path / "inherited.mp3"
+    sound_converter(str(source), str(inherited), freq=44100, channels=1)
+
+    # Same seconds at the same bitrate is the same size, within the slack of
+    # a frame and an ID3 tag. Comparing sizes keeps the test off ffprobe.
+    assert abs(inherited.stat().st_size - source.stat().st_size) < source.stat().st_size * 0.1
+
+
+def test_sound_converter_lets_an_explicit_bitrate_beat_the_input(tmp_path):
+    """Inheriting is the default, never an override of what was asked for."""
+    src = _write_tone(tmp_path / "tone.wav", sample_rate=44100, duration=4.0)
+    source = tmp_path / "source.mp3"
+    sound_converter(str(src), str(source), freq=44100, channels=1, bitrate="96k")
+
+    asked = tmp_path / "asked.mp3"
+    sound_converter(str(source), str(asked), freq=44100, channels=1, bitrate="32k")
+    assert asked.stat().st_size < source.stat().st_size / 2
+
+
+def test_sound_converter_does_not_carry_a_pcm_bitrate_over(tmp_path):
+    """An uncompressed input has no bitrate to carry, and must not pretend to.
+
+    A 44.1 kHz 16-bit mono WAV reads 705 kb/s. Carrying that over would ask
+    libmp3lame for its 320 kb/s ceiling and produce a file five times the
+    size of a sane speech encode, for a source that holds no such detail.
+    """
+    src = _write_tone(tmp_path / "tone.wav", sample_rate=44100, duration=4.0)
+    out = tmp_path / "out.mp3"
+    sound_converter(str(src), str(out), freq=24000, channels=1)
+    # 320 kb/s over four seconds would be about 156 KiB; anything near that
+    # means the PCM figure leaked into the encoder.
+    assert out.stat().st_size < 60 * 1024
+
+
+def test_source_bitrate_reports_nothing_for_a_missing_file(tmp_path):
+    """Choosing a default must not fail a conversion ffmpeg would complete."""
+    assert _source_bitrate(str(tmp_path / "nowhere.mp3")) is None
+
+
+def test_sound_converter_bitrate_ignored_for_wav(tmp_path):
+    """A WAV output has no bitrate to set: the call must warn, not fail."""
+    src = _write_tone(tmp_path / "tone.wav", sample_rate=24000, duration=1.0)
+    dst = tmp_path / "out.wav"
+    result = sound_converter(str(src), str(dst), freq=16000, channels=1, bitrate="64k")
+    assert result == str(dst)
+    assert is_valid_audio_file(str(dst))
+
+
+def test_sound_converter_lossy_encoding_is_not_applied_twice(tmp_path):
+    """Naming a lossy codec must encode once, not MP3-inside-WAV then MP3 again."""
+    src = _write_tone(tmp_path / "tone.wav", sample_rate=48000, duration=2.0)
+    once = tmp_path / "once.mp3"
+    sound_converter(
+        str(src), str(once), freq=24000, channels=1, encoding="libmp3lame", bitrate="64k"
+    )
+    assert is_valid_audio_file(str(once))
+    _, sample_rate = load_audio(str(once), to_numpy=True, to_mono=True)
+    assert sample_rate == 24000
 
 
 def test_sound_converter_returns_output_path(tmp_path):

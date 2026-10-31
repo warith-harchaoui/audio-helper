@@ -37,6 +37,7 @@ from __future__ import annotations
 # Standard library first (PEP 8 import grouping): concurrency.
 import concurrent.futures
 import os
+import re
 from typing import TYPE_CHECKING
 
 # Third-party: ffmpeg wrapper, numpy, scipy signal/IO helpers, progress bar.
@@ -552,6 +553,102 @@ def load_audio(
     return torch.from_numpy(np.ascontiguousarray(audio_t)), sample_rate
 
 
+#: Codecs whose stream has no compressed bitrate to carry over. Their figure
+#: is arithmetic, not a choice: 24 kHz 16-bit mono PCM reads 384 kb/s, and
+#: handing that to a lossy encoder asks for the ceiling of the codec rather
+#: than for the quality of the source.
+LOSSLESS_CODECS: frozenset[str] = frozenset(
+    {"flac", "alac", "wavpack", "tta", "truehd", "mlp", "ape", "shorten"}
+)
+
+
+def _source_bitrate(input_audio: str) -> str | None:
+    """
+    The input's own bitrate, when it has one worth carrying over.
+
+    Parameters
+    ----------
+    input_audio : str
+        Path to the input audio file.
+
+    Returns
+    -------
+    str or None
+        Bits per second as a string, or None when the input is uncompressed
+        or when ffprobe reports no usable figure.
+
+    Notes
+    -----
+    Stream first, container second, the same fallback
+    :func:`get_audio_duration` makes and for the same reason: some MP3 and
+    ADTS streams report a bitrate only at the container level.
+
+    A failed probe returns None rather than raising. The caller is choosing a
+    default, and losing a default is not worth failing a conversion that
+    ffmpeg would otherwise complete.
+    """
+    try:
+        probe = ffmpeg.probe(input_audio)
+    except (ffmpeg.Error, OSError):  # pragma: no cover - depends on the file
+        return None
+
+    stream = next((s for s in probe.get("streams", []) if s.get("codec_type") == "audio"), None)
+    if stream is None:
+        return None
+
+    codec = str(stream.get("codec_name", "")).lower()
+    if codec.startswith("pcm_") or codec in LOSSLESS_CODECS:
+        return None
+
+    value = stream.get("bit_rate") or probe.get("format", {}).get("bit_rate")
+    if value in (None, "", "N/A"):
+        return None
+    try:
+        measured = int(float(value))
+    except (TypeError, ValueError):  # pragma: no cover - ffprobe oddity
+        return None
+    return str(measured) if measured > 0 else None
+
+
+def _normalise_bitrate(bitrate: str | int) -> str:
+    """
+    Normalise a requested bitrate into the string ffmpeg expects for ``-b:a``.
+
+    Parameters
+    ----------
+    bitrate : str or int
+        Bits per second as an integer (``64000``), or an ffmpeg-style string
+        (``"64k"``, ``"128K"``, ``"64000"``).
+
+    Returns
+    -------
+    str
+        The value to hand to ffmpeg, e.g. ``"64k"``.
+
+    Raises
+    ------
+    AssertionError
+        If the value is not a positive integer nor an ffmpeg-style string.
+
+    Notes
+    -----
+    ``bool`` is a subclass of ``int``, so ``True`` would otherwise pass as the
+    bitrate 1. It is refused by name.
+    """
+    assert not isinstance(bitrate, bool), f"Invalid bitrate: {bitrate!r}"
+
+    if isinstance(bitrate, int):
+        assert bitrate > 0, f"Invalid bitrate: {bitrate!r} (must be greater than zero)"
+        return str(bitrate)
+
+    text = str(bitrate).strip()
+    assert re.fullmatch(r"[1-9][0-9]*[kKmM]?", text), (
+        f"Invalid bitrate: {bitrate!r} (expected bits per second such as 64000, "
+        'or an ffmpeg-style string such as "64k")'
+    )
+    return text
+
+
 def sound_converter(
     input_audio: str,
     output_audio: str,
@@ -559,6 +656,7 @@ def sound_converter(
     channels: int = 1,
     encoding: str = "pcm_s16le",
     overwrite: bool = True,
+    bitrate: str | int | None = None,
 ) -> str:
     """
     Convert an audio file to the specified format using ffmpeg-python.
@@ -579,6 +677,15 @@ def sound_converter(
         If True (the default), an existing output file is deleted and rewritten.
         If False, an existing **valid** output file is returned as-is without
         re-converting (see :func:`_overwrite_audio_file`).
+    bitrate : str or int or None, optional
+        Target bitrate for a lossy output: bits per second as an integer
+        (``64000``) or an ffmpeg-style string (``"64k"``). None, the default,
+        **carries the input's own bitrate over**, so a 96 kb/s MP3 re-encoded
+        to MP3 stays 96 kb/s instead of dropping to whatever ffmpeg would
+        have picked. An uncompressed input has no bitrate to carry (see
+        :data:`LOSSLESS_CODECS`), and the choice is left to ffmpeg there.
+        Ignored with a warning when the *output* is WAV, which is
+        uncompressed and has no bitrate to set.
 
     Returns
     -------
@@ -596,6 +703,38 @@ def sound_converter(
     -----
     The conversion is handled using a temporary file structure to manage intermediate formats.
     Two intermediate WAV files are used before generating the final output audio file.
+
+    Which stage each setting lands on matters, because the function encodes
+    twice. ``freq`` and ``channels`` are applied to the intermediate WAV, so
+    the final container inherits them. A **lossy** ``encoding`` is applied to
+    the final encode instead: naming it on the intermediate WAV would write
+    compressed payload inside a WAV container, which the last step then
+    decodes and re-encodes, two lossy passes for one requested conversion.
+    A PCM ``encoding`` stays on the intermediate, where it belongs.
+    ``bitrate`` follows the lossy codec, on the final encode.
+
+    Inheriting the input's bitrate is what a conversion is usually asked to
+    do: the caller named a container, not a quality, and silently halving the
+    quality is the kind of loss nobody measures until much later. Asked for
+    nothing on a 24 kHz mono stream, ffmpeg picks 32 kb/s, so "no bitrate"
+    was never a neutral choice.
+
+    Examples
+    --------
+    >>> # A forty-minute narration at 64 kb/s, 24 kHz, mono.
+    >>> sound_converter(
+    ...     "narration.wav",
+    ...     "narration.mp3",
+    ...     freq=24000,
+    ...     channels=1,
+    ...     bitrate="64k",
+    ... )  # doctest: +SKIP
+    'narration.mp3'
+
+    >>> # Re-containering a podcast episode keeps its 96 kb/s: the caller
+    >>> # asked to change the container, not the quality.
+    >>> sound_converter("episode.mp3", "episode.m4a")  # doctest: +SKIP
+    'episode.m4a'
     """
 
     osh.info(f"Converting audio file: {input_audio} into {output_audio}")
@@ -618,6 +757,38 @@ def sound_converter(
     verbose = False
     quiet = not verbose
 
+    # A lossy codec and its bitrate belong on the FINAL encode; PCM stays on
+    # the intermediate WAV. See the Notes above for why the distinction is not
+    # cosmetic.
+    intermediate_is_pcm = encoding.lower().startswith("pcm_")
+    intermediate_encoding = encoding if intermediate_is_pcm else "pcm_s16le"
+    final_kwargs: dict[str, str] = {}
+    if not intermediate_is_pcm:
+        final_kwargs["acodec"] = encoding
+    if bitrate is not None:
+        if ext_out.lower() == "wav":
+            osh.warning(
+                f"bitrate={bitrate!r} ignored for {output_audio}: a WAV output is "
+                "uncompressed, so it carries no bitrate. Ask for a lossy container "
+                "(.mp3, .m4a, .ogg) to make the setting meaningful."
+            )
+        else:
+            final_kwargs["audio_bitrate"] = _normalise_bitrate(bitrate)
+    elif ext_out.lower() != "wav":
+        # Nothing asked for: carry the input's own bitrate over rather than
+        # let ffmpeg pick. An uncompressed input has none to carry, and
+        # inventing one there would be a decision this package has no basis
+        # to make.
+        inherited = _source_bitrate(input_audio)
+        if inherited is not None:
+            final_kwargs["audio_bitrate"] = inherited
+            osh.info(f"carrying the input bitrate over: {inherited} b/s")
+        else:
+            osh.debug(
+                f"{input_audio} reports no compressed bitrate to carry over; "
+                "leaving the choice to ffmpeg"
+            )
+
     # Use temporary files for intermediate WAV processing (for robustness)
     with (
         osh.temporary_filename(suffix=".wav", mode="wb") as first_wav,
@@ -634,15 +805,17 @@ def sound_converter(
             osh.copyfile(input_audio, first_wav)
 
         # Convert the temporary WAV file to another WAV file with specified parameters
-        ffmpeg.input(first_wav).output(second_wav, ar=freq, ac=channels, acodec=encoding).run(
-            overwrite_output=True, quiet=quiet
-        )
+        ffmpeg.input(first_wav).output(
+            second_wav, ar=freq, ac=channels, acodec=intermediate_encoding
+        ).run(overwrite_output=True, quiet=quiet)
 
         # Same branch on the output side: encode to the requested container
         # unless the target is already WAV, in which case a copy suffices.
         if ext_out.lower() != "wav":
             # Final conversion to the specified output format
-            ffmpeg.input(second_wav).output(output_audio).run(overwrite_output=True, quiet=quiet)
+            ffmpeg.input(second_wav).output(output_audio, **final_kwargs).run(
+                overwrite_output=True, quiet=quiet
+            )
         else:
             osh.copyfile(second_wav, output_audio)
 

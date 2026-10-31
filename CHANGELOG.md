@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0] - 2026-10-31
+
+### Added
+
+- **`sound_converter` can state a bitrate.** New `bitrate` argument, accepting
+  bits per second as an integer (`64000`) or an ffmpeg-style string (`"64k"`),
+  reaching ffmpeg as `-b:a` on the final encode. Exposed as `--bitrate` on
+  `audio-helper convert` and as the `bitrate` form field on `POST /convert`.
+
+  It was the one setting the function could not express, and the gap was not
+  academic: a caller who wanted a forty-minute narration at 64 kb/s mono had to
+  shell out to ffmpeg itself, which is exactly the knowledge this package
+  exists to hold. Left unset, ffmpeg picks **32 kb/s** for a 24 kHz mono
+  stream, so "no bitrate" was never a neutral choice either.
+
+  **Left unset, the input's own bitrate is carried over.** The caller named a
+  container, not a quality, so re-encoding a 96 kb/s episode to another
+  container keeps 96 kb/s instead of dropping to whatever ffmpeg would have
+  picked. An uncompressed input has no compressed bitrate to carry, and
+  inventing one there is a decision this package has no basis to make, so the
+  choice is left to ffmpeg; `LOSSLESS_CODECS` names the families treated that
+  way, and PCM is matched by prefix. A WAV *output* carries no bitrate at all,
+  so the setting is ignored there with a warning rather than silently
+  dropped.
+
+### Fixed
+
+- **A lossy `encoding` no longer encodes twice.** `sound_converter` converts in
+  two stages, and the requested codec was applied to the *intermediate* WAV:
+  `encoding="libmp3lame"` wrote MP3 payload inside a WAV container, which the
+  final stage then decoded and re-encoded. Two lossy passes for one requested
+  conversion. A lossy codec now lands on the final encode, where its bitrate
+  joins it; a PCM codec stays on the intermediate, where it belongs.
+
 ## [2.5.0] - 2026-10-25
 
 ### Changed

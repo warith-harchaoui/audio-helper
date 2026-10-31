@@ -12,7 +12,7 @@ download audio.
 
 | Intent | CLI | Library | API |
 |--------|-----|---------|-----|
-| Re-encode format / sample rate / channels | `audio-helper convert` | `sound_converter` | `POST /convert` |
+| Re-encode format / sample rate / channels / bitrate | `audio-helper convert` | `sound_converter` | `POST /convert` |
 | Get duration in seconds | `audio-helper duration` | `get_audio_duration` | `POST /duration` |
 | Extract a `[start, end]` slice | `audio-helper chunk` | `extract_audio_chunk` | `POST /chunk` |
 | Generate silence | `audio-helper silence` | `generate_silent_audio` | `POST /silence` |
