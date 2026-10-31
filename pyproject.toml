@@ -27,7 +27,7 @@ classifiers = [
     "Topic :: Multimedia :: Sound/Audio :: Conversion",
 ]
 dependencies = [
-    "os-helper>=2.6.0,<4",
+    "os-helper>=2.6.0,<5",
     # The CLI is not an optional surface any more, so click cannot be an
     # optional dependency any more. See the 2.5.0 changelog entry.
     "click>=8.1,<9",
