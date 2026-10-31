@@ -227,16 +227,14 @@ comparator, and `recipe.yaml` export/import. Batch triage across many files
 roadmap. See [GUI.md](https://github.com/warith-harchaoui/audio-helper/blob/main/GUI.md)
 for the full split between what ships and what is planned.
 
-The page speaks **French and English**. `GET /gui?lang=fr|en` picks one, a flag
-in the header toggles between them, and a code the locale file does not carry
-falls back to the default rather than failing. Every string lives in
-[`audio_helper/locales/fr/LC_MESSAGES/audio_helper.po`](https://github.com/warith-harchaoui/audio-helper/blob/main/audio_helper/locales/fr/LC_MESSAGES/audio_helper.po),
-a standard `gettext` catalogue read through `os_helper.Catalog` — the loader
-shared across the suite — so
-translating the page never means opening a Python file. Two things stay in one
-language on purpose, and the file says why: the per-verb parameter labels name
-the form fields the request carries, and the comment header of an exported
-`recipe.yaml` belongs to a committable artifact rather than to the UI.
+The page speaks **French and English**. `GET /gui?lang=fr|en` picks one, a flag in the header toggles between them, and a code the locale file does not carry falls back to the default rather than failing.
+
+Every string lives in [`audio_helper/locales/fr/LC_MESSAGES/audio_helper.po`](https://github.com/warith-harchaoui/audio-helper/blob/main/audio_helper/locales/fr/LC_MESSAGES/audio_helper.po), a standard `gettext` catalogue read through `os_helper.Catalog` — the loader shared across the suite — so translating the page never means opening a Python file.
+
+Two things stay in one language on purpose, and the file says why:
+
+- the per-verb parameter labels name the form fields the request actually carries;
+- the comment header of an exported `recipe.yaml` belongs to a committable artifact rather than to the interface.
 
 ### Use it as an agent skill
 
@@ -250,16 +248,11 @@ the test suite fails if a capability stops being named.
 
 ## Rust rewrite
 
-A companion crate, [`audio-helper-rs`](https://github.com/warith-harchaoui/audio-helper-rs),
-rewrites the file-level surface (probe, convert, load-to-PCM, chunk, silence,
-concatenate, room tone, split) in idiomatic Rust. It is not a port and not a
-replacement: `separate_sources` (Demucs) and `sound_resemblance` (MFCC) stay
-Python-only, disproportionate for a Rust crate to reimplement. The payoff of
-reaching for it instead of this package: a dependency that compiles straight
-into your own Rust binary, with no Python interpreter, `pip install`, or
-virtualenv on the target machine — useful when audio-helper's job is a small
-piece of a larger Rust program, or the deployment target can't carry a Python
-runtime at all.
+A companion crate, [`audio-helper-rs`](https://github.com/warith-harchaoui/audio-helper-rs), rewrites the file-level surface — probe, convert, load-to-PCM, chunk, silence, concatenate, room tone, split — in idiomatic Rust.
+
+It is not a port and not a replacement: `separate_sources` (Demucs) and `sound_resemblance` (MFCC) stay Python-only, disproportionate for a Rust crate to reimplement.
+
+The payoff of reaching for it instead of this package is a dependency that compiles straight into your own Rust binary, with no Python interpreter, no `pip install` and no virtualenv on the target machine. Useful when audio-helper's job is a small piece of a larger Rust program, or when the deployment target cannot carry a Python runtime at all.
 
 ## Author
 
