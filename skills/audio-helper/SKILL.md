@@ -67,11 +67,11 @@ install ffmpeg`, Windows 🪟 `winget install Gyan.FFmpeg`.
 Quick examples:
 
 ```bash
-audio-helper convert talk.mp3 talk.wav --sample-rate 16000 --channels 1
-audio-helper chunk interview.wav out.wav --start 3 --end 8
-audio-helper split lecture.m4a ./chunks --duration 30
-audio-helper separate song.mp3 ./stems          # needs [demucs]
-audio-helper resemblance take1.wav take2.wav    # 0..1 similarity
+audio-helper convert --input talk.mp3 --output talk.wav --freq 16000 --channels 1
+audio-helper chunk --input interview.wav --output out.wav --start 3 --end 8
+audio-helper split --input lecture.m4a --output-dir ./chunks --seconds 30
+audio-helper separate --input song.mp3 --output-dir ./stems   # needs [demucs]
+audio-helper resemblance --a take1.wav --b take2.wav          # 0..1 similarity
 ```
 
 ```python
@@ -96,7 +96,7 @@ read `references/triggers.md`.
   `convert`. "cut/trim/crop a range" → `chunk`. "chop into pieces" → `split`.
   "merge/join/stitch" → `concat`. "isolate vocals / karaoke" → `separate`.
 - **16 kHz mono is the suite's speech convention.** When the output feeds a
-  speech pipeline, `convert --sample-rate 16000 --channels 1` first.
+  speech pipeline, `convert --freq 16000 --channels 1` first.
 - **`separate` is the only heavy operation.** It needs `[demucs]` and downloads
   model weights once on first run; after that it is fully offline. Without the
   extra it raises a clear `ImportError` — install it, do not fall back to a
