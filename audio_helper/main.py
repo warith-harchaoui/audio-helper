@@ -649,6 +649,16 @@ def _normalise_bitrate(bitrate: str | int) -> str:
     return text
 
 
+def _ffmpeg_quiet() -> bool:
+    """Whether ffmpeg's own output should be muted, read from ``osh.verbosity()``.
+
+    Muted at ``0`` (the default, WARNING), audible from ``1`` (INFO). Every
+    helper that runs ffmpeg asks here, so raising the verbosity to see why an
+    encode failed shows ffmpeg's own diagnostics wherever it runs.
+    """
+    return osh.verbosity() <= 0
+
+
 def sound_converter(
     input_audio: str,
     output_audio: str,
@@ -753,9 +763,7 @@ def sound_converter(
     _, _, ext_in = osh.folder_name_ext(input_audio)
     _, _, ext_out = osh.folder_name_ext(output_audio)
 
-    # Get verbosity settings from the environment
-    verbose = False
-    quiet = not verbose
+    quiet = _ffmpeg_quiet()
 
     # A lossy codec and its bitrate belong on the FINAL encode; PCM stays on
     # the intermediate WAV. See the Notes above for why the distinction is not
@@ -1270,7 +1278,7 @@ def extract_audio_chunk(
     _, _, ext_out = osh.folder_name_ext(output_audio_filename)
 
     # Use ffmpeg to extract the audio chunk from the input file
-    quiet = True
+    quiet = _ffmpeg_quiet()
     # Use wav format for intermediate files
     with (
         osh.temporary_filename(suffix=".wav", mode="wb") as temp_wav,
@@ -1448,7 +1456,7 @@ def audio_concatenation(
 
     input_streams = [ffmpeg.input(f) for f in audio_files]
 
-    quiet = True
+    quiet = _ffmpeg_quiet()
 
     _, _, ext = osh.folder_name_ext(output_audio_filename)
 
@@ -1554,7 +1562,7 @@ def mix_room_tone(
     # `duration=first` clamps back to the speech length. Avoids truncating
     # the tail of the speech by sub-sample rounding.
     noise_duration = duration + 0.5
-    quiet = osh.verbosity() <= 0
+    quiet = _ffmpeg_quiet()
 
     # Codec is dictated by the output extension (.wav → pcm_s16le, others
     # → ffmpeg's default for that container). Pcm preserves the mix

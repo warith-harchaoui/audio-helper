@@ -11,7 +11,7 @@
 services:
   audio-helper:
     build: .
-    image: audio-helperocal
+    image: audio-helper:local
     ports:
       - "${AUDIO_HELPER_PORT:-8000}:8000"
     environment:

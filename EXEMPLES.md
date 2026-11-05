@@ -61,9 +61,9 @@ porte aussi la gestion de fichiers que les fonctions audio laissent
 délibérément de côté. Deux appels méritent d'être connus avant tout le reste :
 
 ```python
-# 1 = INFO, les lignes de progression d'audio-helper deviennent visibles ;
-# 0 = WARNING est le défaut. La sortie de ffmpeg reste muette à tout niveau,
-# sauf dans mix_room_tone, qui la libère dès que verbosity() >= 1.
+# 1 = INFO, les lignes de progression d'audio-helper deviennent visibles,
+# celles de ffmpeg aussi ; 0 = WARNING (le défaut) rend ffmpeg muet, car chaque
+# helper lui passe quiet=True dès que verbosity() <= 0.
 osh.verbosity(1)
 
 # Aucune fonction d'écriture ne crée son dossier de destination. Celle-ci, si.
@@ -496,12 +496,13 @@ réutilisée que tant qu'elle est plus récente que chacune de ses entrées.
 Touchez une entrée et l'appel suivant la reconstruit. Pour refaire le travail
 sans condition, passez `overwrite=True`.
 
-**ffmpeg reste muet quand vous voulez le voir.** `osh.verbosity(1)` fait
-apparaître les lignes INFO d'audio-helper, mais la sortie propre de ffmpeg reste
-muselée dans `sound_converter`, `extract_audio_chunk` et `audio_concatenation`
-(donc aussi dans `load_audio` et `split_audio_regularly`, qui passent par
-elles), quel que soit le niveau. Seul `mix_room_tone` suit `osh.verbosity()` :
-muet à `0` (le défaut, WARNING), audible dès `1`.
+**ffmpeg bavard, ffmpeg muet quand vous voulez le voir.** Les deux relèvent
+de `osh.verbosity()`, que lit chaque helper qui lance ffmpeg
+(`sound_converter`, `extract_audio_chunk`, `audio_concatenation`,
+`mix_room_tone`, donc aussi `load_audio` et `split_audio_regularly`, qui
+passent par eux). À `0` (le défaut, WARNING) ffmpeg tourne avec `quiet=True` ;
+à `1` ou plus, vous récupérez les lignes INFO d'audio-helper ; la sortie
+propre de ffmpeg n'est plus muselée.
 
 **`ffmpeg is required to decode audio but was not found on PATH`.** Le message
 est littéral. `brew install ffmpeg` ou `apt install ffmpeg`, puis réessayez.

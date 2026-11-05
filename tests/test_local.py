@@ -373,3 +373,49 @@ def test_save_audio_rejects_unsupported_type(tmp_path):
     # error, no file written) despite the docstring promising AssertionError.
     with pytest.raises(AssertionError):
         save_audio([0.1, 0.2, 0.3], str(tmp_path / "out.wav"), sample_rate=16000)
+
+
+# ---------------------------------------------------------------------------
+# ffmpeg verbosity
+# ---------------------------------------------------------------------------
+
+
+def test_every_ffmpeg_call_follows_osh_verbosity(tmp_path, monkeypatch):
+    """ffmpeg's own output is muted at verbosity 0 and audible from 1, in every
+    helper that runs it, not only in ``mix_room_tone``. Until 2026-11-05,
+    ``sound_converter``, ``extract_audio_chunk`` and ``audio_concatenation``
+    passed ``quiet=True`` whatever the level, so raising the verbosity to see
+    why an encode failed showed nothing."""
+    import ffmpeg.nodes
+    import os_helper as osh
+
+    seen: list[bool] = []
+    real_run = ffmpeg.nodes.OutputStream.run
+
+    def spy(stream, *args, **kwargs):
+        seen.append(kwargs.get("quiet", False))
+        # Never let the spy's own setting leak into the terminal of the test.
+        kwargs["quiet"] = True
+        return real_run(stream, *args, **kwargs)
+
+    monkeypatch.setattr(ffmpeg.nodes.OutputStream, "run", spy)
+    a = _write_tone(tmp_path / "a.wav", 440.0)
+    b = _write_tone(tmp_path / "b.wav", 880.0)
+
+    def exercise(tag: str) -> None:
+        sound_converter(str(a), str(tmp_path / f"{tag}.mp3"), freq=24000)
+        extract_audio_chunk(str(a), 0.1, 0.5, str(tmp_path / f"{tag}-chunk.mp3"))
+        audio_concatenation([str(a), str(b)], str(tmp_path / f"{tag}-cat.mp3"))
+        mix_room_tone(str(a), str(tmp_path / f"{tag}-room.wav"))
+
+    previous = osh.verbosity()
+    try:
+        osh.verbosity(0)
+        exercise("quiet")
+        assert seen and all(seen), seen
+        seen.clear()
+        osh.verbosity(1)
+        exercise("loud")
+        assert seen and not any(seen), seen
+    finally:
+        osh.verbosity(previous)

@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **ffmpeg stayed muted at every verbosity in `sound_converter`,
+  `extract_audio_chunk` and `audio_concatenation`** (so also in `load_audio`
+  and `split_audio_regularly`), which passed `quiet=True` unconditionally;
+  only `mix_room_tone` followed `osh.verbosity()`. All four now ask the same
+  `_ffmpeg_quiet()`: muted at `0`, audible from `1`.
+- **`docker-compose.yml` tagged the image `audio-helperocal`**, a typo for
+  `audio-helper:local`, the name every other suite member uses.
+
 ## [2.6.1] - 2026-11-01
 
 ### Fixed
