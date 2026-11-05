@@ -46,7 +46,9 @@ needs** (source separation on demand, MFCC similarity for A/B
 comparisons). It intentionally does *not* try to compete with `librosa`
 on the analysis side, and it keeps `torch` **optional**:
 you only pay the ~2 GB torch/torchaudio cost if you actually call
-`separate_sources` (Demucs ships behind the `[demucs]` extra). That
+`separate_sources` (Demucs ships behind the `[demucs]` extra) or ask
+`load_audio` for a tensor rather than a numpy array (`to_numpy=True`
+needs no torch). That
 trade-off is the main differentiator against `torchaudio` (torch is
 mandatory) and against `librosa` (analysis-first, thin on format
 conversion and everyday I/O).

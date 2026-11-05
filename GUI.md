@@ -18,7 +18,11 @@ A single, self-contained HTML page (Tailwind via CDN + vanilla ES-module JS,
 **no build step**) served by the existing FastAPI app.
 
 - **Route**: `GET /gui` (and `GET /` redirects to it). Source:
-  `audio_helper/gui.py` (`GUI_HTML`), wired in `audio_helper/api.py`.
+  `audio_helper/gui.py` (`render_gui(lang)`), wired in `audio_helper/api.py`.
+- **Languages**: French and English. `GET /gui?lang=fr|en` picks one, a flag in
+  the header toggles between them, and an unknown code falls back to the
+  default. The strings live in the gettext catalogue under
+  `audio_helper/locales/`.
 - **Run it**:
   ```bash
   pip install 'audio-helper[api]'
@@ -123,7 +127,7 @@ for AI training.
 - **Keyboard first, mouse second.** The comparator's Space-bar A/B toggle is
   inspired by mixing consoles, not Photoshop.
 - **Colorblind-safe by construction.** State uses shape + label + text, never
-  color alone (see companion `front-colors` audit skill).
+  color alone (see the companion `sprezzature-colors` audit skill).
 
 ## What we deliberately don't do
 
@@ -148,8 +152,9 @@ for AI training.
 
 - Not a full DAW.
 - Not a hosted SaaS.
-- Not a substitute for the CLI in CI (recipes emit CLI-equivalent YAML that CI
-  can replay headless).
+- Not a substitute for the CLI in CI. An exported recipe maps each step 1:1 onto
+  a CLI subcommand, but no headless replayer for `recipe.yaml` ships yet: CI
+  runs the CLI directly.
 
 ## Success metric
 

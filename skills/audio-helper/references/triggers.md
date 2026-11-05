@@ -15,7 +15,7 @@ download audio.
 
 | Intent | CLI | Library | API |
 |--------|-----|---------|-----|
-| Re-encode format / sample rate / channels | `audio-helper convert` | `sound_converter` | `POST /convert` |
+| Re-encode format / sample rate / channels / bitrate | `audio-helper convert` | `sound_converter` | `POST /convert` |
 | Get duration in seconds | `audio-helper duration` | `get_audio_duration` | `POST /duration` |
 | Extract a `[start, end]` slice | `audio-helper chunk` | `extract_audio_chunk` | `POST /chunk` |
 | Generate silence | `audio-helper silence` | `generate_silent_audio` | `POST /silence` |
@@ -25,7 +25,8 @@ download audio.
 | Separate stems (Demucs) | `audio-helper separate` | `separate_sources` | `POST /separate` |
 | MFCC similarity score | `audio-helper resemblance` | `sound_resemblance` | `POST /resemblance` |
 
-Every operation is also reachable through the browser GUI at `GET /gui`.
+Every operation except `duration` is also a step in the browser GUI at
+`GET /gui`.
 
 ## Natural-language phrasings that should fire
 

@@ -62,8 +62,8 @@ délibérément de côté. Deux appels méritent d'être connus avant tout le re
 
 ```python
 # 1 = INFO, les lignes de progression d'audio-helper deviennent visibles ;
-# 0 = WARNING (le défaut) rend aussi ffmpeg silencieux, car la bibliothèque
-# passe quiet=True dès que verbosity() <= 0.
+# 0 = WARNING est le défaut. La sortie de ffmpeg reste muette à tout niveau,
+# sauf dans mix_room_tone, qui la libère dès que verbosity() >= 1.
 osh.verbosity(1)
 
 # Aucune fonction d'écriture ne crée son dossier de destination. Celle-ci, si.
@@ -162,9 +162,9 @@ chaîne à la façon de ffmpeg (`"64k"`).
 
 Laissé vide, **le débit de l'entrée est repris** : un épisode à 96 kb/s remis
 dans un `.m4a` reste à 96 kb/s, parce que l'appelant a nommé un conteneur et
-non une qualité. Une entrée non compressée n'a aucun débit à reprendre, et
-`audio-helper` n'en invente pas : ffmpeg choisit alors, et pour un flux mono à
-24 kHz il choisit 32 kb/s. C'est le cas où nommer le débit vaut la frappe.
+non une qualité. Une entrée non compressée n'a aucun débit à reprendre ;
+`audio-helper` n'en invente pas. ffmpeg choisit alors : pour un flux mono à
+24 kHz, il choisit 32 kb/s. C'est le cas où nommer le débit vaut la frappe.
 
 ```python
 print(
@@ -188,7 +188,7 @@ print(ah.sound_converter("episode.mp3", "episode.m4a"))
 L'étage où tombe chaque réglage mérite d'être connu, parce que la fonction
 encode deux fois. `freq` et `channels` s'appliquent au WAV intermédiaire, donc
 le conteneur final en hérite. Un `encoding` avec perte s'applique en revanche à
-l'encodage final, et `bitrate` l'y accompagne : nommer un codec avec perte sur
+l'encodage final, avec `bitrate` à ses côtés : nommer un codec avec perte sur
 le WAV intermédiaire y écrirait des données compressées dans un conteneur WAV,
 que la dernière étape décoderait puis réencoderait. Une sortie WAV ne porte
 aucun débit, donc le réglage y est ignoré avec un avertissement.
@@ -457,9 +457,10 @@ sample_rate=16000
 channels=1
 ```
 
-Chaque opération de la bibliothèque a sa route : `/convert`, `/duration`,
-`/chunk`, `/silence`, `/concat`, `/roomtone`, `/split` (qui renvoie une archive
-zip des morceaux), `/separate`, `/resemblance`. Les envois sont en multipart ;
+Chaque sous-commande de la CLI a sa route : `/convert`, `/duration`,
+`/chunk`, `/silence`, `/concat`, `/roomtone`, `/split`, `/separate`,
+`/resemblance` ; `/split` et `/separate` renvoient une archive zip des fichiers
+qu'elles ont écrits. Les envois sont en multipart ;
 la documentation OpenAPI est sur `/docs`.
 
 Deux surfaces de plus se posent sur cette même application. `GET /gui` sert le
@@ -495,10 +496,12 @@ réutilisée que tant qu'elle est plus récente que chacune de ses entrées.
 Touchez une entrée et l'appel suivant la reconstruit. Pour refaire le travail
 sans condition, passez `overwrite=True`.
 
-**ffmpeg est bavard — ou muet quand vous voulez le voir.** Les deux relèvent de
-`osh.verbosity()`. À `0` (le défaut, WARNING) la bibliothèque lance ffmpeg avec
-`quiet=True` ; à `1` ou plus, vous récupérez les lignes INFO d'audio-helper ; ffmpeg
-cesse d'être muselé.
+**ffmpeg reste muet quand vous voulez le voir.** `osh.verbosity(1)` fait
+apparaître les lignes INFO d'audio-helper, mais la sortie propre de ffmpeg reste
+muselée dans `sound_converter`, `extract_audio_chunk` et `audio_concatenation`
+(donc aussi dans `load_audio` et `split_audio_regularly`, qui passent par
+elles), quel que soit le niveau. Seul `mix_room_tone` suit `osh.verbosity()` :
+muet à `0` (le défaut, WARNING), audible dès `1`.
 
 **`ffmpeg is required to decode audio but was not found on PATH`.** Le message
 est littéral. `brew install ffmpeg` ou `apt install ffmpeg`, puis réessayez.

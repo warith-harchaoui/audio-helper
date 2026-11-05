@@ -107,6 +107,7 @@ pip install "audio-helper[demucs]"
 
 # Optional surfaces
 pip install "audio-helper[api]"       # FastAPI HTTP surface
+pip install "audio-helper[mcp]"       # MCP tools (pulls [api] in)
 ```
 
 ### From source (no PyPI)
@@ -121,6 +122,7 @@ pip install -e ".[demucs]"
 
 # Optional surfaces
 pip install -e ".[api]"
+pip install -e ".[mcp]"
 ```
 
 If you call `separate_sources` without the `[demucs]` extra, the function raises an `ImportError` pointing you back here.
@@ -188,7 +190,7 @@ stem before writing it.
 ## Multi-surface exposure
 
 `audio-helper` is not just a library: the same functions are exposed
-as a CLI and a FastAPI HTTP surface:
+as a CLI, a FastAPI HTTP surface and MCP tools:
 
 ```bash
 # Python library (default)
@@ -204,7 +206,7 @@ audio-helper resemblance --a a.mp3 --b b.mp3
 # FastAPI HTTP surface (needs the [api] extra)
 pip install "audio-helper[api]"
 # or from source:
-pip install "audio-helper[api]"
+pip install -e ".[api]"
 uvicorn audio_helper.api:app --port 8000
 # → OpenAPI docs at http://localhost:8000/docs
 

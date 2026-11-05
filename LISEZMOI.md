@@ -14,7 +14,7 @@ Audio Helper est une bibliothèque Python qui fournit des fonctions utilitaires 
 
 Audio Helper est éprouvé en production. Chaque changement passe par des tests automatisés puis une intégration continue avant d'atteindre PyPI ; les versions suivent le [versionnage sémantique](https://semver.org/lang/fr/).
 
-Deux autres paquets publiés de la suite s'appuient directement dessus en production : [`youtube-helper`](https://github.com/warith-harchaoui/youtube-helper) puis [`vocal-helper`](https://github.com/warith-harchaoui/vocal-helper). Audio Helper repose lui-même sur [`os-helper`](https://github.com/warith-harchaoui/os-helper), le socle commun que chaque bibliothèque de la suite utilise pour la journalisation puis la gestion des fichiers.
+Deux autres paquets publiés de la suite s'appuient directement dessus en production : [`youtube-helper`](https://github.com/warith-harchaoui/youtube-helper) et [`vocal-helper`](https://github.com/warith-harchaoui/vocal-helper). Audio Helper repose lui-même sur [`os-helper`](https://github.com/warith-harchaoui/os-helper), le socle commun que chaque bibliothèque de la suite utilise pour la journalisation et la gestion des fichiers.
 
 C'est ce que « éprouvé en production » veut dire ici : pas une promesse, mais un graphe de dépendances sur lequel repose déjà du code publié, dans les deux sens autour de ce paquet.
 
@@ -111,6 +111,7 @@ pip install "audio-helper[demucs]"
 
 # Surfaces optionnelles
 pip install "audio-helper[api]"       # surface HTTP FastAPI
+pip install "audio-helper[mcp]"       # outils MCP (tire [api] avec lui)
 ```
 
 ### Depuis les sources (sans PyPI)
@@ -125,6 +126,7 @@ pip install -e ".[demucs]"
 
 # Surfaces optionnelles
 pip install -e ".[api]"
+pip install -e ".[mcp]"
 ```
 
 Si vous appelez `separate_sources` sans l'extra `[demucs]`, la fonction lève une `ImportError` qui vous redirige ici.
@@ -210,7 +212,7 @@ audio-helper resemblance --a a.mp3 --b b.mp3
 # Surface HTTP FastAPI (extra [api])
 pip install "audio-helper[api]"
 # ou depuis les sources :
-pip install "audio-helper[api]"
+pip install -e ".[api]"
 uvicorn audio_helper.api:app --port 8000
 # → docs OpenAPI sur http://localhost:8000/docs
 
@@ -238,11 +240,11 @@ déposer, vue par grappes MFCC) reste, lui, sur la feuille de route. Voir
 [GUI.md](https://github.com/warith-harchaoui/audio-helper/blob/main/GUI.md)
 pour la répartition complète entre ce qui est livré et ce qui est prévu.
 
-La page parle **français puis anglais**. `GET /gui?lang=fr|en` choisit la langue, un drapeau dans l'en-tête bascule de l'une à l'autre, puis un code que le fichier de locales ne porte pas retombe sur la langue par défaut au lieu d'échouer.
+La page parle **français et anglais**. `GET /gui?lang=fr|en` choisit la langue, un drapeau dans l'en-tête bascule de l'une à l'autre ; un code que le fichier de locales ne porte pas retombe sur la langue par défaut au lieu d'échouer.
 
 Toutes les chaînes vivent dans [`audio_helper/locales/fr/LC_MESSAGES/audio_helper.po`](https://github.com/warith-harchaoui/audio-helper/blob/main/audio_helper/locales/fr/LC_MESSAGES/audio_helper.po), un catalogue `gettext` standard lu par `os_helper.Catalog` — le chargeur partagé par la suite — si bien que traduire la page n'oblige jamais à ouvrir un fichier Python.
 
-Deux choses restent volontairement dans une seule langue, puis le fichier dit pourquoi :
+Deux choses restent volontairement dans une seule langue ; le fichier dit pourquoi :
 
 - les libellés de paramètres de chaque verbe nomment les champs que la requête porte vraiment ;
 - l'en-tête de commentaire d'un `recipe.yaml` exporté appartient à un artefact versionnable, pas à l'interface.
@@ -262,7 +264,7 @@ nommée.
 
 Un crate compagnon, [`audio-helper-rs`](https://github.com/warith-harchaoui/audio-helper-rs), réécrit la surface au niveau fichier — sonder, convertir, charger en PCM, découper, générer du silence, concaténer, insérer un bruit de fond, scinder — en Rust idiomatique.
 
-Ce n'est ni un portage ni un remplacement : `separate_sources` (Demucs) puis `sound_resemblance` (MFCC) restent réservés à la version Python, disproportionnés à réimplémenter dans un crate Rust.
+Ce n'est ni un portage ni un remplacement : `separate_sources` (Demucs) et `sound_resemblance` (MFCC) restent réservés à la version Python, disproportionnés à réimplémenter dans un crate Rust.
 
 L'intérêt d'y recourir plutôt qu'à ce paquet est une dépendance qui se compile directement dans votre propre binaire Rust, sans interpréteur Python, sans `pip install` ni environnement virtuel sur la machine cible. Utile quand audio-helper n'est qu'une brique d'un programme Rust plus large. Utile aussi quand la cible de déploiement ne peut tout simplement pas embarquer de runtime Python.
 

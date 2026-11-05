@@ -59,9 +59,9 @@ file management the audio functions deliberately leave alone. Two calls are
 worth knowing before anything else:
 
 ```python
-# 1 = INFO, so audio-helper's own progress lines show up; 0 = WARNING (the
-# default) also makes ffmpeg quiet, because the library passes quiet=True
-# whenever verbosity() <= 0.
+# 1 = INFO, so audio-helper's own progress lines show up; 0 = WARNING is the
+# default. ffmpeg's own output stays muted at every level, except in
+# mix_room_tone, which unmutes it once verbosity() >= 1.
 osh.verbosity(1)
 
 # None of the writing functions create their destination folder. This one does.
@@ -446,9 +446,9 @@ sample_rate=16000
 channels=1
 ```
 
-Every library operation has a route: `/convert`, `/duration`, `/chunk`,
-`/silence`, `/concat`, `/roomtone`, `/split` (which returns a zip of the
-chunks), `/separate`, `/resemblance`. Uploads are multipart; OpenAPI docs are
+Every CLI subcommand has a route: `/convert`, `/duration`, `/chunk`,
+`/silence`, `/concat`, `/roomtone`, `/split`, `/separate`, `/resemblance`;
+`/split` and `/separate` return a zip of the files they wrote. Uploads are multipart; OpenAPI docs are
 at `/docs`.
 
 Two more surfaces sit on that same app. `GET /gui` serves the **Recipe
@@ -483,10 +483,12 @@ array.
 it is newer than every input. Touch an input and the next call rebuilds it. If
 you want the work redone unconditionally, pass `overwrite=True`.
 
-**ffmpeg is noisy, or silent when you want to see it.** Both are
-`osh.verbosity()`. At `0` (the default, WARNING) the library runs ffmpeg with
-`quiet=True`; at `1` or more you get audio-helper's own INFO lines, and ffmpeg
-stops being muted.
+**ffmpeg stays silent when you want to see it.** `osh.verbosity(1)` brings
+audio-helper's own INFO lines, but ffmpeg's own output stays muted in
+`sound_converter`, `extract_audio_chunk` and `audio_concatenation` (so also in
+`load_audio` and `split_audio_regularly`, which go through them), whatever the
+level. Only `mix_room_tone` follows `osh.verbosity()`: muted at `0` (the
+default, WARNING), audible from `1`.
 
 **`ffmpeg is required to decode audio but was not found on PATH`.** The message
 is literal. `brew install ffmpeg` or `apt install ffmpeg`, then retry.

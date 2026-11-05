@@ -97,7 +97,9 @@ ranges against the PyPI releases, not git tag pins.
 
 GitHub Actions runs `pytest` on Python 3.12 (Linux), a deliberately
 light gate; the full local suite runs pre-push. A separate `ruff`
-job blocks merging on both lint and format violations. Integration
+job blocks merging on both lint and format violations, and a `floor`
+job installs the package on Python 3.10 and imports it, so the
+`requires-python` floor is checked rather than assumed. Integration
 tests are gated by `pytestmark = pytest.mark.integration` and
 skipped by default (`addopts = -m 'not integration'`).
 

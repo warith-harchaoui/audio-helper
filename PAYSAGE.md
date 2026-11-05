@@ -50,7 +50,8 @@ comparaisons A/B). Il ne cherche délibérément *pas* à concurrencer
 `librosa` sur le versant analyse et il garde `torch`
 **optionnel** : on ne paie le coût de ~2 Go de torch/torchaudio que si
 l'on appelle réellement `separate_sources` (Demucs est livré derrière
-l'extra `[demucs]`). Ce compromis est le principal facteur de
+l'extra `[demucs]`) ou si l'on demande à `load_audio` un tenseur plutôt
+qu'un tableau numpy (`to_numpy=True` se passe de torch). Ce compromis est le principal facteur de
 différenciation face à `torchaudio` (torch obligatoire) et face à
 `librosa` (centré analyse, mince sur la conversion de format et l'E/S du
 quotidien).
@@ -171,10 +172,10 @@ Laissés volontairement à l'état d'opinion plutôt que sourcés : la colonne
 
 Étudié plutôt que deviné : ce que chaque voisin fait mieux, puis ce que cette bibliothèque devrait changer pour l'égaler. Rien ici n'est un engagement : c'est la liste de lecture dont part la version suivante.
 
-- **`librosa` — le vocabulaire des caractéristiques spectrales** — `sound_resemblance` calcule ici une similarité MFCC, mais le cadrage de librosa — bancs de filtres mel, saut puis fenêtre en paramètres explicites, un jeu de caractéristiques documenté — est la référence que tout lecteur connaît déjà. Nommer les paramètres de la même façon ne coûte rien puis supprime une étape de traduction.
+- **`librosa` — le vocabulaire des caractéristiques spectrales** — `sound_resemblance` calcule ici une similarité MFCC, mais le cadrage de librosa — bancs de filtres mel, saut et fenêtre en paramètres explicites, un jeu de caractéristiques documenté — est la référence que tout lecteur connaît déjà. Nommer les paramètres de la même façon ne coûte rien et supprime une étape de traduction.
 
 - **`pydub` — une API qui se lit comme le montage qu'on décrit** — Découper un segment avec `[]` puis concaténer avec `+` se lit mieux qu'un appel de fonction pour du travail ponctuel. La surface par appels convient aux pipelines ; une fine enveloppe fluide par-dessus servirait le cas du carnet sans toucher au cœur.
 
 - **`soundfile` — demander à libsndfile ce qu'il gère, ne pas le coder en dur** — `available_formats()` rapporte les formats réellement compilés dans le libsndfile installé. L'équivalent ici est d'interroger le ffmpeg installé plutôt que d'embarquer une liste qui dérive de ce que l'utilisateur possède.
 
-- **`sox` — les effets comme une chaîne composable** — Normaliser, compresser, trembler puis fondre sont des étapes distinctes qu'on empile. Le fond sonore a déjà cette forme ; les autres verbes de post-production se composeraient pareil.
+- **`sox` — les effets comme une chaîne composable** — Normaliser, compresser, tramer et fondre sont des étapes distinctes qu'on empile. Le fond sonore a déjà cette forme ; les autres verbes de post-production se composeraient pareil.
