@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`audio-helper-mcp --help` started a server.** The launcher read its bind
+  from `AUDIO_HELPER_HOST` / `AUDIO_HELPER_PORT` and ignored its arguments, so
+  asking for help served on port 8001 and never returned. It is now a click
+  command: `--help` (and `-h`) prints the usage, `--host` / `--port` set the
+  bind, and the environment variables and defaults (`127.0.0.1:8001`) work as
+  before. A test runs every console script with `--help` under a timeout.
+- **The trigger catalogue had two diverging copies.** `TRIGGERS.md` and
+  `skills/audio-helper/references/triggers.md` are now one file written twice
+  (which also names `audio-helper-mcp` among the surfaces), and
+  `scripts/check_triggers.py` fails when they drift.
+
 ## [2.6.2] - 2026-11-05
 
 ### Fixed

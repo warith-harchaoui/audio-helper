@@ -1,11 +1,12 @@
-# audio-helper skill — exhaustive trigger catalogue
+# TRIGGERS: audio-helper
 
-Auditable superset of the phrasings that should fire this skill. The
-`description:` in `SKILL.md` is what a host model actually sees and is capped at
-1024 characters; this file carries the full list. Keep the two in sync — and
-keep this file in sync with the repo-root `TRIGGERS.md`, the user-facing
-catalogue it mirrors.
-
+This is the user-facing, exhaustive catalogue of what `audio-helper` can do and
+the natural-language phrasings, commands, functions, and file types that should
+invoke it. The `description:` in `skills/audio-helper/SKILL.md` is what a host
+model actually sees and is capped at 1024 characters; this file carries the
+full list, so keep the two in sync. The repo-root `TRIGGERS.md` and
+`skills/audio-helper/references/triggers.md` are the same file, byte for byte;
+`scripts/check_triggers.py` fails when they drift.
 
 `audio-helper` transforms audio **files** (and the audio track of video files).
 It is local-first and ffmpeg-backed. It does **not** transcribe, synthesize, or
@@ -43,7 +44,9 @@ Every operation except `duration` is also a step in the browser GUI at
 - **Resemblance**: "how similar are these two clips", "compare these takes",
   "MFCC / audio fingerprint similarity".
 - **Probe**: "how long is this", "is this a valid audio file".
-- **Surfaces**: "run the audio API server", "open the audio GUI", "install
+- **Surfaces**: "run the audio API server", "open the audio GUI", "start the
+  audio MCP server" (`audio-helper-mcp`, needs `[mcp]`; bind with `--host` /
+  `--port` or `AUDIO_HELPER_HOST` / `AUDIO_HELPER_PORT`), "install
   audio-helper".
 
 ## File types it accepts
