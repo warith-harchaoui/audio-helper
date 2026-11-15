@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.4] - 2026-11-15
+
+### Changed
+
+- **No upper bound on Python any more.** `requires-python` was capped at
+  `>=3.10,<3.14` with no recorded reason, which refused every newer Python at install
+  time; it is now `>=3.10`. Badges and prerequisites say "Python 3.10 or later".
+
 ## [2.6.3] - 2026-11-05
 
 ### Fixed
@@ -560,7 +568,6 @@ project page never drifts to an old version.
   separation) instead of specific tool names, for consistency across the
   suite's descriptions and the documentation site.
 
-
 ## [1.5.6] - 2026-07-14
 
 ### Maintenance
@@ -574,7 +581,6 @@ project page never drifts to an old version.
   (`osh.info/warning/error`) and adopt os-helper path/file utilities
   more widely; pin `os-helper>=1.5.0`.
 - Refresh the project logo asset.
-
 
 ## [1.5.5] - 2026-07-08
 
