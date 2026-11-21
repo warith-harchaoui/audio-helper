@@ -12,6 +12,8 @@
 
 Audio Helper is a Python library that provides utility functions for processing audio files. It includes features like loading audio, converting formats, separating audio sources, and splitting and concatenating audio files.
 
+Drop a [⭐️](https://github.com/warith-harchaoui/audio-helper) on GitHub if my help deserves it.
+
 Audio Helper is battle-tested. Every change ships through automated tests and continuous integration before it reaches PyPI, and versions follow [Semantic Versioning](https://semver.org/).
 
 Two other published packages in the suite build directly on top of it in production: [`youtube-helper`](https://github.com/warith-harchaoui/youtube-helper) and [`vocal-helper`](https://github.com/warith-harchaoui/vocal-helper). Audio Helper itself depends on [`os-helper`](https://github.com/warith-harchaoui/os-helper), the shared foundation every library in the suite uses for logging and file management.

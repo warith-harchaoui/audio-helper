@@ -77,6 +77,7 @@ from . import (
 
 
 @click.group(
+    epilog="⭐️ on GitHub: https://github.com/warith-harchaoui/audio-helper",
     context_settings={"help_option_names": ["-h", "--help"], "max_content_width": 100},
 )
 # ``-V`` beside ``--version``: ``-v`` is taken by --verbose elsewhere in the
