@@ -34,8 +34,10 @@ Warith Harchaoui, Ph.D. — https://linkedin.com/in/warith-harchaoui/
 
 from __future__ import annotations
 
-# Standard library first (PEP 8 import grouping): concurrency.
 import concurrent.futures
+
+# Standard library first (PEP 8 import grouping): concurrency.
+import logging
 import os
 import re
 from typing import TYPE_CHECKING
@@ -57,6 +59,8 @@ from tqdm import tqdm
 if TYPE_CHECKING:
     import torch
     import torchaudio
+
+logger = logging.getLogger(__name__)
 
 
 # Shared, actionable hint raised whenever a torch-only feature is reached
@@ -308,22 +312,22 @@ def _overwrite_audio_file(
         - None in every other case (caller should proceed with writing).
     """
     if not (overwrite) and osh.file_exists(output_audio_filename):
-        osh.info(f"Output audio file already exists:\n\t{output_audio_filename}")
+        logger.info(f"Output audio file already exists:\n\t{output_audio_filename}")
         if is_valid_audio_file(output_audio_filename):
             if not _output_is_stale(output_audio_filename, inputs):
                 return output_audio_filename
             osh.remove_files([output_audio_filename])
-            osh.info(
+            logger.info(
                 f"Output audio file is older than its input, regenerating:"
                 f"\n\t{output_audio_filename}"
             )
             return None
         else:
             osh.remove_files([output_audio_filename])
-            osh.info(f"Deleting invalid output audio file:\n\t{output_audio_filename}")
+            logger.info(f"Deleting invalid output audio file:\n\t{output_audio_filename}")
     elif overwrite and osh.file_exists(output_audio_filename):
         osh.remove_files([output_audio_filename])
-        osh.info(f"Deleting output audio file for overwrite:\n\t{output_audio_filename}")
+        logger.info(f"Deleting output audio file for overwrite:\n\t{output_audio_filename}")
 
     return None
 
@@ -334,7 +338,7 @@ def _overwrite_audio_list(output_audio_list: list[str], overwrite: bool = True) 
 
     Parameters
     ----------
-    output_audio_list : List[str]
+    output_audio_list : list[str]
         List of paths to the output audio files.
     overwrite : bool, optional
         If True (the default), any existing files are deleted so they can
@@ -365,13 +369,13 @@ def _overwrite_audio_list(output_audio_list: list[str], overwrite: bool = True) 
         # length here since they are built in lock-step above).
         d = dict(zip(stem_keys, stem_files, strict=False))
         s = "\n\t".join([f"{k}:\t{v}" for k, v in d.items()])
-        osh.info(f"Sources already separated for at:\n\t{s}")
+        logger.info(f"Sources already separated for at:\n\t{s}")
         return d
     elif overwrite:
         for f in output_audio_list:
             if osh.file_exists(f):
                 osh.remove_files([f])
-                osh.info(f"Deleting output audio file for overwrite:\n\t{f}")
+                logger.info(f"Deleting output audio file for overwrite:\n\t{f}")
 
     return None
 
@@ -406,14 +410,14 @@ def is_valid_audio_file(file_path: str) -> bool:
         )
         valid = audio_stream is not None
     except (ffmpeg.Error, KeyError, OSError) as exc:
-        osh.debug(f"is_valid_audio_file: ffprobe failed for {file_path}: {exc}")
+        logger.debug(f"is_valid_audio_file: ffprobe failed for {file_path}: {exc}")
         valid = False
 
     _, _, ext = osh.folder_name_ext(file_path)
     if ext.lower() not in audio_extensions:
         valid = False
 
-    osh.info(f"Audio file {file_path} is {'valid' if valid else 'invalid'}")
+    logger.info(f"Audio file {file_path} is {'valid' if valid else 'invalid'}")
     return valid
 
 
@@ -747,7 +751,7 @@ def sound_converter(
     'episode.m4a'
     """
 
-    osh.info(f"Converting audio file: {input_audio} into {output_audio}")
+    logger.info(f"Converting audio file: {input_audio} into {output_audio}")
 
     # Check if the input audio file exists
     osh.checkfile(input_audio, msg=f"Input audio file not found: {input_audio}")
@@ -775,7 +779,7 @@ def sound_converter(
         final_kwargs["acodec"] = encoding
     if bitrate is not None:
         if ext_out.lower() == "wav":
-            osh.warning(
+            logger.warning(
                 f"bitrate={bitrate!r} ignored for {output_audio}: a WAV output is "
                 "uncompressed, so it carries no bitrate. Ask for a lossy container "
                 "(.mp3, .m4a, .ogg) to make the setting meaningful."
@@ -790,9 +794,9 @@ def sound_converter(
         inherited = _source_bitrate(input_audio)
         if inherited is not None:
             final_kwargs["audio_bitrate"] = inherited
-            osh.info(f"carrying the input bitrate over: {inherited} b/s")
+            logger.info(f"carrying the input bitrate over: {inherited} b/s")
         else:
-            osh.debug(
+            logger.debug(
                 f"{input_audio} reports no compressed bitrate to carry over; "
                 "leaving the choice to ffmpeg"
             )
@@ -831,7 +835,7 @@ def sound_converter(
     osh.checkfile(output_audio, msg=f"Failed to convert audio file:\n\t{output_audio}")
     assert is_valid_audio_file(output_audio), f"Invalid audio file:\n\t{output_audio}"
 
-    osh.info(f"Audio file converted successfully:\n\t{output_audio}")
+    logger.info(f"Audio file converted successfully:\n\t{output_audio}")
 
     return output_audio
 
@@ -890,7 +894,7 @@ def save_audio(signal: torch.Tensor | np.ndarray, file_path: str, sample_rate: i
                 )
 
         assert is_valid_audio_file(file_path), f"Audio file not saved to {file_path}"
-        osh.info(f"Audio signal saved to {file_path}")
+        logger.info(f"Audio signal saved to {file_path}")
 
     else:
         raise AssertionError(
@@ -1121,7 +1125,7 @@ def separate_sources(
     """
 
     global separator_engine, separator_engine_sample_rate
-    osh.info(f"Separating sources for:\n\t{input_audio_file}")
+    logger.info(f"Separating sources for:\n\t{input_audio_file}")
 
     # Set up the output folder if not specified
     if output_folder is None:
@@ -1197,7 +1201,7 @@ def separate_sources(
         save_audio(audio, output_audio_file, sample_rate)
         res[stem] = output_audio_file
 
-        osh.info(f"Saved {stem} to\n\t{output_audio_file}")
+        logger.info(f"Saved {stem} to\n\t{output_audio_file}")
 
     return res
 
@@ -1314,7 +1318,7 @@ def extract_audio_chunk(
         f"Failed to extract audio chunk from {start_time} to {end_time}:\n\t{output_audio_filename}"
     )
 
-    osh.info(f"Extracted audio chunk from\n\t{audio_file} to\n\t{output_audio_filename}")
+    logger.info(f"Extracted audio chunk from\n\t{audio_file} to\n\t{output_audio_filename}")
 
     return output_audio_filename
 
@@ -1393,7 +1397,7 @@ def generate_silent_audio(
         f"Generated silent audio file is not silent:\n\t{output_audio_filename}"
     )
 
-    osh.info(f"Generated silent audio file: {output_audio_filename}")
+    logger.info(f"Generated silent audio file: {output_audio_filename}")
 
     return output_audio_filename
 
@@ -1480,7 +1484,7 @@ def audio_concatenation(
         f"Failed to concatenate audio files: {audio_files}"
     )
 
-    osh.info(f"Concatenated audio files into: {output_audio_filename}")
+    logger.info(f"Concatenated audio files into: {output_audio_filename}")
 
     return output_audio_filename
 
@@ -1596,7 +1600,7 @@ def mix_room_tone(
     )
     assert is_valid_audio_file(output_audio), f"Generated room-tone file is invalid: {output_audio}"
 
-    osh.info(
+    logger.info(
         f"Mixed room tone ({noise_db} dB {color}) into: {output_audio}",
     )
     return output_audio
@@ -1669,13 +1673,13 @@ def split_audio_regularly(
         e = min(time_cursor + split_time, total_duration)
         extract_audio_chunk(sound_path, s, e, output_audio_filename=chunk_path, overwrite=overwrite)
         added_duration = get_audio_duration(chunk_path)
-        osh.info(f"Chunk {counter:04d} of duration {added_duration} saved to:\n\t{chunk_path}")
+        logger.info(f"Chunk {counter:04d} of duration {added_duration} saved to:\n\t{chunk_path}")
         output_audio_paths.append(chunk_path)
         time_cursor += added_duration
         counter += 1
 
     s = "\n\t".join(output_audio_paths)
-    osh.info(
+    logger.info(
         f"Audio file {sound_path} split into chunks of {split_time} seconds in {chunk_folder}:\n\t{s}"
     )
 
@@ -1790,7 +1794,7 @@ def mel_filter_banks(
     # effective filters than requested, with no error and no clue.
     empty = int((fbank.sum(axis=1) == 0).sum())
     if empty:
-        osh.warning(
+        logger.warning(
             f"{empty} of {num_filters} mel filters are empty: the {num_filters}-filter "
             f"grid is finer than n_fft={n_fft} can resolve between {low_freq} and "
             f"{high_freq} Hz. Lower num_filters or raise n_fft."
